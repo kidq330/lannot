@@ -3,7 +3,7 @@ module Self = Plugin.Register (struct
   let shortname = "genlabels"
   let help = "generate labels"
 end)
-  
+
 module Enabled = Self.False (struct
   let option_name = "-genlabels"
   let help = "generate labels"

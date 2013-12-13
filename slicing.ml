@@ -19,7 +19,7 @@ let tested_func () =
   match (fst (Globals.entry_point ())).fundec with
     | Definition(f,_) -> f.svar.vname
     | Declaration _ -> failwith "entry_point"
-    
+
 
 (* val print_project: Project.t -> string *)
 let print_project prj filename=
@@ -71,7 +71,7 @@ let final_stmts ?min:(m = false) stmts =
     | _::t1, _::t2 -> aux ret t1 t2
     | _ -> failwith "final_stmts" in
   aux [] stmts imp
-    
+
 
 
 module type Type = sig
@@ -79,7 +79,7 @@ module type Type = sig
   val name : string
 end
 
-    
+
 (*************************)
 (* NONE                  *)
 (*************************)
@@ -92,7 +92,7 @@ module None:Type = struct
       Instru.generate_labels_prj prj;
       let _ = print_project prj filename in
 	[]
-      
+
 end
 
 
@@ -104,5 +104,5 @@ module Multi:Type = struct
       Instru.generate_multi_labels_prj prj;
       let _ = print_project prj filename in
 	[]
-      
+
 end

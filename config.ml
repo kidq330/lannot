@@ -1,6 +1,6 @@
 open Cil_types
 exception NoInputFile
-    
+
 
 (* val input_file: unit -> string *)
 let input_file() =

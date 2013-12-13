@@ -3,14 +3,14 @@ open Cil
 open Cil_types
 
 exception AlarmsSameLine
-    
+
 (* val get_alarms : unit -> stmt list *)
 let get_alarms() =
   let ret = ref [] in
-  
+
   let v = object
     inherit Visitor.frama_c_inplace
-    method vstmt_aux s =
+    method! vstmt_aux s =
       let _ = Utils.all_stmts := s :: !Utils.all_stmts in DoChildren
   end in
   let file = Ast.get () in
@@ -21,8 +21,8 @@ let get_alarms() =
   List.rev !ret
 
 (*************************************************)
-    
-  
+
+
 module Make (ST : Slicing.Type) = struct
   let run() =
     Options.Self.feedback "started";
@@ -38,8 +38,8 @@ module Make (ST : Slicing.Type) = struct
 	(******************************************)
 	(* SLICING & DYNAMIC ANALYSIS             *)
 	(******************************************)
-      
-	let verdicts = ST.process alarms in
+
+	let _verdicts = ST.process alarms in
 
     Options.Self.feedback "finished";
 end
@@ -50,12 +50,12 @@ let run() =
   try
     if Options.MultiCond.get() then
       begin
-	let module M = Make (Slicing.Multi ) in 
+	let module M = Make (Slicing.Multi ) in
 	  M.run()
       end
     else
       begin
-	let module M = Make (Slicing.None ) in 
+	let module M = Make (Slicing.None ) in
 	  M.run()
       end
   with
@@ -71,9 +71,10 @@ let run() =
 
 let run =
   let deps = [Ast.self; Options.Enabled.self] in
+  Cil.set_useLogicalOperators true;
   let f, _self = State_builder.apply_once "GENLABELS" deps run in
   f
-    
-    
+
+
 let() = Db.Main.extend run
-  
+

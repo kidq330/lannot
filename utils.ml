@@ -6,7 +6,7 @@ let all_stmts = ref ([]:stmt list)
 
 (* val get_stmt_loc: stmt -> loc *)
 let rec get_stmt_loc = Cil_datatype.Stmt.loc
-    
+
 (* val get_stmt_loc_int: stmt -> int *)
 let rec get_stmt_loc_int s = (fst (get_stmt_loc s)).pos_lnum
 
