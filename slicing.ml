@@ -2,6 +2,7 @@ open Cil_types
 
 
 (* val slice : stmt list -> string -> Project.t *)
+(*
 let slice stmts prj_name =
   let _ = !Db.Slicing.set_modes ~keepAnnotations:true () in
   let slicing = !Db.Slicing.Project.mk_project prj_name in
@@ -12,7 +13,10 @@ let slice stmts prj_name =
   let _ = !Db.Slicing.Request.apply_all_internal slicing in
   let _ = !Db.Slicing.Slice.remove_uncalled slicing in
   !Db.Slicing.Project.extract prj_name slicing
-
+*)
+let slice stmts prj_name =
+  let prj = File.create_project_from_visitor prj_name (fun prj -> new Visitor.frama_c_copy prj) in 
+    prj
 
 (* val tested_func: unit -> string *)
 let tested_func () =
