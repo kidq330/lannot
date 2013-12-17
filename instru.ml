@@ -2,6 +2,12 @@ open Cil
 open Cil_types
 open Lexing
 
+let nextLabelId : int ref = ref 1
+
+(* (file,line, id, cond) *)
+let labelsList : (string*int*int*exp) list ref = ref []
+
+
 (* val mk_call: loc -> lval option -> string -> exp list -> stmt *)
 let mk_call loc ?result fname args =
   let new_lval loc v = new_exp loc (Lval (var v)) in
@@ -11,6 +17,14 @@ let mk_call loc ?result fname args =
   let ty = TFun(t, None, false, []) in
   let f = new_lval loc (makeGlobalVar fname ty) in
   mkStmt ~valid_sid:true (Instr(Call(result, f, args, loc)))
+
+let makeLabel cond loc = 
+  let labelIdExp = dummy_exp (Const(CInt64(Integer.of_int(!nextLabelId),IInt,None))) in
+  let lineNumber = (fst loc).pos_lnum in
+  let fileName = (fst loc).pos_fname in
+    labelsList := (fileName,lineNumber,!nextLabelId, cond)::!labelsList;
+    nextLabelId := !nextLabelId+1;
+    mk_call loc "pc_label" [ cond; labelIdExp ]
 
 let rec genLabelPerExp exp loc =
   match exp.enode with
@@ -22,35 +36,37 @@ let rec genLabelPerExp exp loc =
 
     | BinOp(Lt, e1, e2, t) ->
         let nonExp = dummy_exp(BinOp(Ge, e1, e2, t)) in
-          [mk_call loc "pc_label" [ exp ]; mk_call loc "pc_label" [ nonExp ]]
+          [makeLabel exp loc; makeLabel nonExp loc]
 
     | BinOp(Gt, e1, e2, t) ->
         let nonExp = dummy_exp(BinOp(Le, e1, e2, t)) in
-          [mk_call loc "pc_label" [ exp ]; mk_call loc "pc_label" [ nonExp ]]
+	  [makeLabel exp loc; makeLabel nonExp loc]
 
     | BinOp(Le, e1, e2, t) ->
         let nonExp = dummy_exp(BinOp(Gt, e1, e2, t)) in
-          [mk_call loc "pc_label" [ exp ]; mk_call loc "pc_label" [ nonExp ]]
+	  [makeLabel exp loc; makeLabel nonExp loc]
+
 
     | BinOp(Ge, e1, e2, t) ->
         let nonExp = dummy_exp(BinOp(Lt, e1, e2, t)) in
-          [mk_call loc "pc_label" [ exp ]; mk_call loc "pc_label" [ nonExp ]]
+	  [makeLabel exp loc; makeLabel nonExp loc]
 
     | BinOp(Eq, e1, e2, t) ->
         let nonExp = dummy_exp(BinOp(Ne, e1, e2, t)) in
-          [mk_call loc "pc_label" [ exp ]; mk_call loc "pc_label" [ nonExp ]]
+	  [makeLabel exp loc; makeLabel nonExp loc]
 
     | BinOp(Ne, e1, e2, t) ->
         let nonExp = dummy_exp(BinOp(Eq, e1, e2, t)) in
-          [mk_call loc "pc_label" [ exp ]; mk_call loc "pc_label" [ nonExp ]]
+	  [makeLabel exp loc; makeLabel nonExp loc]
 
     | BinOp(_, _e1, _e2, _) ->
         let nonExp = dummy_exp(UnOp(LNot, exp, intType)) in
-          [mk_call loc "pc_label" [ exp ]; mk_call loc "pc_label" [ nonExp ]]
+	  [makeLabel exp loc; makeLabel nonExp loc]
 
     | Lval(_lv) ->
         let nonExp = dummy_exp(UnOp(LNot, exp, intType)) in
-          [mk_call loc "pc_label" [ exp ]; mk_call loc "pc_label" [ nonExp ]]
+	  [makeLabel exp loc; makeLabel nonExp loc]
+
 
     | UnOp(LNot, e1, _) ->
         genLabelPerExp e1 loc
@@ -203,6 +219,28 @@ let rec getUnitaryConditionsInExp exp =
 
   | _ -> []
 
+
+let prepareLabelsBuffer labelsList myBuffer = 
+  Buffer.add_string myBuffer "<labels>\n";
+
+  let rec printLabels labels =
+    match labels with
+      |	(fileName,lineNb, id, _cond)::rest ->
+	  Buffer.add_string myBuffer ("<label>\n");
+	  Buffer.add_string myBuffer ("<id>" ^ (string_of_int id)  ^ "</id>\n");
+	  Buffer.add_string myBuffer ("<cond>" ^ "</cond>\n");
+	  Buffer.add_string myBuffer ("<file>" ^ fileName  ^ "</file>\n");
+	  Buffer.add_string myBuffer ("<line>" ^ (string_of_int lineNb)  ^ "</line>\n");
+	  Buffer.add_string myBuffer ("</label>\n");
+	  printLabels rest 
+      | [] -> ()
+  in 
+    printLabels (List.rev !labelsList);
+    Buffer.add_string myBuffer "</labels>\n"
+
+
+
+(*****************************************)
 
 class genMultiLabelsVisitor = object(_self)
   inherit Visitor.frama_c_inplace

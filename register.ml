@@ -1,8 +1,11 @@
 open Lexing
+open Buffer
 open Cil
 open Cil_types
 
 exception AlarmsSameLine
+
+
 
 (* val get_alarms : unit -> stmt list *)
 let get_alarms() =
@@ -30,19 +33,28 @@ module Make (ST : Slicing.Type) = struct
     (* Utils.mkdir (Config.result_dir());*)
     let alarms = get_alarms() in
 
-        List.iter (fun x ->
-          Options.Self.debug ~level:1 "alarm l.%i" (Utils.get_stmt_loc_int x)
-        ) alarms;
+	List.iter (fun x ->
+	  Options.Self.debug ~level:1 "alarm l.%i" (Utils.get_stmt_loc_int x)
+	) alarms;
 
 
-        (******************************************)
-        (* SLICING & DYNAMIC ANALYSIS             *)
-        (******************************************)
+	(******************************************)
+	(* SLICING & DYNAMIC ANALYSIS             *)
+	(******************************************)
 
-        let _verdicts = ST.process alarms in
+	let _verdicts = ST.process alarms in
 
     Options.Self.feedback "finished";
 end
+
+let pc_openFile filename = 
+  try open_out filename
+  with _ -> failwith ("could not open file " ^ filename)
+
+let writeBufferInFile myBuffer filename = 
+  let out = pc_openFile filename in
+    output_buffer out myBuffer;
+    close_out out
 
 
 (* ENTRY POINT *)
@@ -58,7 +70,11 @@ let run () =
       begin
         let module M = Make (Slicing.None ) in
           M.run()
-      end
+      end;
+    (let alarmsBuffer = Buffer.create 1024 in
+       Instru.prepareLabelsBuffer Instru.labelsList alarmsBuffer;
+       writeBufferInFile alarmsBuffer ("labels.xml");
+    )
   with
   | Globals.No_such_entry_point _ ->
       Options.Self.feedback "`-main` parameter missing"
