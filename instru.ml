@@ -225,12 +225,16 @@ let prepareLabelsBuffer labelsList myBuffer =
 
   let rec printLabels labels =
     match labels with
-      |	(fileName,lineNb, id, _cond)::rest ->
-	  Buffer.add_string myBuffer ("<label>\n");
-	  Buffer.add_string myBuffer ("<id>" ^ (string_of_int id)  ^ "</id>\n");
-	  Buffer.add_string myBuffer ("<cond>" ^ "</cond>\n");
-	  Buffer.add_string myBuffer ("<file>" ^ fileName  ^ "</file>\n");
-	  Buffer.add_string myBuffer ("<line>" ^ (string_of_int lineNb)  ^ "</line>\n");
+      |	(fileName,lineNb, id, cond)::rest ->
+	  let myBuf = Buffer.create 128 in
+	  let fmt = Format.formatter_of_buffer myBuf in
+	    Printer.pp_exp fmt cond;
+	    Format.pp_print_flush fmt ();
+	    Buffer.add_string myBuffer ("<label>\n");
+	    Buffer.add_string myBuffer ("<id>" ^ (string_of_int id)  ^ "</id>\n");
+	    Buffer.add_string myBuffer ("<cond>" ^ (Buffer.contents myBuf) ^ "</cond>\n");
+	    Buffer.add_string myBuffer ("<file>" ^ fileName  ^ "</file>\n");
+	    Buffer.add_string myBuffer ("<line>" ^ (string_of_int lineNb)  ^ "</line>\n");
 	  Buffer.add_string myBuffer ("</label>\n");
 	  printLabels rest 
       | [] -> ()
