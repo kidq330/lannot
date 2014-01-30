@@ -59,7 +59,6 @@ let writeBufferInFile myBuffer filename =
 
 (* ENTRY POINT *)
 let run () =
-  Cil.set_useLogicalOperators true;
   try
     if Options.MultiCond.get() then
       begin
@@ -87,9 +86,12 @@ let run () =
   | e -> Options.Self.feedback "exception: %s" (Printexc.to_string e)
 
 let run =
-  let deps = [Ast.self; Options.Enabled.self] in
+  let deps = [Ast.self; Options.Enabled.self] in  
+  Cil.set_useLogicalOperators true;
   let f, _self = State_builder.apply_once "GENLABELS" deps run in
+  let f arg = f arg; Cil.set_useLogicalOperators false in
   f
+  
 
 
 let() = Db.Main.extend run
