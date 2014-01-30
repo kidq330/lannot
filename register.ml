@@ -85,14 +85,14 @@ let run () =
   | Failure s -> Options.Self.feedback "failure: %s" s
   | e -> Options.Self.feedback "exception: %s" (Printexc.to_string e)
 
-let run =
-  let deps = [Ast.self; Options.Enabled.self] in  
-  Cil.set_useLogicalOperators true;
-  let f, _self = State_builder.apply_once "GENLABELS" deps run in
-  let f arg = f arg; Cil.set_useLogicalOperators false in
-  f
+let run () =
+  if Options.Enabled.get () then
+    let deps = [Ast.self; Options.Enabled.self] in  
+    let f, _self = State_builder.apply_once "GENLABELS" deps run in
+    Cil.set_useLogicalOperators true;
+    f ();
+    Cil.set_useLogicalOperators false
   
-
-
-let() = Db.Main.extend run
+let () =
+  Db.Main.extend run
 
