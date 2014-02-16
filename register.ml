@@ -38,10 +38,6 @@ module Make (ST : Slicing.Type) = struct
 	) alarms;
 
 
-	(******************************************)
-	(* SLICING & DYNAMIC ANALYSIS             *)
-	(******************************************)
-
 	let _verdicts = ST.process alarms in
 
     Options.Self.feedback "finished";
@@ -64,6 +60,16 @@ let run () =
       begin
         let module M = Make (Slicing.Multi ) in
           M.run()
+      end
+    else if Options.AOR.get() then
+      begin
+	let module M = Make (Slicing.Aor) in
+	  M.run()
+      end
+    else if Options.ROR.get() then
+      begin
+	let module M = Make (Slicing.Ror) in
+	  M.run()
       end
     else
       begin

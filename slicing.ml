@@ -14,7 +14,7 @@ let slice stmts prj_name =
   let _ = !Db.Slicing.Slice.remove_uncalled slicing in
   !Db.Slicing.Project.extract prj_name slicing
 *)
-let slice stmts prj_name =
+let getProject stmts prj_name =
   let prj = File.create_project_from_visitor prj_name (fun prj -> new Visitor.frama_c_copy prj) in 
     prj
 
@@ -23,15 +23,6 @@ let tested_func () =
   match (fst (Globals.entry_point ())).fundec with
     | Definition(f,_) -> f.svar.vname
     | Declaration _ -> failwith "entry_point"
-
-
-(* val print_project: Project.t -> string *)
-let print_project prj filename=
-  let out = open_out filename in
-  let _ = Format.set_formatter_out_channel out in
-  let _ = File.pretty_ast ~prj:prj ~fmt:Format.std_formatter () in
-  let _ = close_out out in
-  filename
 
 
 (* val print_alarms: stmt list -> unit *)
@@ -91,22 +82,39 @@ end
 module None:Type = struct
   let name = "none"
   let process _ =
-    let prj = slice !Utils.all_stmts (Config.input_file()) in
+    let prj = getProject !Utils.all_stmts (Config.input_file()) in
     let filename = (Project.get_name prj) ^ "_labels.c" in
       Instru.generate_labels_prj prj;
-      let _ = print_project prj filename in
+      let _ = Instru.print_project prj filename in
 	[]
 
 end
 
 
 module Multi:Type = struct
-  let name = "none"
+  let name = "multi"
   let process _ =
-    let prj = slice !Utils.all_stmts (Config.input_file()) in
+    let prj = getProject !Utils.all_stmts (Config.input_file()) in
     let filename = (Project.get_name prj) ^ "_multilabels.c" in
       Instru.generate_multi_labels_prj prj;
-      let _ = print_project prj filename in
+      let _ = Instru.print_project prj filename in
 	[]
 
+end
+
+module Aor:Type = struct
+  let name = "aor"
+  let process _ =
+    let prj = getProject !Utils.all_stmts (Config.input_file()) in
+      let _ = Instru.generate_aor_mutants prj in
+	[]
+end
+
+
+module Ror:Type = struct
+  let name = "ror"
+  let process _ =
+    let prj = getProject !Utils.all_stmts (Config.input_file()) in
+    let _ = Instru.generate_ror_mutants prj in
+      []
 end

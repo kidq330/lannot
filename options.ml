@@ -14,3 +14,13 @@ module MultiCond = Self.False (struct
   let help = "generate labels with multiple conditions"
 end)
 
+module AOR = Self.False (struct
+  let option_name = "-genlabels-aor"
+  let help = "generate mutants based on the AOR criteria (Arithmetic Operator Replacement)"
+end)
+
+module ROR = Self.False (struct
+  let option_name = "-genlabels-ror"
+  let help = "generate mutants based on the ROR criteria (Arithmetic Operator Replacement)"
+end)
+
