@@ -24,3 +24,8 @@ module ROR = Self.False (struct
   let help = "generate mutants based on the ROR criteria (Arithmetic Operator Replacement)"
 end)
 
+module COR = Self.False (struct
+  let option_name = "-genlabels-cor"
+  let help = "generate mutants based on the COR criteria (Arithmetic Operator Replacement)"
+end)
+

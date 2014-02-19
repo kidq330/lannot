@@ -118,3 +118,11 @@ module Ror:Type = struct
     let _ = Instru.generate_ror_mutants prj in
       []
 end
+
+module Cor:Type = struct
+  let name = "cor"
+  let process _ =
+    let prj = getProject !Utils.all_stmts (Config.input_file()) in
+    let _ = Instru.generate_cor_mutants prj in
+      []
+end

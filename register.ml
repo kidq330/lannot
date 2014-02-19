@@ -71,6 +71,11 @@ let run () =
 	let module M = Make (Slicing.Ror) in
 	  M.run()
       end
+    else if Options.COR.get() then
+      begin
+	let module M = Make (Slicing.Cor) in
+	  M.run()
+      end
     else
       begin
         let module M = Make (Slicing.None ) in

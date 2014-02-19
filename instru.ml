@@ -4,6 +4,7 @@ open Lexing
 
 let nextLabelId : int ref = ref 1
 let nextMutantId : int ref = ref 0
+let operatorCounter : int ref = ref 0
 let mutCounter : int ref = ref 0
 let foundMutant : int ref = ref 0
 
@@ -290,6 +291,14 @@ class genMultiLabelsVisitor = object(_self)
       | _ -> DoChildren
 end
 
+let incrementMutantCounters () = 
+  (*Format.printf "+++++3@.";*)
+  operatorCounter := !operatorCounter + 1;
+  if !operatorCounter = 3 then
+    begin
+      operatorCounter := 0;
+    end
+
 (*****************************************)
 class genAORMutantsVisitor = object(_self)
   inherit Visitor.frama_c_inplace
@@ -302,8 +311,14 @@ class genAORMutantsVisitor = object(_self)
 	    begin
 	      foundMutant := 1;
 	      (* Format.printf "+++++1@."; *)
-	      let newEnode = BinOp(Mult, lexp, rexp, ty) in
+	      let op = match !operatorCounter with
+		| 0 -> Mult
+		| 1 -> PlusA
+		| _ -> MinusA
+	      in
+	      let newEnode = BinOp(op, lexp, rexp, ty) in
 	      let newExp = {e with enode = newEnode} in
+		incrementMutantCounters ();
 		ChangeDoChildrenPost (newExp, fun x -> x)
 	    end
 	  else
@@ -315,8 +330,14 @@ class genAORMutantsVisitor = object(_self)
 	    begin
 	      foundMutant := 1;
 	      (* Format.printf "+++++2@."; *)
-	      let newEnode = BinOp(Div, lexp, rexp, ty) in
+	      let op = match !operatorCounter with
+		| 0 -> Div
+		| 1 -> PlusA
+		| _ -> MinusA
+	      in
+	      let newEnode = BinOp(op, lexp, rexp, ty) in
 	      let newExp = {e with enode = newEnode} in
+		incrementMutantCounters ();
 		ChangeDoChildrenPost (newExp, fun x -> x)
 	    end
 	  else
@@ -335,6 +356,8 @@ class genAORMutantsVisitor = object(_self)
 	      (* Format.printf "+++++4@."; *)
 	      let newEnode = BinOp(Shiftrt, lexp, rexp, ty) in
 	      let newExp = {e with enode = newEnode} in
+		operatorCounter := 2;
+		incrementMutantCounters ();
 		ChangeDoChildrenPost (newExp, fun x -> x)
 	    end
 	  else
@@ -348,6 +371,8 @@ class genAORMutantsVisitor = object(_self)
 	      (* Format.printf "+++++5@."; *)
 	      let newEnode = BinOp(Shiftlt, lexp, rexp, ty) in
 	      let newExp = {e with enode = newEnode} in
+		operatorCounter := 2;
+		incrementMutantCounters ();
 		ChangeDoChildrenPost (newExp, fun x -> x)
 	    end
 	  else
@@ -359,8 +384,14 @@ class genAORMutantsVisitor = object(_self)
 	    begin
 	      foundMutant := 1;
 	      (* Format.printf "+++++6@."; *)
-	      let newEnode = BinOp(MinusA, lexp, rexp, ty) in
+	      let op = match !operatorCounter with
+		| 0 -> Mult
+		| 1 -> Div
+		| _ -> MinusA
+	      in
+	      let newEnode = BinOp(op, lexp, rexp, ty) in
 	      let newExp = {e with enode = newEnode} in
+		incrementMutantCounters ();
 		ChangeDoChildrenPost (newExp, fun x -> x)
 	    end
 	  else
@@ -372,8 +403,14 @@ class genAORMutantsVisitor = object(_self)
 	    begin
 	      foundMutant := 1;
 	      (* Format.printf "+++++7@."; *)
-	      let newEnode = BinOp(PlusA, lexp, rexp, ty) in
+	      let op = match !operatorCounter with
+		| 0 -> Mult
+		| 1 -> PlusA
+		| _ -> Div
+	      in
+	      let newEnode = BinOp(op, lexp, rexp, ty) in
 	      let newExp = {e with enode = newEnode} in
+		incrementMutantCounters ();
 		ChangeDoChildrenPost (newExp, fun x -> x)
 	    end
 	  else
@@ -385,6 +422,8 @@ class genAORMutantsVisitor = object(_self)
 	    begin
 	      foundMutant := 1;
 	      (* Format.printf "+++++8@."; *)
+	      operatorCounter := 2;
+	      incrementMutantCounters ();
 	      ChangeDoChildrenPost (exp, fun x -> x)
 	    end
 	  else
@@ -408,8 +447,14 @@ class genRORMutantsVisitor = object(_self)
 	    begin
 	      foundMutant := 1;
 	      (* Format.printf "+++++1@."; *)
-	      let newEnode = BinOp(Ge, lexp, rexp, ty) in
+	      let op = match !operatorCounter with
+		| 0 -> Le
+		| 1 -> Gt
+		| _ -> Ge
+	      in
+	      let newEnode = BinOp(op, lexp, rexp, ty) in
 	      let newExp = {e with enode = newEnode} in
+		incrementMutantCounters ();
 		ChangeDoChildrenPost (newExp, fun x -> x)
 	    end
 	  else
@@ -421,8 +466,14 @@ class genRORMutantsVisitor = object(_self)
 	    begin
 	      foundMutant := 1;
 	      (* Format.printf "+++++2@."; *)
-	      let newEnode = BinOp(Le, lexp, rexp, ty) in
+	      let op = match !operatorCounter with
+		| 0 -> Lt
+		| 1 -> Le
+		| _ -> Ge
+	      in
+	      let newEnode = BinOp(op, lexp, rexp, ty) in
 	      let newExp = {e with enode = newEnode} in
+		incrementMutantCounters ();
 		ChangeDoChildrenPost (newExp, fun x -> x)
 	    end
 	  else
@@ -434,8 +485,14 @@ class genRORMutantsVisitor = object(_self)
 	    begin
 	      foundMutant := 1;
 	      (* Format.printf "+++++4@."; *)
-	      let newEnode = BinOp(Gt, lexp, rexp, ty) in
+	      let op = match !operatorCounter with
+		| 0 -> Lt
+		| 1 -> Gt
+		| _ -> Ge
+	      in
+	      let newEnode = BinOp(op, lexp, rexp, ty) in
 	      let newExp = {e with enode = newEnode} in
+		incrementMutantCounters ();
 		ChangeDoChildrenPost (newExp, fun x -> x)
 	    end
 	  else
@@ -447,8 +504,14 @@ class genRORMutantsVisitor = object(_self)
 	    begin
 	      foundMutant := 1;
 	      (* Format.printf "+++++5@."; *)
-	      let newEnode = BinOp(Lt, lexp, rexp, ty) in
+	      let op = match !operatorCounter with
+		| 0 -> Lt
+		| 1 -> Le
+		| _ -> Gt
+	      in
+	      let newEnode = BinOp(op, lexp, rexp, ty) in
 	      let newExp = {e with enode = newEnode} in
+		incrementMutantCounters ();
 		ChangeDoChildrenPost (newExp, fun x -> x)
 	    end
 	  else
@@ -462,6 +525,8 @@ class genRORMutantsVisitor = object(_self)
 	      (* Format.printf "+++++6@."; *)
 	      let newEnode = BinOp(Ne, lexp, rexp, ty) in
 	      let newExp = {e with enode = newEnode} in
+		operatorCounter := 2;
+		incrementMutantCounters ();
 		ChangeDoChildrenPost (newExp, fun x -> x)
 	    end
 	  else
@@ -475,13 +540,15 @@ class genRORMutantsVisitor = object(_self)
 	      (* Format.printf "+++++7@."; *)
 	      let newEnode = BinOp(Eq, lexp, rexp, ty) in
 	      let newExp = {e with enode = newEnode} in
+		operatorCounter := 2;
+		incrementMutantCounters ();
 		ChangeDoChildrenPost (newExp, fun x -> x)
 	    end
 	  else
 	    DoChildren
 
 
-
+(*
       | BinOp(LAnd, lexp, rexp, ty) ->
 	  mutCounter := !mutCounter+1;
 	  if !mutCounter = !nextMutantId then
@@ -507,9 +574,45 @@ class genRORMutantsVisitor = object(_self)
 	    end
 	  else
 	    DoChildren
+*)
 
 
 
+      | _ -> 
+	  (* Format.printf "+++++9@."; *)
+	  Cil.DoChildren
+
+end
+
+(*****************************************)
+class genCORMutantsVisitor = object(_self)
+  inherit Visitor.frama_c_inplace
+
+  method vexpr e =
+    match e.enode with
+      | BinOp(LAnd, lexp, rexp, ty) ->
+	  mutCounter := !mutCounter+1;
+	  if !mutCounter = !nextMutantId then
+	    begin
+	      foundMutant := 1;
+	      let newEnode = BinOp(LOr, lexp, rexp, ty) in
+	      let newExp = {e with enode = newEnode} in
+		ChangeDoChildrenPost (newExp, fun x -> x)
+	    end
+	  else
+	    DoChildren
+
+      | BinOp(LOr, lexp, rexp, ty) ->
+	  mutCounter := !mutCounter+1;
+	  if !mutCounter = !nextMutantId then
+	    begin
+	      foundMutant := 1;
+	      let newEnode = BinOp(LAnd, lexp, rexp, ty) in
+	      let newExp = {e with enode = newEnode} in
+		ChangeDoChildrenPost (newExp, fun x -> x)
+	    end
+	  else
+	    DoChildren
 
       | _ -> 
 	  (* Format.printf "+++++9@."; *)
@@ -532,12 +635,17 @@ let generate_multi_labels_prj prj =
 
 
 let rec generate_aor_mutants mainProj = 
-  nextMutantId := !nextMutantId + 1;
-  let filename = (Project.get_name mainProj) ^ "_aor_m" ^ (string_of_int !nextMutantId) ^ ".c" in
+  (*Format.printf "+++++1@.";*)
+  if !operatorCounter = 0 then
+    begin
+      (*Format.printf "+++++2@.";*)
+      nextMutantId := !nextMutantId + 1;
+    end;
+  let filename = (Project.get_name mainProj) ^ "_aor_m" ^ (string_of_int !nextMutantId) ^ "_" ^ (string_of_int !operatorCounter) ^ ".c" in
     foundMutant := 0;
     mutCounter := 0;
     Project.set_current mainProj;
-    let prj_name = "aor_m" ^ (string_of_int !nextMutantId) in
+    let prj_name = "aor_m" ^ (string_of_int !nextMutantId) ^ "_" ^ (string_of_int !operatorCounter) in
     let newProj = File.create_project_from_visitor prj_name (fun prj -> new Visitor.frama_c_copy prj) in 
       Project.set_current newProj;
       Visitor.visitFramacFile
@@ -555,12 +663,15 @@ let rec generate_aor_mutants mainProj =
 
 
 let rec generate_ror_mutants mainProj = 
-  nextMutantId := !nextMutantId + 1;
-  let filename = (Project.get_name mainProj) ^ "_ror_m" ^ (string_of_int !nextMutantId) ^ ".c" in
+  if !operatorCounter = 0 then
+    begin
+      nextMutantId := !nextMutantId + 1;
+    end;
+  let filename = (Project.get_name mainProj) ^ "_ror_m" ^ (string_of_int !nextMutantId) ^ "_" ^ (string_of_int !operatorCounter) ^ ".c" in
     foundMutant := 0;
     mutCounter := 0;
     Project.set_current mainProj;
-    let prj_name = "ror_m" ^ (string_of_int !nextMutantId) in
+    let prj_name = "ror_m" ^ (string_of_int !nextMutantId) ^ "_" ^ (string_of_int !operatorCounter) in
     let newProj = File.create_project_from_visitor prj_name (fun prj -> new Visitor.frama_c_copy prj) in 
       Project.set_current newProj;
       Visitor.visitFramacFile
@@ -570,6 +681,29 @@ let rec generate_ror_mutants mainProj =
       if !foundMutant = 1 then
 	begin
 	  generate_ror_mutants mainProj
+	end
+      else
+	begin
+	  ()
+	end
+
+ 
+let rec generate_cor_mutants mainProj = 
+  nextMutantId := !nextMutantId + 1;
+  let filename = (Project.get_name mainProj) ^ "_cor_m" ^ (string_of_int !nextMutantId) ^ ".c" in
+    foundMutant := 0;
+    mutCounter := 0;
+    Project.set_current mainProj;
+    let prj_name = "ror_m" ^ (string_of_int !nextMutantId) in
+    let newProj = File.create_project_from_visitor prj_name (fun prj -> new Visitor.frama_c_copy prj) in 
+      Project.set_current newProj;
+      Visitor.visitFramacFile
+	(new genCORMutantsVisitor :> Visitor.frama_c_inplace)
+	(Ast.get());
+      let _ = print_project newProj filename in
+      if !foundMutant = 1 then
+	begin
+	  generate_cor_mutants mainProj
 	end
       else
 	begin
