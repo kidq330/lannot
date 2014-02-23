@@ -14,7 +14,7 @@ let slice stmts prj_name =
   let _ = !Db.Slicing.Slice.remove_uncalled slicing in
   !Db.Slicing.Project.extract prj_name slicing
 *)
-let getProject stmts prj_name =
+let getProject _stmts prj_name =
   let prj = File.create_project_from_visitor prj_name (fun prj -> new Visitor.frama_c_copy prj) in 
     prj
 
@@ -124,5 +124,13 @@ module Cor:Type = struct
   let process _ =
     let prj = getProject !Utils.all_stmts (Config.input_file()) in
     let _ = Instru.generate_cor_mutants prj in
+      []
+end
+
+module Abs:Type = struct
+  let name = "abs"
+  let process _ =
+    let prj = getProject !Utils.all_stmts (Config.input_file()) in
+    let _ = Instru.generate_abs_mutants prj in
       []
 end

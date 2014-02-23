@@ -21,11 +21,15 @@ end)
 
 module ROR = Self.False (struct
   let option_name = "-genlabels-ror"
-  let help = "generate mutants based on the ROR criteria (Arithmetic Operator Replacement)"
+  let help = "generate mutants based on the ROR criteria"
 end)
 
 module COR = Self.False (struct
   let option_name = "-genlabels-cor"
-  let help = "generate mutants based on the COR criteria (Arithmetic Operator Replacement)"
+  let help = "generate mutants based on the COR criteria"
 end)
 
+module ABS = Self.False (struct
+  let option_name = "-genlabels-abs"
+  let help = "generate mutants based on the ABS criteria"
+end)

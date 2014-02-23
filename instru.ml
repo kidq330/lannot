@@ -548,36 +548,6 @@ class genRORMutantsVisitor = object(_self)
 	    DoChildren
 
 
-(*
-      | BinOp(LAnd, lexp, rexp, ty) ->
-	  mutCounter := !mutCounter+1;
-	  if !mutCounter = !nextMutantId then
-	    begin
-	      foundMutant := 1;
-	      (* Format.printf "+++++7@."; *)
-	      let newEnode = BinOp(LOr, lexp, rexp, ty) in
-	      let newExp = {e with enode = newEnode} in
-		ChangeDoChildrenPost (newExp, fun x -> x)
-	    end
-	  else
-	    DoChildren
-
-      | BinOp(LOr, lexp, rexp, ty) ->
-	  mutCounter := !mutCounter+1;
-	  if !mutCounter = !nextMutantId then
-	    begin
-	      foundMutant := 1;
-	      (* Format.printf "+++++7@."; *)
-	      let newEnode = BinOp(LAnd, lexp, rexp, ty) in
-	      let newExp = {e with enode = newEnode} in
-		ChangeDoChildrenPost (newExp, fun x -> x)
-	    end
-	  else
-	    DoChildren
-*)
-
-
-
       | _ -> 
 	  (* Format.printf "+++++9@."; *)
 	  Cil.DoChildren
@@ -619,6 +589,100 @@ class genCORMutantsVisitor = object(_self)
 	  Cil.DoChildren
 
 end
+
+(*****************************************)
+class genABSMutantsVisitor = object(_self)
+  inherit Visitor.frama_c_inplace
+
+  method! vstmt_aux stmt =
+
+    let traitLval s e = 
+      begin match e.enode with 
+	| Lval(l) ->
+	    mutCounter := !mutCounter+1;
+	    if !mutCounter = !nextMutantId then
+	      begin
+		foundMutant := 1;
+		let loc = Utils.get_stmt_loc s in
+		let zeroExp = dummy_exp (Const(CInt64(Integer.of_int(0),IInt,None))) in
+		let myExp = dummy_exp(BinOp(Lt, e, zeroExp, intType)) in
+		let stmt = mk_call loc ~result:l "abs" [e] in
+		let finalList = List.append  [(makeLabel myExp loc)] ([stmt;s]) in
+		let b2 = mkBlock finalList in
+		let i = mkStmt (Block(b2)) in
+		  (true,i)
+	      end
+	    else
+	      (false,s)
+	| _ -> (false,s)
+      end 
+    in
+    let rec traitBinOp s e =
+      begin
+	match e.enode with 
+	  | BinOp(_, e1, e2, _) ->
+	      let (res, sRes) = traitBinOp s e1 in
+		if res = true then
+		  (true, sRes)
+		else
+		  begin
+		    let (res, sRes) = traitBinOp s e2 in
+		      if res = true then
+			(true, sRes)
+		      else
+			(false, s)
+		  end
+
+	  | Lval(_) -> 
+	      traitLval s e
+
+	  | UnOp (_, e1, _) ->
+	      let (res, sRes) = traitBinOp s e1 in
+		if res = true then
+		  (true, sRes)
+		else
+		  (false, s)
+
+
+	  | _ -> (false, s)
+      end
+    in
+      
+    let genLabels s =
+      match s.skind with
+	| Instr(Set(_, e, _)) ->
+	    let (_res,sRes) = traitBinOp s e in
+	      sRes
+
+	| If(e, _, _, _) ->  
+	    begin match e.enode with 
+	      | Lval(_) ->
+		  let (_res,sRes) = traitLval s e in
+		    sRes
+
+	      | BinOp(_, _, _, _) ->
+		  let (_res,sRes) = traitBinOp s e in 
+		    sRes
+
+	      | UnOp (_, _, _) ->
+		  let (res, sRes) = traitBinOp s e in
+		    sRes
+
+	      | _ -> s
+	    end
+
+	| _ -> s
+    in
+      ChangeDoChildrenPost (stmt, genLabels)
+     (* match stmt.skind with
+	| If _ ->
+            
+	| _ -> DoChildren*)
+	    
+
+end
+
+
 
 (* val generate_labels_prj: Project.t -> unit *)
 let generate_labels_prj prj =
@@ -694,7 +758,7 @@ let rec generate_cor_mutants mainProj =
     foundMutant := 0;
     mutCounter := 0;
     Project.set_current mainProj;
-    let prj_name = "ror_m" ^ (string_of_int !nextMutantId) in
+    let prj_name = "cor_m" ^ (string_of_int !nextMutantId) in
     let newProj = File.create_project_from_visitor prj_name (fun prj -> new Visitor.frama_c_copy prj) in 
       Project.set_current newProj;
       Visitor.visitFramacFile
@@ -710,4 +774,25 @@ let rec generate_cor_mutants mainProj =
 	  ()
 	end
 
+let rec generate_abs_mutants mainProj = 
+  nextMutantId := !nextMutantId + 1;
+  let filename = (Project.get_name mainProj) ^ "_abs_m" ^ (string_of_int !nextMutantId) ^ ".c" in
+    foundMutant := 0;
+    mutCounter := 0;
+    Project.set_current mainProj;
+    let prj_name = "abs_m" ^ (string_of_int !nextMutantId) in
+    let newProj = File.create_project_from_visitor prj_name (fun prj -> new Visitor.frama_c_copy prj) in 
+      Project.set_current newProj;
+      Visitor.visitFramacFile
+	(new genABSMutantsVisitor :> Visitor.frama_c_inplace)
+	(Ast.get());
+      let _ = print_project newProj filename in
+      if !foundMutant = 1 then
+	begin
+	  generate_abs_mutants mainProj
+	end
+      else
+	begin
+	  ()
+	end
  
