@@ -134,3 +134,14 @@ module Abs:Type = struct
     let _ = Instru.generate_abs_mutants prj in
       []
 end
+
+
+module Partition:Type = struct
+  let name = "partition"
+  let process _ =
+    let prj = getProject !Utils.all_stmts (Config.input_file()) in
+    let filename = (Project.get_name prj) ^ "_partition.c" in
+      Instru.generate_partition_labels_prj prj;
+      let _ = Instru.print_project prj filename in
+	[]
+end

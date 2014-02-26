@@ -665,7 +665,7 @@ class genABSMutantsVisitor = object(_self)
 		    sRes
 
 	      | UnOp (_, _, _) ->
-		  let (res, sRes) = traitBinOp s e in
+		  let (_res, sRes) = traitBinOp s e in
 		    sRes
 
 	      | _ -> s
@@ -679,6 +679,64 @@ class genABSMutantsVisitor = object(_self)
             
 	| _ -> DoChildren*)
 	    
+
+end
+
+(*****************************************)
+
+
+(***  let loc = Cil_datatype.Location.unknown in  
+Locations.loc_of_varinfo y
+*)
+let getLocFromFunction f = 
+  match f.sbody.bstmts with
+    | a::_ -> Cil_datatype.Stmt.loc a
+    | [] -> Cil_datatype.Location.unknown
+
+
+let makeLabelsFromInput myParam loc =
+  match myParam.vtype with 
+    | TInt _
+    | TFloat _ ->
+	(*Format.printf "+++++3@.";*)
+	let formalExp = new_exp loc (Lval (var myParam)) in
+	let zeroExp = dummy_exp (Const(CInt64(Integer.of_int(0),IInt,None))) in
+	let exp1 = dummy_exp(BinOp(Lt, formalExp, zeroExp, intType)) in
+	let exp2 = dummy_exp(BinOp(Gt, formalExp, zeroExp, intType)) in
+	let exp3 = dummy_exp(BinOp(Eq, formalExp, zeroExp, intType)) in
+	let stmt1 = makeLabel exp1 loc in
+	let stmt2 = makeLabel exp2 loc in
+	let stmt3 = makeLabel exp3 loc in
+	  [stmt1; stmt2; stmt3]
+
+    | TPtr _ -> 
+	let formalExp = new_exp loc (Lval (var myParam)) in
+	let zeroExp = dummy_exp (Const(CInt64(Integer.of_int(0),IInt,None))) in
+	let exp1 = dummy_exp(BinOp(Eq, formalExp, zeroExp, intType)) in
+	let exp2 = dummy_exp(BinOp(Ne, formalExp, zeroExp, intType)) in
+	let stmt1 = makeLabel exp1 loc in
+	let stmt2 = makeLabel exp2 loc in
+	  [stmt1; stmt2]
+    | _ ->  []
+
+class genPartitionLabelsVisitor = object(_self)
+  inherit Visitor.frama_c_inplace
+
+  method! vfunc f =
+    (* Format.printf "+++++1@.";*)
+    let loc = getLocFromFunction f in
+    let rec labelsFromFormals formals = 
+      match formals with 
+	| [] -> []
+	| a :: tail -> 
+	    (* Format.printf "+++++2@.";*)
+	    List.append (makeLabelsFromInput a loc) (labelsFromFormals tail)
+    in 
+    let oldBody = mkStmt (Block(f.sbody)) in
+    let newStmts = List.append (labelsFromFormals f.sformals) [oldBody] in
+    let newBody = mkBlock newStmts in
+      f.sbody <- newBody;
+      SkipChildren
 
 end
 
@@ -796,3 +854,9 @@ let rec generate_abs_mutants mainProj =
 	  ()
 	end
  
+
+let generate_partition_labels_prj prj =
+  Project.set_current prj;
+  Visitor.visitFramacFile
+    (new genPartitionLabelsVisitor :> Visitor.frama_c_inplace)
+    (Ast.get())

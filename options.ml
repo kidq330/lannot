@@ -33,3 +33,8 @@ module ABS = Self.False (struct
   let option_name = "-genlabels-abs"
   let help = "generate mutants based on the ABS criteria"
 end)
+
+module PARTITION = Self.False (struct
+  let option_name = "-genlabels-partition"
+  let help = "generate labels partitioning input"
+end)

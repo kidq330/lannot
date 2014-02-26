@@ -81,6 +81,11 @@ let run () =
 	let module M = Make (Slicing.Abs) in
 	  M.run()
       end
+    else if Options.PARTITION.get() then
+      begin
+	let module M = Make (Slicing.Partition) in
+	  M.run()
+      end
     else
       begin
         let module M = Make (Slicing.None ) in
