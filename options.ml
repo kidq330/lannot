@@ -9,6 +9,11 @@ module Enabled = Self.False (struct
   let help = "generate labels"
 end)
 
+module SimpleCond = Self.False (struct
+  let option_name = "-genlabels-simple"
+  let help = "generate labels with simple conditions"
+end)
+
 module MultiCond = Self.False (struct
   let option_name = "-genlabels-multi"
   let help = "generate labels with multiple conditions"

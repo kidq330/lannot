@@ -106,7 +106,6 @@ class genLabelsVisitor = object(_self)
     in
       match stmt.skind with
         | If _ ->
-            (*DoChildren *)
             ChangeDoChildrenPost (stmt, genLabels)
         | _ -> DoChildren
 end
@@ -262,10 +261,7 @@ let prepareLabelsBuffer labelsList myBuffer =
     printLabels (List.rev !labelsList);
     Buffer.add_string myBuffer "</labels>\n"
 
-
-
 (*****************************************)
-
 class genMultiLabelsVisitor = object(_self)
   inherit Visitor.frama_c_inplace
 
@@ -276,9 +272,7 @@ class genMultiLabelsVisitor = object(_self)
         let loc = Utils.get_stmt_loc s in
         let nbCond = getConditionsNumber e in
         let allConds = getUnitaryConditionsInExp e in
-         (* Format.printf "+++++nb = %d@." nbCond; *)
         let finalList = List.append  (genMultiLabels allConds nbCond 0 [] loc) ([s]) in
-         (*  Format.printf "+++++10@."; *)
         let b2 = mkBlock finalList in
         let i = mkStmt (Block(b2)) in
           i
@@ -286,13 +280,11 @@ class genMultiLabelsVisitor = object(_self)
     in
       match stmt.skind with
       | If _ ->
-        (*DoChildren *)
         ChangeDoChildrenPost (stmt, genLabels)
       | _ -> DoChildren
 end
 
 let incrementMutantCounters () = 
-  (*Format.printf "+++++3@.";*)
   operatorCounter := !operatorCounter + 1;
   if !operatorCounter = 3 then
     begin
@@ -303,135 +295,206 @@ let incrementMutantCounters () =
 class genAORMutantsVisitor = object(_self)
   inherit Visitor.frama_c_inplace
 
-  method vexpr e =
-    match e.enode with
-      | BinOp(Div, lexp, rexp, ty) ->
-	  mutCounter := !mutCounter+1;
-	  if !mutCounter = !nextMutantId then
-	    begin
-	      foundMutant := 1;
-	      (* Format.printf "+++++1@."; *)
-	      let op = match !operatorCounter with
-		| 0 -> Mult
-		| 1 -> PlusA
-		| _ -> MinusA
-	      in
-	      let newEnode = BinOp(op, lexp, rexp, ty) in
-	      let newExp = {e with enode = newEnode} in
-		incrementMutantCounters ();
-		ChangeDoChildrenPost (newExp, fun x -> x)
-	    end
-	  else
-	    DoChildren
-	
-      | BinOp(Mult, lexp, rexp, ty) ->
-	  mutCounter := !mutCounter+1;
-	  if !mutCounter = !nextMutantId then
-	    begin
-	      foundMutant := 1;
-	      (* Format.printf "+++++2@."; *)
-	      let op = match !operatorCounter with
-		| 0 -> Div
-		| 1 -> PlusA
-		| _ -> MinusA
-	      in
-	      let newEnode = BinOp(op, lexp, rexp, ty) in
-	      let newExp = {e with enode = newEnode} in
-		incrementMutantCounters ();
-		ChangeDoChildrenPost (newExp, fun x -> x)
-	    end
-	  else
-	    DoChildren
+  method! vstmt_aux stmt =
 
+    let rec traitRLExp e = 
+      begin match e.enode with
+	| BinOp(op, lexp, rexp, ty) ->
+	    let (res, newExp, originalExp, modifiedExp) = traitExp lexp in
+	      if res = true then
+		let myNewExp = dummy_exp(BinOp(op, newExp, rexp, ty)) in
+		  (true, myNewExp, originalExp, modifiedExp)
+	      else
+		begin
+		  let (res, newExp, originalExp, modifiedExp) = traitExp rexp in
+		    if res = true then
+		      let myNewExp = dummy_exp(BinOp(op, lexp, newExp, ty)) in
+			(true, myNewExp, originalExp, modifiedExp)
+		    else
+		      (false, e, e, e)
+		end
+	| _ -> (false, e, e, e)
+      end
+    and traitExp e = 
+      begin match e.enode with
+	| BinOp(Div, lexp, rexp, ty) ->
+	    mutCounter := !mutCounter+1;
+	    if !mutCounter = !nextMutantId then
+	      begin
+		foundMutant := 1;
+		let op = match !operatorCounter with
+		  | 0 -> Mult
+		  | 1 -> PlusA
+		  | _ -> MinusA
+		in
+		let newEnode = BinOp(op, lexp, rexp, ty) in
+		let newExp = {e with enode = newEnode} in
+		  (true,newExp, e, newExp)
+	      end
+	    else
+		traitRLExp e
 
-      | BinOp(Mod, _lexp, _rexp, _ty) ->
-	  (* Format.printf "+++++3@."; *)
-	  Cil.DoChildren
+	| BinOp(Mult, lexp, rexp, ty) ->
+	    mutCounter := !mutCounter+1;
+	    if !mutCounter = !nextMutantId then
+	      begin
+		foundMutant := 1;
+		let op = match !operatorCounter with
+		  | 0 -> Div
+		  | 1 -> PlusA
+		  | _ -> MinusA
+		in
+		let newEnode = BinOp(op, lexp, rexp, ty) in
+		let newExp = {e with enode = newEnode} in
+		  (true,newExp, e, newExp)
+	      end
+	    else
+	      traitRLExp e
+		
+	| BinOp(PlusA, lexp, rexp, ty) ->
+	    mutCounter := !mutCounter+1;
+	    if !mutCounter = !nextMutantId then
+	      begin
+		foundMutant := 1;
+		let op = match !operatorCounter with
+		  | 0 -> Mult
+		  | 1 -> Div
+		  | _ -> MinusA
+		in
+		let newEnode = BinOp(op, lexp, rexp, ty) in
+		let newExp = {e with enode = newEnode} in
+		  (true,newExp, e, newExp)
+	      end
+	    else
+	      traitRLExp e
 
-      | BinOp(Shiftlt, lexp, rexp, ty) ->
-	  mutCounter := !mutCounter+1;
-	  if !mutCounter = !nextMutantId then
-	    begin
-	      foundMutant := 1;
-	      (* Format.printf "+++++4@."; *)
-	      let newEnode = BinOp(Shiftrt, lexp, rexp, ty) in
-	      let newExp = {e with enode = newEnode} in
+	| BinOp(MinusA, lexp, rexp, ty) ->
+	    mutCounter := !mutCounter+1;
+	    if !mutCounter = !nextMutantId then
+	      begin
+		foundMutant := 1;
+		let op = match !operatorCounter with
+		  | 0 -> Mult
+		  | 1 -> PlusA
+		  | _ -> Div
+		in
+		let newEnode = BinOp(op, lexp, rexp, ty) in
+		let newExp = {e with enode = newEnode} in
+		  (true,newExp, e, newExp)
+	      end
+	    else
+	      traitRLExp e
+
+	| BinOp(Shiftlt, lexp, rexp, ty) ->
+	    mutCounter := !mutCounter+1;
+	    if !mutCounter = !nextMutantId then
+	      begin
+		foundMutant := 1;
+		let newEnode = BinOp(Shiftrt, lexp, rexp, ty) in
+		let newExp = {e with enode = newEnode} in
+		  operatorCounter := 2;
+		  (true,newExp, e, newExp)
+	      end
+	    else
+	      traitRLExp e
+	    
+	| BinOp(Shiftrt, lexp, rexp, ty) ->
+	    mutCounter := !mutCounter+1;
+	    if !mutCounter = !nextMutantId then
+	      begin
+		foundMutant := 1;
+		let newEnode = BinOp(Shiftlt, lexp, rexp, ty) in
+		let newExp = {e with enode = newEnode} in
+		  operatorCounter := 2;
+		  (true,newExp, e, newExp)
+	      end
+	    else
+	      traitRLExp e
+
+	| UnOp(Neg, exp, ty) ->
+	    mutCounter := !mutCounter+1;
+	    if !mutCounter = !nextMutantId then
+	      begin
 		operatorCounter := 2;
-		incrementMutantCounters ();
-		ChangeDoChildrenPost (newExp, fun x -> x)
-	    end
-	  else
-	    DoChildren
-	  
-      | BinOp(Shiftrt, lexp, rexp, ty) ->
-	  mutCounter := !mutCounter+1;
-	  if !mutCounter = !nextMutantId then
-	    begin
-	      foundMutant := 1;
-	      (* Format.printf "+++++5@."; *)
-	      let newEnode = BinOp(Shiftlt, lexp, rexp, ty) in
-	      let newExp = {e with enode = newEnode} in
-		operatorCounter := 2;
-		incrementMutantCounters ();
-		ChangeDoChildrenPost (newExp, fun x -> x)
-	    end
-	  else
-	    DoChildren
+		(true, exp, e, exp)
+	      end
+	    else
+	      begin
+		let (res, newExp, originalExp, modifiedExp) = traitExp exp in
+		  if res = true then
+		    let myNewExp = dummy_exp(UnOp(Neg, newExp, ty)) in
+		      (true, myNewExp, originalExp, modifiedExp)
+		  else
+		    (false, e, e, e)
+	      end
 
-      | BinOp(PlusA, lexp, rexp, ty) ->
-	  mutCounter := !mutCounter+1;
-	  if !mutCounter = !nextMutantId then
-	    begin
-	      foundMutant := 1;
-	      (* Format.printf "+++++6@."; *)
-	      let op = match !operatorCounter with
-		| 0 -> Mult
-		| 1 -> Div
-		| _ -> MinusA
-	      in
-	      let newEnode = BinOp(op, lexp, rexp, ty) in
-	      let newExp = {e with enode = newEnode} in
-		incrementMutantCounters ();
-		ChangeDoChildrenPost (newExp, fun x -> x)
+	| _ -> (false, e, e, e)
+      end
+    in
+    let genLabels s =
+      match s.skind with
+	| Instr(Set(l, e, loc)) ->
+	    let (res, newExp, originalExp, modifiedExp) = traitExp e in
+	      if res = true then
+		let newS = mkStmt ~valid_sid:true (Instr(Set(l, newExp, loc))) in
+		let labelExp = dummy_exp(BinOp(Ne, modifiedExp, originalExp, intType)) in 
+		let finalList = List.append  [(makeLabel labelExp loc)] ([newS]) in
+		let b2 = mkBlock finalList in
+		let i = mkStmt (Block(b2)) in
+		  incrementMutantCounters ();		  
+		  i
+	      else
+		s
+		
+	| If(e, l, ll, lll) ->
+	    let (res, newExp, originalExp, modifiedExp) = traitExp e in
+	      if res = true then
+		let loc = Utils.get_stmt_loc s in
+		let newS = mkStmt ~valid_sid:true (If(newExp, l, ll, lll)) in
+		let labelExp = dummy_exp(BinOp(Ne, modifiedExp, originalExp, intType)) in 
+		let finalList = List.append  [(makeLabel labelExp loc)] ([newS]) in
+		let b2 = mkBlock finalList in
+		let i = mkStmt (Block(b2)) in
+		  incrementMutantCounters ();		  
+		  i
+	      else
+		s
+	      
+	| Return(e, l) ->
+	    begin match e with 
+	      | Some exp ->
+		  let (res, newExp, originalExp, modifiedExp) = traitExp exp in
+		    if res = true then
+		      let loc = Utils.get_stmt_loc s in
+		      let newS = mkStmt ~valid_sid:true (Return(Some newExp, l)) in
+		      let labelExp = dummy_exp(BinOp(Ne, modifiedExp, originalExp, intType)) in 
+		      let finalList = List.append  [(makeLabel labelExp loc)] ([newS]) in
+		      let b2 = mkBlock finalList in
+		      let i = mkStmt (Block(b2)) in
+			incrementMutantCounters ();		  
+			i
+		    else
+		      s
+	      | _ -> s 
 	    end
-	  else
-	    DoChildren
-
-      | BinOp(MinusA, lexp, rexp, ty) ->
-	  mutCounter := !mutCounter+1;
-	  if !mutCounter = !nextMutantId then
-	    begin
-	      foundMutant := 1;
-	      (* Format.printf "+++++7@."; *)
-	      let op = match !operatorCounter with
-		| 0 -> Mult
-		| 1 -> PlusA
-		| _ -> Div
-	      in
-	      let newEnode = BinOp(op, lexp, rexp, ty) in
-	      let newExp = {e with enode = newEnode} in
-		incrementMutantCounters ();
-		ChangeDoChildrenPost (newExp, fun x -> x)
-	    end
-	  else
-	    DoChildren
-
-      | UnOp(Neg, exp, _) ->
-	  mutCounter := !mutCounter+1;
-	  if !mutCounter = !nextMutantId then
-	    begin
-	      foundMutant := 1;
-	      (* Format.printf "+++++8@."; *)
-	      operatorCounter := 2;
-	      incrementMutantCounters ();
-	      ChangeDoChildrenPost (exp, fun x -> x)
-	    end
-	  else
-	    DoChildren
-
-      | _ -> 
-	  (* Format.printf "+++++9@."; *)
-	  Cil.DoChildren
+	      
+	| Switch(e, l,ll, lll) ->
+	    let (res, newExp, originalExp, modifiedExp) = traitExp e in
+	      if res = true then
+		let loc = Utils.get_stmt_loc s in
+		let newS = mkStmt ~valid_sid:true (Switch(newExp, l, ll, lll)) in
+		let labelExp = dummy_exp(BinOp(Ne, modifiedExp, originalExp, intType)) in 
+		let finalList = List.append  [(makeLabel labelExp loc)] ([newS]) in
+		let b2 = mkBlock finalList in
+		let i = mkStmt (Block(b2)) in
+		  incrementMutantCounters ();		  
+		  i
+	      else
+		s
+	      
+      | _ -> s
+    in  
+      ChangeDoChildrenPost (stmt, genLabels)
 
 end
 
@@ -439,154 +502,360 @@ end
 class genRORMutantsVisitor = object(_self)
   inherit Visitor.frama_c_inplace
 
-  method vexpr e =
-    match e.enode with
-      | BinOp(Lt, lexp, rexp, ty) ->
-	  mutCounter := !mutCounter+1;
-	  if !mutCounter = !nextMutantId then
-	    begin
-	      foundMutant := 1;
-	      (* Format.printf "+++++1@."; *)
-	      let op = match !operatorCounter with
-		| 0 -> Le
-		| 1 -> Gt
-		| _ -> Ge
-	      in
-	      let newEnode = BinOp(op, lexp, rexp, ty) in
-	      let newExp = {e with enode = newEnode} in
-		incrementMutantCounters ();
-		ChangeDoChildrenPost (newExp, fun x -> x)
-	    end
-	  else
-	    DoChildren
-	
-      | BinOp(Gt, lexp, rexp, ty) ->
-	  mutCounter := !mutCounter+1;
-	  if !mutCounter = !nextMutantId then
-	    begin
-	      foundMutant := 1;
-	      (* Format.printf "+++++2@."; *)
-	      let op = match !operatorCounter with
-		| 0 -> Lt
-		| 1 -> Le
-		| _ -> Ge
-	      in
-	      let newEnode = BinOp(op, lexp, rexp, ty) in
-	      let newExp = {e with enode = newEnode} in
-		incrementMutantCounters ();
-		ChangeDoChildrenPost (newExp, fun x -> x)
-	    end
-	  else
-	    DoChildren
+  method! vstmt_aux stmt =
+    
+    let rec traitExp e = 
+      begin match e.enode with
+	| BinOp(Lt, lexp, rexp, ty) ->
+	    mutCounter := !mutCounter+1;
+	    if !mutCounter = !nextMutantId then
+	      begin
+		foundMutant := 1;
+		let op = match !operatorCounter with
+		  | 0 -> Le
+		  | 1 -> Gt
+		  | _ -> Ge
+		in
+		let newEnode = BinOp(op, lexp, rexp, ty) in
+		let newExp = {e with enode = newEnode} in
+		  (true, newExp, e, newExp) (* result, nexEpression, originalSubExpression, modifiedSubExpression *)
+	      end
+	    else
+	      (false, e, e, e)
 
-      | BinOp(Le, lexp, rexp, ty) ->
-	  mutCounter := !mutCounter+1;
-	  if !mutCounter = !nextMutantId then
-	    begin
-	      foundMutant := 1;
-	      (* Format.printf "+++++4@."; *)
-	      let op = match !operatorCounter with
-		| 0 -> Lt
-		| 1 -> Gt
-		| _ -> Ge
-	      in
-	      let newEnode = BinOp(op, lexp, rexp, ty) in
-	      let newExp = {e with enode = newEnode} in
-		incrementMutantCounters ();
-		ChangeDoChildrenPost (newExp, fun x -> x)
+	| BinOp(Gt, lexp, rexp, ty) ->
+	    mutCounter := !mutCounter+1;
+	    if !mutCounter = !nextMutantId then
+	      begin
+		foundMutant := 1;
+		let op = match !operatorCounter with
+		  | 0 -> Lt
+		  | 1 -> Le
+		  | _ -> Ge
+		in
+		let newEnode = BinOp(op, lexp, rexp, ty) in
+		let newExp = {e with enode = newEnode} in
+		  (true, newExp, e, newExp)
+	      end
+	    else
+	      (false, e, e, e)
+
+	| BinOp(Le, lexp, rexp, ty) ->
+	    mutCounter := !mutCounter+1;
+	    if !mutCounter = !nextMutantId then
+	      begin
+		foundMutant := 1;
+		let op = match !operatorCounter with
+		  | 0 -> Lt
+		  | 1 -> Gt
+		  | _ -> Ge
+		in
+		let newEnode = BinOp(op, lexp, rexp, ty) in
+		let newExp = {e with enode = newEnode} in
+		  (true, newExp, e, newExp)		
+	      end
+	    else
+	      (false, e, e, e)
+
+	| BinOp(Ge, lexp, rexp, ty) ->
+	    mutCounter := !mutCounter+1;
+	    if !mutCounter = !nextMutantId then
+	      begin
+		foundMutant := 1;
+		let op = match !operatorCounter with
+		  | 0 -> Lt
+		  | 1 -> Le
+		  | _ -> Gt
+		in
+		let newEnode = BinOp(op, lexp, rexp, ty) in
+		let newExp = {e with enode = newEnode} in		  
+		  (true, newExp, e, newExp)
+	      end
+	    else
+	      (false, e, e, e)
+
+	| BinOp(Eq, lexp, rexp, ty) ->
+	    mutCounter := !mutCounter+1;
+	    if !mutCounter = !nextMutantId then
+	      begin
+		foundMutant := 1;
+		let newEnode = BinOp(Ne, lexp, rexp, ty) in
+		let newExp = {e with enode = newEnode} in
+		  operatorCounter := 2;		  
+		  (true, newExp, e, newExp)
+	      end
+	    else
+	      (false, e, e, e)
+
+	| BinOp(Ne, lexp, rexp, ty) ->
+	    mutCounter := !mutCounter+1;
+	    if !mutCounter = !nextMutantId then
+	      begin
+		foundMutant := 1;
+		let newEnode = BinOp(Eq, lexp, rexp, ty) in
+		let newExp = {e with enode = newEnode} in
+		  operatorCounter := 2;	  
+		  (true, newExp, e, newExp)
+	      end
+	    else
+	      (false, e, e, e)
+
+	| BinOp(LAnd, lexp, rexp, ty) ->
+	    let (res, newExp, originalExp, modifiedExp) = traitExp lexp in
+	      if res = true then
+		let myNewExp = dummy_exp(BinOp(LAnd, newExp, rexp, ty)) in
+		  (true, myNewExp, originalExp, modifiedExp)
+	      else
+		begin
+		  let (res, newExp, originalExp, modifiedExp) = traitExp rexp in
+		    if res = true then
+		      let myNewExp = dummy_exp(BinOp(LAnd, lexp, newExp, ty)) in
+			(true, myNewExp, originalExp, modifiedExp)
+		    else
+		      (false, e, e, e)
+		end
+
+	| BinOp(LOr, lexp, rexp, ty) ->
+	    let (res, newExp, originalExp, modifiedExp) = traitExp lexp in
+	      if res = true then
+		let myNewExp = dummy_exp(BinOp(LOr, newExp, rexp, ty)) in
+		  (true, myNewExp, originalExp, modifiedExp)
+	      else
+		begin
+		  let (res, newExp, originalExp, modifiedExp) = traitExp rexp in
+		    if res = true then
+		      let myNewExp = dummy_exp(BinOp(LOr, lexp, newExp, ty)) in
+			(true, myNewExp, originalExp, modifiedExp)
+		    else
+		      (false, e, e, e)
+		end
+
+	| _ -> (false, e, e, e)
+      end
+    in
+    let genLabels s =
+      match s.skind with
+	| Instr(Set(l, e, loc)) ->
+	    let (res, newExp, originalExp, modifiedExp) = traitExp e in
+	      if res = true then
+		let newS = mkStmt ~valid_sid:true (Instr(Set(l, newExp, loc))) in
+		let labelExp = dummy_exp(BinOp(Ne, modifiedExp, originalExp, intType)) in 
+		let finalList = List.append  [(makeLabel labelExp loc)] ([newS]) in
+		let b2 = mkBlock finalList in
+		let i = mkStmt (Block(b2)) in
+		  incrementMutantCounters ();		  
+		  i
+	      else
+		s
+		
+	| If(e, l, ll, lll) ->
+	    let (res, newExp, originalExp, modifiedExp) = traitExp e in
+	      if res = true then
+		let loc = Utils.get_stmt_loc s in
+		let newS = mkStmt ~valid_sid:true (If(newExp, l, ll, lll)) in
+		let labelExp = dummy_exp(BinOp(Ne, modifiedExp, originalExp, intType)) in 
+		let finalList = List.append  [(makeLabel labelExp loc)] ([newS]) in
+		let b2 = mkBlock finalList in
+		let i = mkStmt (Block(b2)) in
+		  incrementMutantCounters ();		  
+		  i
+	      else
+		s
+	      
+	| Return(e, l) ->
+	    begin match e with 
+	      | Some exp ->
+		  let (res, newExp, originalExp, modifiedExp) = traitExp exp in
+		    if res = true then
+		      let loc = Utils.get_stmt_loc s in
+		      let newS = mkStmt ~valid_sid:true (Return(Some newExp, l)) in
+		      let labelExp = dummy_exp(BinOp(Ne, modifiedExp, originalExp, intType)) in 
+		      let finalList = List.append  [(makeLabel labelExp loc)] ([newS]) in
+		      let b2 = mkBlock finalList in
+		      let i = mkStmt (Block(b2)) in
+			incrementMutantCounters ();		  
+			i
+		    else
+		      s
+	      | _ -> s 
 	    end
-	  else
-	    DoChildren
-	  
-      | BinOp(Ge, lexp, rexp, ty) ->
-	  mutCounter := !mutCounter+1;
-	  if !mutCounter = !nextMutantId then
-	    begin
-	      foundMutant := 1;
-	      (* Format.printf "+++++5@."; *)
-	      let op = match !operatorCounter with
-		| 0 -> Lt
-		| 1 -> Le
-		| _ -> Gt
-	      in
-	      let newEnode = BinOp(op, lexp, rexp, ty) in
-	      let newExp = {e with enode = newEnode} in
-		incrementMutantCounters ();
-		ChangeDoChildrenPost (newExp, fun x -> x)
-	    end
-	  else
-	    DoChildren
-
-      | BinOp(Eq, lexp, rexp, ty) ->
-	  mutCounter := !mutCounter+1;
-	  if !mutCounter = !nextMutantId then
-	    begin
-	      foundMutant := 1;
-	      (* Format.printf "+++++6@."; *)
-	      let newEnode = BinOp(Ne, lexp, rexp, ty) in
-	      let newExp = {e with enode = newEnode} in
-		operatorCounter := 2;
-		incrementMutantCounters ();
-		ChangeDoChildrenPost (newExp, fun x -> x)
-	    end
-	  else
-	    DoChildren
-
-      | BinOp(Ne, lexp, rexp, ty) ->
-	  mutCounter := !mutCounter+1;
-	  if !mutCounter = !nextMutantId then
-	    begin
-	      foundMutant := 1;
-	      (* Format.printf "+++++7@."; *)
-	      let newEnode = BinOp(Eq, lexp, rexp, ty) in
-	      let newExp = {e with enode = newEnode} in
-		operatorCounter := 2;
-		incrementMutantCounters ();
-		ChangeDoChildrenPost (newExp, fun x -> x)
-	    end
-	  else
-	    DoChildren
-
-
-      | _ -> 
-	  (* Format.printf "+++++9@."; *)
-	  Cil.DoChildren
-
+	    
+	      
+	| Switch(e, l,ll, lll) ->
+	    let (res, newExp, originalExp, modifiedExp) = traitExp e in
+	      if res = true then
+		let loc = Utils.get_stmt_loc s in
+		let newS = mkStmt ~valid_sid:true (Switch(newExp, l, ll, lll)) in
+		let labelExp = dummy_exp(BinOp(Ne, modifiedExp, originalExp, intType)) in 
+		let finalList = List.append  [(makeLabel labelExp loc)] ([newS]) in
+		let b2 = mkBlock finalList in
+		let i = mkStmt (Block(b2)) in
+		  incrementMutantCounters ();		  
+		  i
+	      else
+		s
+	      
+      | _ -> s
+    in  
+      ChangeDoChildrenPost (stmt, genLabels)
+      
 end
 
 (*****************************************)
 class genCORMutantsVisitor = object(_self)
   inherit Visitor.frama_c_inplace
 
-  method vexpr e =
-    match e.enode with
-      | BinOp(LAnd, lexp, rexp, ty) ->
-	  mutCounter := !mutCounter+1;
-	  if !mutCounter = !nextMutantId then
-	    begin
-	      foundMutant := 1;
-	      let newEnode = BinOp(LOr, lexp, rexp, ty) in
-	      let newExp = {e with enode = newEnode} in
-		ChangeDoChildrenPost (newExp, fun x -> x)
-	    end
-	  else
-	    DoChildren
+  method! vstmt_aux stmt =
+    let rec traitRLExp e = 
+      begin match e.enode with
+	| _ -> (false, e, e, e)
+      end
 
-      | BinOp(LOr, lexp, rexp, ty) ->
-	  mutCounter := !mutCounter+1;
-	  if !mutCounter = !nextMutantId then
-	    begin
-	      foundMutant := 1;
-	      let newEnode = BinOp(LAnd, lexp, rexp, ty) in
-	      let newExp = {e with enode = newEnode} in
-		ChangeDoChildrenPost (newExp, fun x -> x)
-	    end
-	  else
-	    DoChildren
+    and traitExp e = 
+      begin match e.enode with
+	| BinOp(LAnd, lexp, rexp, ty) ->
+	    mutCounter := !mutCounter+1;
+	    if !mutCounter = !nextMutantId then
+	      begin
+		foundMutant := 1;
+		let newEnode = BinOp(LOr, lexp, rexp, ty) in
+		let newExp = {e with enode = newEnode} in
+		  (true, newExp, e, newExp)
+	      end
+	    else
+	      begin
+		let (res, newExp, originalExp, modifiedExp) = traitExp lexp in
+		  if res = true then
+		    let myNewExp = dummy_exp(BinOp(LAnd, newExp, rexp, ty)) in
+		      (true, myNewExp, originalExp, modifiedExp)
+		  else
+		    begin
+		      let (res, newExp, originalExp, modifiedExp) = traitExp rexp in
+			if res = true then
+			  let myNewExp = dummy_exp(BinOp(LAnd, lexp, newExp, ty)) in
+			    (true, myNewExp, originalExp, modifiedExp)
+			else
+			  (false, e, e, e)
+		    end
+	      end
 
-      | _ -> 
-	  (* Format.printf "+++++9@."; *)
-	  Cil.DoChildren
+	| BinOp(LOr, lexp, rexp, ty) ->
+	    mutCounter := !mutCounter+1;
+	    if !mutCounter = !nextMutantId then
+	      begin
+		foundMutant := 1;
+		let newEnode = BinOp(LAnd, lexp, rexp, ty) in
+		let newExp = {e with enode = newEnode} in
+		  (true, newExp, e, newExp)
+	      end
+	    else
+	      begin
+		let (res, newExp, originalExp, modifiedExp) = traitExp lexp in
+		  if res = true then
+		    let myNewExp = dummy_exp(BinOp(LOr, newExp, rexp, ty)) in
+		      (true, myNewExp, originalExp, modifiedExp)
+		  else
+		    begin
+		      let (res, newExp, originalExp, modifiedExp) = traitExp rexp in
+			if res = true then
+			  let myNewExp = dummy_exp(BinOp(LOr, lexp, newExp, ty)) in
+			    (true, myNewExp, originalExp, modifiedExp)
+			else
+			  (false, e, e, e)
+		    end
+	      end
+
+	| BinOp(op, lexp, rexp, ty) ->
+	    let (res, newExp, originalExp, modifiedExp) = traitExp lexp in
+	      if res = true then
+		let myNewExp = dummy_exp(BinOp(op, newExp, rexp, ty)) in
+		  (true, myNewExp, originalExp, modifiedExp)
+	      else
+		begin
+		  let (res, newExp, originalExp, modifiedExp) = traitExp rexp in
+		    if res = true then
+		      let myNewExp = dummy_exp(BinOp(op, lexp, newExp, ty)) in
+			(true, myNewExp, originalExp, modifiedExp)
+		    else
+		      (false, e, e, e)
+		end
+
+	| UnOp(op, exp, ty)->
+	    let (res, newExp, originalExp, modifiedExp) = traitExp exp in
+	      if res = true then
+		let myNewExp = dummy_exp(UnOp(op, newExp, ty)) in
+		  (true, myNewExp, originalExp, modifiedExp)
+	      else
+		(false, e, e, e)
+
+	| _ -> (false, e, e, e)
+      end
+    in
+    let genLabels s =
+      match s.skind with
+	| Instr(Set(l, e, loc)) ->
+	    let (res, newExp, originalExp, modifiedExp) = traitExp e in
+	      if res = true then
+		let newS = mkStmt ~valid_sid:true (Instr(Set(l, newExp, loc))) in
+		let labelExp = dummy_exp(BinOp(Ne, modifiedExp, originalExp, intType)) in 
+		let finalList = List.append  [(makeLabel labelExp loc)] ([newS]) in
+		let b2 = mkBlock finalList in
+		let i = mkStmt (Block(b2)) in
+		  incrementMutantCounters ();		  
+		  i
+	      else
+		s
+		
+	| If(e, l, ll, lll) ->
+	    let (res, newExp, originalExp, modifiedExp) = traitExp e in
+	      if res = true then
+		let loc = Utils.get_stmt_loc s in
+		let newS = mkStmt ~valid_sid:true (If(newExp, l, ll, lll)) in
+		let labelExp = dummy_exp(BinOp(Ne, modifiedExp, originalExp, intType)) in 
+		let finalList = List.append  [(makeLabel labelExp loc)] ([newS]) in
+		let b2 = mkBlock finalList in
+		let i = mkStmt (Block(b2)) in
+		  incrementMutantCounters ();		  
+		  i
+	      else
+		s
+	      
+	| Return(e, l) ->
+	    begin match e with 
+	      | Some exp ->
+		  let (res, newExp, originalExp, modifiedExp) = traitExp exp in
+		    if res = true then
+		      let loc = Utils.get_stmt_loc s in
+		      let newS = mkStmt ~valid_sid:true (Return(Some newExp, l)) in
+		      let labelExp = dummy_exp(BinOp(Ne, modifiedExp, originalExp, intType)) in 
+		      let finalList = List.append  [(makeLabel labelExp loc)] ([newS]) in
+		      let b2 = mkBlock finalList in
+		      let i = mkStmt (Block(b2)) in
+			incrementMutantCounters ();		  
+			i
+		    else
+		      s
+	      | _ -> s 
+	    end
+	    
+	      
+	| Switch(e, l,ll, lll) ->
+	    let (res, newExp, originalExp, modifiedExp) = traitExp e in
+	      if res = true then
+		let loc = Utils.get_stmt_loc s in
+		let newS = mkStmt ~valid_sid:true (Switch(newExp, l, ll, lll)) in
+		let labelExp = dummy_exp(BinOp(Ne, modifiedExp, originalExp, intType)) in 
+		let finalList = List.append  [(makeLabel labelExp loc)] ([newS]) in
+		let b2 = mkBlock finalList in
+		let i = mkStmt (Block(b2)) in
+		  incrementMutantCounters ();		  
+		  i
+	      else
+		s
+	      
+      | _ -> s
+    in  
+      ChangeDoChildrenPost (stmt, genLabels)
 
 end
 
@@ -674,11 +943,6 @@ class genABSMutantsVisitor = object(_self)
 	| _ -> s
     in
       ChangeDoChildrenPost (stmt, genLabels)
-     (* match stmt.skind with
-	| If _ ->
-            
-	| _ -> DoChildren*)
-	    
 
 end
 
@@ -698,7 +962,6 @@ let makeLabelsFromInput myParam loc =
   match myParam.vtype with 
     | TInt _
     | TFloat _ ->
-	(*Format.printf "+++++3@.";*)
 	let formalExp = new_exp loc (Lval (var myParam)) in
 	let zeroExp = dummy_exp (Const(CInt64(Integer.of_int(0),IInt,None))) in
 	let exp1 = dummy_exp(BinOp(Lt, formalExp, zeroExp, intType)) in
@@ -723,13 +986,11 @@ class genPartitionLabelsVisitor = object(_self)
   inherit Visitor.frama_c_inplace
 
   method! vfunc f =
-    (* Format.printf "+++++1@.";*)
     let loc = getLocFromFunction f in
     let rec labelsFromFormals formals = 
       match formals with 
 	| [] -> []
 	| a :: tail -> 
-	    (* Format.printf "+++++2@.";*)
 	    List.append (makeLabelsFromInput a loc) (labelsFromFormals tail)
     in 
     let oldBody = mkStmt (Block(f.sbody)) in
@@ -740,7 +1001,7 @@ class genPartitionLabelsVisitor = object(_self)
 
 end
 
-
+(*****************************************)
 
 (* val generate_labels_prj: Project.t -> unit *)
 let generate_labels_prj prj =
@@ -757,10 +1018,8 @@ let generate_multi_labels_prj prj =
 
 
 let rec generate_aor_mutants mainProj = 
-  (*Format.printf "+++++1@.";*)
   if !operatorCounter = 0 then
     begin
-      (*Format.printf "+++++2@.";*)
       nextMutantId := !nextMutantId + 1;
     end;
   let filename = (Project.get_name mainProj) ^ "_aor_m" ^ (string_of_int !nextMutantId) ^ "_" ^ (string_of_int !operatorCounter) ^ ".c" in
@@ -773,15 +1032,13 @@ let rec generate_aor_mutants mainProj =
       Visitor.visitFramacFile
 	(new genAORMutantsVisitor :> Visitor.frama_c_inplace)
 	(Ast.get());
-      let _ = print_project newProj filename in
       if !foundMutant = 1 then
 	begin
-	  generate_aor_mutants mainProj
+	  let _ = print_project newProj filename in
+	    generate_aor_mutants mainProj
 	end
       else
-	begin
-	  ()
-	end
+	()
 
 
 let rec generate_ror_mutants mainProj = 
@@ -799,9 +1056,9 @@ let rec generate_ror_mutants mainProj =
       Visitor.visitFramacFile
 	(new genRORMutantsVisitor :> Visitor.frama_c_inplace)
 	(Ast.get());
-      let _ = print_project newProj filename in
       if !foundMutant = 1 then
 	begin
+	  let _ = print_project newProj filename in
 	  generate_ror_mutants mainProj
 	end
       else
@@ -822,10 +1079,10 @@ let rec generate_cor_mutants mainProj =
       Visitor.visitFramacFile
 	(new genCORMutantsVisitor :> Visitor.frama_c_inplace)
 	(Ast.get());
-      let _ = print_project newProj filename in
       if !foundMutant = 1 then
 	begin
-	  generate_cor_mutants mainProj
+	  let _ = print_project newProj filename in
+	    generate_cor_mutants mainProj
 	end
       else
 	begin
@@ -844,10 +1101,10 @@ let rec generate_abs_mutants mainProj =
       Visitor.visitFramacFile
 	(new genABSMutantsVisitor :> Visitor.frama_c_inplace)
 	(Ast.get());
-      let _ = print_project newProj filename in
       if !foundMutant = 1 then
 	begin
-	  generate_abs_mutants mainProj
+	  let _ = print_project newProj filename in
+	    generate_abs_mutants mainProj
 	end
       else
 	begin

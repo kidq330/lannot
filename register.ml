@@ -27,22 +27,17 @@ let get_alarms() =
 
 
 module Make (ST : Slicing.Type) = struct
-  let run() =
+  let run() = 
     Options.Self.feedback "started";
     let _ = Globals.entry_point () in
-    (* Utils.mkdir (Config.result_dir());*)
     let alarms = get_alarms() in
-
-	List.iter (fun x ->
-	  Options.Self.debug ~level:1 "alarm l.%i" (Utils.get_stmt_loc_int x)
-	) alarms;
-
-
-	let _verdicts = ST.process alarms in
-
-    Options.Self.feedback "finished";
+      List.iter (fun x ->
+		   Options.Self.debug ~level:1 "alarm l.%i" (Utils.get_stmt_loc_int x)
+		) alarms;
+      let _verdicts = ST.process alarms in
+	Options.Self.feedback "finished";
 end
-
+  
 let pc_openFile filename = 
   try open_out filename
   with _ -> failwith ("could not open file " ^ filename)
@@ -55,38 +50,45 @@ let writeBufferInFile myBuffer filename =
 
 (* ENTRY POINT *)
 let run () =
+  let multiCondOption = Options.MultiCond.get() in
+  let aorOption = Options.AOR.get () in
+  let rorOPtion = Options.ROR.get () in
+  let corOPtion = Options.COR.get () in
+  let absOption = Options.ABS.get () in
+  let partitionOption = Options.PARTITION.get () in
+  let simpleOption = Options.SimpleCond.get () in
   try
-    if Options.MultiCond.get() then
+    if multiCondOption then
       begin
         let module M = Make (Slicing.Multi ) in
           M.run()
-      end
-    else if Options.AOR.get() then
+      end;
+    if aorOption then
       begin
 	let module M = Make (Slicing.Aor) in
 	  M.run()
-      end
-    else if Options.ROR.get() then
+      end;
+    if rorOPtion then
       begin
 	let module M = Make (Slicing.Ror) in
 	  M.run()
-      end
-    else if Options.COR.get() then
+      end;
+    if corOPtion then
       begin
 	let module M = Make (Slicing.Cor) in
 	  M.run()
-      end
-    else if Options.ABS.get() then
+      end;
+    if absOption then
       begin
 	let module M = Make (Slicing.Abs) in
 	  M.run()
-      end
-    else if Options.PARTITION.get() then
+      end;
+    if partitionOption then
       begin
 	let module M = Make (Slicing.Partition) in
 	  M.run()
-      end
-    else
+      end;
+    if simpleOption then
       begin
         let module M = Make (Slicing.None ) in
           M.run()
@@ -110,9 +112,7 @@ let run () =
   if Options.Enabled.get () then
     let deps = [Ast.self; Options.Enabled.self] in  
     let f, _self = State_builder.apply_once "GENLABELS" deps run in
-    Cil.set_useLogicalOperators true;
-    f ();
-    Cil.set_useLogicalOperators false
+      f ()
   
 let () =
   Db.Main.extend run

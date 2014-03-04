@@ -1,19 +1,6 @@
 open Cil_types
+open Instru
 
-
-(* val slice : stmt list -> string -> Project.t *)
-(*
-let slice stmts prj_name =
-  let _ = !Db.Slicing.set_modes ~keepAnnotations:true () in
-  let slicing = !Db.Slicing.Project.mk_project prj_name in
-  let select sel stmt = !Db.Slicing.Select.select_stmt sel ~spare:false stmt
-    (Kernel_function.find_englobing_kf stmt) in
-  let sel = List.fold_left select Db.Slicing.Select.empty_selects stmts in
-  let _ = !Db.Slicing.Request.add_persistent_selection slicing sel in
-  let _ = !Db.Slicing.Request.apply_all_internal slicing in
-  let _ = !Db.Slicing.Slice.remove_uncalled slicing in
-  !Db.Slicing.Project.extract prj_name slicing
-*)
 let getProject _stmts prj_name =
   let prj = File.create_project_from_visitor prj_name (fun prj -> new Visitor.frama_c_copy prj) in 
     prj
@@ -78,7 +65,6 @@ end
 (*************************)
 (* NONE                  *)
 (*************************)
-
 module None:Type = struct
   let name = "none"
   let process _ =
@@ -87,61 +73,80 @@ module None:Type = struct
       Instru.generate_labels_prj prj;
       let _ = Instru.print_project prj filename in
 	[]
-
 end
-
 
 module Multi:Type = struct
   let name = "multi"
   let process _ =
+    let mainProj = Project.current () in
     let prj = getProject !Utils.all_stmts (Config.input_file()) in
     let filename = (Project.get_name prj) ^ "_multilabels.c" in
       Instru.generate_multi_labels_prj prj;
       let _ = Instru.print_project prj filename in
+	Project.set_current mainProj;
 	[]
-
 end
 
 module Aor:Type = struct
   let name = "aor"
   let process _ =
+    let mainProj = Project.current () in
     let prj = getProject !Utils.all_stmts (Config.input_file()) in
+      nextMutantId := 0;
+      mutCounter := 0;
+      operatorCounter := 0;
       let _ = Instru.generate_aor_mutants prj in
+	Project.set_current mainProj;
 	[]
 end
-
 
 module Ror:Type = struct
   let name = "ror"
   let process _ =
+    let mainProj = Project.current () in
     let prj = getProject !Utils.all_stmts (Config.input_file()) in
-    let _ = Instru.generate_ror_mutants prj in
-      []
+      nextMutantId := 0;
+      mutCounter := 0;
+      operatorCounter := 0;
+      let _ = Instru.generate_ror_mutants prj in
+	Project.set_current mainProj;
+	[]
 end
 
 module Cor:Type = struct
   let name = "cor"
   let process _ =
+    let mainProj = Project.current () in
     let prj = getProject !Utils.all_stmts (Config.input_file()) in
-    let _ = Instru.generate_cor_mutants prj in
-      []
+      nextMutantId := 0;
+      mutCounter := 0;
+      operatorCounter := 0;
+      let _ = Instru.generate_cor_mutants prj in
+	Project.set_current mainProj;
+	[]
 end
 
 module Abs:Type = struct
   let name = "abs"
   let process _ =
+    let mainProj = Project.current () in
     let prj = getProject !Utils.all_stmts (Config.input_file()) in
-    let _ = Instru.generate_abs_mutants prj in
-      []
+      nextMutantId := 0;
+      mutCounter := 0;
+      operatorCounter := 0;
+      let _ = Instru.generate_abs_mutants prj in
+	Project.set_current mainProj;
+	[]
 end
-
 
 module Partition:Type = struct
   let name = "partition"
   let process _ =
+    let mainProj = Project.current () in
     let prj = getProject !Utils.all_stmts (Config.input_file()) in
     let filename = (Project.get_name prj) ^ "_partition.c" in
       Instru.generate_partition_labels_prj prj;
       let _ = Instru.print_project prj filename in
+	Project.set_current mainProj;
 	[]
 end
