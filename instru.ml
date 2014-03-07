@@ -676,7 +676,7 @@ module CC:Type = struct
   let name = "none"
   let process _ =
     let prj = getProject !Utils.all_stmts (Config.input_file()) in
-    let filename = (Project.get_name prj) ^ "_labels.c" in
+    let filename = (Project.get_name prj) ^ "_CC.c" in
       generate_labels_prj prj;
       let _ = print_project prj filename in
 	()
@@ -687,7 +687,7 @@ module MCC:Type = struct
   let process _ =
     let mainProj = Project.current () in
     let prj = getProject !Utils.all_stmts (Config.input_file()) in
-    let filename = (Project.get_name prj) ^ "_multilabels.c" in
+    let filename = (Project.get_name prj) ^ "_MCC.c" in
       generate_multi_labels_prj prj;
       let _ = print_project prj filename in
 	Project.set_current mainProj;
@@ -700,7 +700,7 @@ module WM:Type = struct
   let process _ =
     let mainProj = Project.current () in
     let prj = getProject !Utils.all_stmts (Config.input_file()) in
-    let filename = (Project.get_name prj) ^ "_labels.c" in
+    let filename = (Project.get_name prj) ^ "_WM.c" in
       generate_wm_prj prj;
       let _ = print_project prj filename in
 	Project.set_current mainProj;

@@ -58,10 +58,13 @@ let run () =
   Instru.partitionOption := Options.PARTITION.get ();
   Instru.simpleOption := Options.SimpleCond.get ();
   try
-    begin
-      let module M = Make (Instru.WM ) in
-        M.run()
-    end;
+    if !Instru.aorOption = true or !Instru.rorOption = true 
+      or !Instru.corOption = true or !Instru.absOption = true 
+      or !Instru.partitionOption = true then
+	begin
+	  let module M = Make (Instru.WM ) in
+            M.run()
+	end;
     if !Instru.multiCondOption = true then
       begin
         let module M = Make (Instru.MCC ) in
