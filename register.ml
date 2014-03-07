@@ -89,10 +89,12 @@ let run () =
 	
 let run () =
   if Options.Enabled.get () then
-    let deps = [Ast.self; Options.Enabled.self] in  
+    let deps = [Ast.self; Options.Enabled.self] in
     let f, _self = State_builder.apply_once "GENLABELS" deps run in
-      f ()
-  
+      Kernel.LogicalOperators.on ();
+      f ();
+      Kernel.LogicalOperators.off ()
+
 let () =
   Db.Main.extend run
 
