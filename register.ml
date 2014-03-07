@@ -26,7 +26,7 @@ let get_alarms() =
 (*************************************************)
 
 
-module Make (ST : Slicing.Type) = struct
+module Make (ST : Instru.Type) = struct
   let run() = 
     Options.Self.feedback "started";
     let _ = Globals.entry_point () in
@@ -50,64 +50,43 @@ let writeBufferInFile myBuffer filename =
 
 (* ENTRY POINT *)
 let run () =
-  let multiCondOption = Options.MultiCond.get() in
-  let aorOption = Options.AOR.get () in
-  let rorOPtion = Options.ROR.get () in
-  let corOPtion = Options.COR.get () in
-  let absOption = Options.ABS.get () in
-  let partitionOption = Options.PARTITION.get () in
-  let simpleOption = Options.SimpleCond.get () in
+  Instru.multiCondOption := Options.MultiCond.get();
+  Instru.aorOption := Options.AOR.get ();
+  Instru.rorOption := Options.ROR.get ();
+  Instru.corOption := Options.COR.get ();
+  Instru.absOption := Options.ABS.get ();
+  Instru.partitionOption := Options.PARTITION.get ();
+  Instru.simpleOption := Options.SimpleCond.get ();
   try
-    if multiCondOption then
+    begin
+      let module M = Make (Instru.WM ) in
+        M.run()
+    end;
+    if !Instru.multiCondOption = true then
       begin
-        let module M = Make (Slicing.Multi ) in
+        let module M = Make (Instru.MCC ) in
           M.run()
       end;
-    if aorOption then
+    if !Instru.simpleOption = true then
       begin
-	let module M = Make (Slicing.Aor) in
-	  M.run()
-      end;
-    if rorOPtion then
-      begin
-	let module M = Make (Slicing.Ror) in
-	  M.run()
-      end;
-    if corOPtion then
-      begin
-	let module M = Make (Slicing.Cor) in
-	  M.run()
-      end;
-    if absOption then
-      begin
-	let module M = Make (Slicing.Abs) in
-	  M.run()
-      end;
-    if partitionOption then
-      begin
-	let module M = Make (Slicing.Partition) in
-	  M.run()
-      end;
-    if simpleOption then
-      begin
-        let module M = Make (Slicing.None ) in
+        let module M = Make (Instru.CC ) in
           M.run()
-      end;
+      end;    
     (let alarmsBuffer = Buffer.create 1024 in
        Instru.prepareLabelsBuffer Instru.labelsList alarmsBuffer;
        writeBufferInFile alarmsBuffer ("labels.xml");
     )
   with
-  | Globals.No_such_entry_point _ ->
-      Options.Self.feedback "`-main` parameter missing"
-  | Dynamic.Unbound_value(s) -> Options.Self.feedback "%s unbound" s
-  | Dynamic.Incompatible_type(s) -> Options.Self.feedback "%s incompatible" s
-  | Config.NoInputFile -> Options.Self.feedback "no input file"
-  | AlarmsSameLine ->
-      Options.Self.feedback "only 1 alarm per line for correct results"
-  | Failure s -> Options.Self.feedback "failure: %s" s
-  | e -> Options.Self.feedback "exception: %s" (Printexc.to_string e)
-
+    | Globals.No_such_entry_point _ ->
+	Options.Self.feedback "`-main` parameter missing"
+    | Dynamic.Unbound_value(s) -> Options.Self.feedback "%s unbound" s
+    | Dynamic.Incompatible_type(s) -> Options.Self.feedback "%s incompatible" s
+    | Config.NoInputFile -> Options.Self.feedback "no input file"
+    | AlarmsSameLine ->
+	Options.Self.feedback "only 1 alarm per line for correct results"
+    | Failure s -> Options.Self.feedback "failure: %s" s
+    | e -> Options.Self.feedback "exception: %s" (Printexc.to_string e)
+	
 let run () =
   if Options.Enabled.get () then
     let deps = [Ast.self; Options.Enabled.self] in  
