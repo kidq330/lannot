@@ -1,4 +1,3 @@
-open Lexing
 open Buffer
 open Cil
 open Cil_types
@@ -28,14 +27,14 @@ let get_alarms() =
 
 module Make (ST : Instru.Type) = struct
   let run() = 
-    Options.Self.feedback "started";
+    Options.feedback "started";
     let _ = Globals.entry_point () in
     let alarms = get_alarms() in
       List.iter (fun x ->
-		   Options.Self.debug ~level:1 "alarm l.%i" (Utils.get_stmt_loc_int x)
+		   Options.debug ~level:1 "alarm l.%i" (Utils.get_stmt_loc_int x)
 		) alarms;
       let _verdicts = ST.process alarms in
-	Options.Self.feedback "finished";
+	Options.feedback "finished";
 end
   
 let pc_openFile filename = 
@@ -81,14 +80,14 @@ let run () =
     )
   with
     | Globals.No_such_entry_point _ ->
-	Options.Self.feedback "`-main` parameter missing"
-    | Dynamic.Unbound_value(s) -> Options.Self.feedback "%s unbound" s
-    | Dynamic.Incompatible_type(s) -> Options.Self.feedback "%s incompatible" s
-    | Config.NoInputFile -> Options.Self.feedback "no input file"
+	Options.feedback "`-main` parameter missing"
+    | Dynamic.Unbound_value(s) -> Options.feedback "%s unbound" s
+    | Dynamic.Incompatible_type(s) -> Options.feedback "%s incompatible" s
+    | Config.NoInputFile -> Options.feedback "no input file"
     | AlarmsSameLine ->
-	Options.Self.feedback "only 1 alarm per line for correct results"
-    | Failure s -> Options.Self.feedback "failure: %s" s
-    | e -> Options.Self.feedback "exception: %s" (Printexc.to_string e)
+	Options.feedback "only 1 alarm per line for correct results"
+    | Failure s -> Options.feedback "failure: %s" s
+    | e -> Options.feedback "exception: %s" (Printexc.to_string e)
 	
 let run () =
   if Options.Enabled.get () then

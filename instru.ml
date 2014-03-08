@@ -23,26 +23,23 @@ let print_project prj filename =
   let _ = close_out out in
   let _ = Format.set_formatter_out_channel Pervasives.stdout in
     filename
-    
 
-(* val mk_call: loc -> lval option -> string -> exp list -> stmt *)
-let mk_call loc ?result fname args =
-  let new_lval loc v = new_exp loc (Lval (var v)) in
-  let t = match result with
-    | Some(Var(v),_) -> v.vtype
-    | _ -> voidType in
-  let ty = TFun(t, None, false, []) in
-  let f = new_lval loc (makeGlobalVar fname ty) in
-  mkStmt ~valid_sid:true (Instr(Call(result, f, args, loc)))
+let shouldInstrument fun_varinfo =
+  let names = Options.FunctionNames.get () in
+  (* TODO filter builtin functions *)
+  if Datatype.String.Set.is_empty names then
+    true
+  else
+    Datatype.String.Set.mem fun_varinfo.vname names
 
 let makeLabel cond loc ltype = 
-  let labelTypeExp = dummy_exp (Const(CStr(ltype))) in
-  let labelIdExp = dummy_exp (Const(CInt64(Integer.of_int(!nextLabelId),IInt,None))) in
+  let labelTypeExp = Utils.mk_exp (Const(CStr(ltype))) in
+  let labelIdExp = Utils.mk_exp (Const(CInt64(Integer.of_int(!nextLabelId),IInt,None))) in
   let lineNumber = (fst loc).pos_lnum in
   let fileName = (fst loc).pos_fname in
     labelsList := (fileName,lineNumber,!nextLabelId, cond, ltype)::!labelsList;
     nextLabelId := !nextLabelId+1;
-    mk_call loc "pc_label" [ cond; labelIdExp; labelTypeExp ]
+    Utils.mk_call "pc_label" [ cond; labelIdExp; labelTypeExp ]
 
 let rec genLabelPerExp exp loc =
   match exp.enode with
@@ -53,36 +50,36 @@ let rec genLabelPerExp exp loc =
         List.append (genLabelPerExp e1 loc) (genLabelPerExp e2 loc)
 
     | BinOp(Lt, e1, e2, t) ->
-        let nonExp = dummy_exp(BinOp(Ge, e1, e2, t)) in
+        let nonExp = Utils.mk_exp(BinOp(Ge, e1, e2, t)) in
           [makeLabel exp loc "CC"; makeLabel nonExp loc "CC"]
 
     | BinOp(Gt, e1, e2, t) ->
-        let nonExp = dummy_exp(BinOp(Le, e1, e2, t)) in
+        let nonExp = Utils.mk_exp(BinOp(Le, e1, e2, t)) in
 	  [makeLabel exp loc "CC"; makeLabel nonExp loc "CC"]
 
     | BinOp(Le, e1, e2, t) ->
-        let nonExp = dummy_exp(BinOp(Gt, e1, e2, t)) in
+        let nonExp = Utils.mk_exp(BinOp(Gt, e1, e2, t)) in
 	  [makeLabel exp loc "CC"; makeLabel nonExp loc "CC"]
 
 
     | BinOp(Ge, e1, e2, t) ->
-        let nonExp = dummy_exp(BinOp(Lt, e1, e2, t)) in
+        let nonExp = Utils.mk_exp(BinOp(Lt, e1, e2, t)) in
 	  [makeLabel exp loc "CC"; makeLabel nonExp loc "CC"]
 
     | BinOp(Eq, e1, e2, t) ->
-        let nonExp = dummy_exp(BinOp(Ne, e1, e2, t)) in
+        let nonExp = Utils.mk_exp(BinOp(Ne, e1, e2, t)) in
 	  [makeLabel exp loc "CC"; makeLabel nonExp loc "CC"]
 
     | BinOp(Ne, e1, e2, t) ->
-        let nonExp = dummy_exp(BinOp(Eq, e1, e2, t)) in
+        let nonExp = Utils.mk_exp(BinOp(Eq, e1, e2, t)) in
 	  [makeLabel exp loc "CC"; makeLabel nonExp loc "CC"]
 
     | BinOp(_, _e1, _e2, _) ->
-        let nonExp = dummy_exp(UnOp(LNot, exp, intType)) in
+        let nonExp = Utils.mk_exp(UnOp(LNot, exp, intType)) in
 	  [makeLabel exp loc "CC"; makeLabel nonExp loc "CC"]
 
     | Lval(_lv) ->
-        let nonExp = dummy_exp(UnOp(LNot, exp, intType)) in
+        let nonExp = Utils.mk_exp(UnOp(LNot, exp, intType)) in
 	  [makeLabel exp loc "CC"; makeLabel nonExp loc "CC"]
 
     | UnOp(LNot, e1, _) ->
@@ -93,6 +90,9 @@ let rec genLabelPerExp exp loc =
 
 class genLabelsVisitor = object(_self)
   inherit Visitor.frama_c_inplace
+
+  method! vfunc dec =
+    if shouldInstrument dec.svar then DoChildren else SkipChildren
 
   method! vstmt_aux stmt =
     let genLabels s =
@@ -143,15 +143,15 @@ let rec getConditionsNumber exp =
 let generateStatementFromConditionsList conds loc =
   let rec mergeConds condsList =
     match condsList with
-      (* | [] -> nil*)
+      | [] -> assert false
       | a::[] -> a
       | a::b::tail->
-          let newExp = dummy_exp(BinOp(LAnd, a, b, intType)) in
+          let newExp = Utils.mk_exp(BinOp(LAnd, a, b, intType)) in
             mergeConds (List.append [newExp] tail)
   in
     match conds with
       | [] ->
-            let stmt = mk_call loc "pc_label" [ ] in
+            let stmt = makeLabel (Cil.one Cil_datatype.Location.unknown) loc "MCC" in
               stmt
       | _ ->
           let newCond = mergeConds conds in
@@ -164,29 +164,29 @@ let generateStatementFromConditionsList conds loc =
 let getNegativeCond exp =
   match exp.enode with
     | BinOp(Lt, e1, e2, t) ->
-        dummy_exp(BinOp(Ge, e1, e2, t))
+        Utils.mk_exp(BinOp(Ge, e1, e2, t))
 
     | BinOp(Gt, e1, e2, t) ->
-        dummy_exp(BinOp(Le, e1, e2, t))
+        Utils.mk_exp(BinOp(Le, e1, e2, t))
 
     | BinOp(Le, e1, e2, t) ->
-        dummy_exp(BinOp(Gt, e1, e2, t))
+        Utils.mk_exp(BinOp(Gt, e1, e2, t))
 
     | BinOp(Ge, e1, e2, t) ->
-        dummy_exp(BinOp(Lt, e1, e2, t))
+        Utils.mk_exp(BinOp(Lt, e1, e2, t))
 
     | BinOp(Eq, e1, e2, t) ->
-        dummy_exp(BinOp(Ne, e1, e2, t))
+        Utils.mk_exp(BinOp(Ne, e1, e2, t))
 
     | BinOp(Ne, e1, e2, t) ->
-        dummy_exp(BinOp(Eq, e1, e2, t))
+        Utils.mk_exp(BinOp(Eq, e1, e2, t))
 
     | Lval(_lv) ->
-        dummy_exp(UnOp(LNot, exp, intType))
+        Utils.mk_exp(UnOp(LNot, exp, intType))
 
     | UnOp(LNot, e1, _) -> e1
 
-    | _ -> Cil.dummy_exp(UnOp(LNot, exp, Cil.intType))
+    | _ -> Utils.mk_exp(UnOp(LNot, exp, Cil.intType))
 
 let rec genMultiLabel allConds conditionsNb currentNb newConds cumul loc =
   match allConds with
@@ -267,6 +267,9 @@ let prepareLabelsBuffer labelsList myBuffer =
 class genMultiLabelsVisitor = object(_self)
   inherit Visitor.frama_c_inplace
 
+  method! vfunc dec =
+    if shouldInstrument dec.svar then DoChildren else SkipChildren
+
   method! vstmt_aux stmt =
     let genLabels s =
       match s.skind with
@@ -303,10 +306,10 @@ let makeLabelsFromInput myParam loc =
     | TInt _
     | TFloat _ ->
 	let formalExp = new_exp loc (Lval (var myParam)) in
-	let zeroExp = dummy_exp (Const(CInt64(Integer.of_int(0),IInt,None))) in
-	let exp1 = dummy_exp(BinOp(Lt, formalExp, zeroExp, intType)) in
-	let exp2 = dummy_exp(BinOp(Gt, formalExp, zeroExp, intType)) in
-	let exp3 = dummy_exp(BinOp(Eq, formalExp, zeroExp, intType)) in
+	let zeroExp = Utils.mk_exp (Const(CInt64(Integer.of_int(0),IInt,None))) in
+	let exp1 = Utils.mk_exp(BinOp(Lt, formalExp, zeroExp, intType)) in
+	let exp2 = Utils.mk_exp(BinOp(Gt, formalExp, zeroExp, intType)) in
+	let exp3 = Utils.mk_exp(BinOp(Eq, formalExp, zeroExp, intType)) in
 	let stmt1 = makeLabel exp1 loc "PARTITION" in
 	let stmt2 = makeLabel exp2 loc "PARTITION" in
 	let stmt3 = makeLabel exp3 loc "PARTITION" in
@@ -314,9 +317,9 @@ let makeLabelsFromInput myParam loc =
 
     | TPtr _ -> 
 	let formalExp = new_exp loc (Lval (var myParam)) in
-	let zeroExp = dummy_exp (Const(CInt64(Integer.of_int(0),IInt,None))) in
-	let exp1 = dummy_exp(BinOp(Eq, formalExp, zeroExp, intType)) in
-	let exp2 = dummy_exp(BinOp(Ne, formalExp, zeroExp, intType)) in
+	let zeroExp = Utils.mk_exp (Const(CInt64(Integer.of_int(0),IInt,None))) in
+	let exp1 = Utils.mk_exp(BinOp(Eq, formalExp, zeroExp, intType)) in
+	let exp2 = Utils.mk_exp(BinOp(Ne, formalExp, zeroExp, intType)) in
 	let stmt1 = makeLabel exp1 loc "PARTITION" in
 	let stmt2 = makeLabel exp2 loc "PARTITION" in
 	  [stmt1; stmt2]
@@ -327,9 +330,9 @@ let makeLabelsFromInput myParam loc =
 (*****************************************)
 class labelsVisitor = object(_self)
   inherit Visitor.frama_c_inplace
-    
+
   method! vfunc f =
-    if !partitionOption = true then
+    if shouldInstrument f.svar && !partitionOption = true then
       begin
 	let loc = getLocFromFunction f in
 	let rec labelsFromFormals formals = 
@@ -343,7 +346,7 @@ class labelsVisitor = object(_self)
 	let newBody = mkBlock newStmts in
 	  f.sbody <- newBody;
       end;
-    DoChildren
+    if shouldInstrument f.svar then DoChildren else SkipChildren
 
   method! vstmt_aux stmt =      	  
     let rec traitExp e loc = 
@@ -354,7 +357,7 @@ class labelsVisitor = object(_self)
 		begin
 		  let newEnode = BinOp(LOr, lexp, rexp, ty) in
 		  let newExp = {e with enode = newEnode} in
-		  let labelExp = dummy_exp(BinOp(Ne, newExp, e, ty)) in 
+		  let labelExp = Utils.mk_exp(BinOp(Ne, newExp, e, ty)) in 
 		  let labelStmt = makeLabel labelExp loc "COR" in
 		    labelsStmts := List.append !labelsStmts [labelStmt];
 		end;
@@ -368,7 +371,7 @@ class labelsVisitor = object(_self)
 		begin
 		  let newEnode = BinOp(LAnd, lexp, rexp, ty) in
 		  let newExp = {e with enode = newEnode} in
-		  let labelExp = dummy_exp(BinOp(Ne, newExp, e, ty)) in 
+		  let labelExp = Utils.mk_exp(BinOp(Ne, newExp, e, ty)) in 
 		  let labelStmt = makeLabel labelExp loc "COR" in
 		    labelsStmts := List.append !labelsStmts [labelStmt];
 		end;
@@ -379,12 +382,12 @@ class labelsVisitor = object(_self)
 	  | BinOp(Div, lexp, rexp, ty) ->
 	      if !aorOption = true then
 		begin
-		  let newExp1 = dummy_exp(BinOp(Mult, lexp, rexp, ty)) in
-		  let newExp2 = dummy_exp(BinOp(PlusA, lexp, rexp, ty)) in
-		  let newExp3 = dummy_exp(BinOp(MinusA, lexp, rexp, ty)) in
-		  let labelExp1 = dummy_exp(BinOp(Ne, newExp1, e, ty)) in 
-		  let labelExp2 = dummy_exp(BinOp(Ne, newExp2, e, ty)) in 
-		  let labelExp3 = dummy_exp(BinOp(Ne, newExp3, e, ty)) in 
+		  let newExp1 = Utils.mk_exp(BinOp(Mult, lexp, rexp, ty)) in
+		  let newExp2 = Utils.mk_exp(BinOp(PlusA, lexp, rexp, ty)) in
+		  let newExp3 = Utils.mk_exp(BinOp(MinusA, lexp, rexp, ty)) in
+		  let labelExp1 = Utils.mk_exp(BinOp(Ne, newExp1, e, ty)) in 
+		  let labelExp2 = Utils.mk_exp(BinOp(Ne, newExp2, e, ty)) in 
+		  let labelExp3 = Utils.mk_exp(BinOp(Ne, newExp3, e, ty)) in 
 		  let labelStmt1 = makeLabel labelExp1 loc "AOR" in
 		  let labelStmt2 = makeLabel labelExp2 loc "AOR" in
 		  let labelStmt3 = makeLabel labelExp3 loc "AOR" in
@@ -397,12 +400,12 @@ class labelsVisitor = object(_self)
 	  | BinOp(Mult, lexp, rexp, ty) ->
 	      if !aorOption = true then
 		begin
-		  let newExp1 = dummy_exp(BinOp(Div, lexp, rexp, ty)) in
-		  let newExp2 = dummy_exp(BinOp(PlusA, lexp, rexp, ty)) in
-		  let newExp3 = dummy_exp(BinOp(MinusA, lexp, rexp, ty)) in
-		  let labelExp1 = dummy_exp(BinOp(Ne, newExp1, e, ty)) in 
-		  let labelExp2 = dummy_exp(BinOp(Ne, newExp2, e, ty)) in 
-		  let labelExp3 = dummy_exp(BinOp(Ne, newExp3, e, ty)) in 
+		  let newExp1 = Utils.mk_exp(BinOp(Div, lexp, rexp, ty)) in
+		  let newExp2 = Utils.mk_exp(BinOp(PlusA, lexp, rexp, ty)) in
+		  let newExp3 = Utils.mk_exp(BinOp(MinusA, lexp, rexp, ty)) in
+		  let labelExp1 = Utils.mk_exp(BinOp(Ne, newExp1, e, ty)) in 
+		  let labelExp2 = Utils.mk_exp(BinOp(Ne, newExp2, e, ty)) in 
+		  let labelExp3 = Utils.mk_exp(BinOp(Ne, newExp3, e, ty)) in 
 		  let labelStmt1 = makeLabel labelExp1 loc "AOR" in
 		  let labelStmt2 = makeLabel labelExp2 loc "AOR" in
 		  let labelStmt3 = makeLabel labelExp3 loc "AOR" in
@@ -415,12 +418,12 @@ class labelsVisitor = object(_self)
 	  | BinOp(PlusA, lexp, rexp, ty) ->
 	      if !aorOption = true then
 		begin
-		  let newExp1 = dummy_exp(BinOp(Mult, lexp, rexp, ty)) in
-		  let newExp2 = dummy_exp(BinOp(Div, lexp, rexp, ty)) in
-		  let newExp3 = dummy_exp(BinOp(MinusA, lexp, rexp, ty)) in
-		  let labelExp1 = dummy_exp(BinOp(Ne, newExp1, e, ty)) in 
-		  let labelExp2 = dummy_exp(BinOp(Ne, newExp2, e, ty)) in 
-		  let labelExp3 = dummy_exp(BinOp(Ne, newExp3, e, ty)) in 
+		  let newExp1 = Utils.mk_exp(BinOp(Mult, lexp, rexp, ty)) in
+		  let newExp2 = Utils.mk_exp(BinOp(Div, lexp, rexp, ty)) in
+		  let newExp3 = Utils.mk_exp(BinOp(MinusA, lexp, rexp, ty)) in
+		  let labelExp1 = Utils.mk_exp(BinOp(Ne, newExp1, e, ty)) in 
+		  let labelExp2 = Utils.mk_exp(BinOp(Ne, newExp2, e, ty)) in 
+		  let labelExp3 = Utils.mk_exp(BinOp(Ne, newExp3, e, ty)) in 
 		  let labelStmt1 = makeLabel labelExp1 loc "AOR" in
 		  let labelStmt2 = makeLabel labelExp2 loc "AOR" in
 		  let labelStmt3 = makeLabel labelExp3 loc "AOR" in
@@ -433,12 +436,12 @@ class labelsVisitor = object(_self)
 	  | BinOp(MinusA, lexp, rexp, ty) ->
 	      if !aorOption = true then
 		begin
-		  let newExp1 = dummy_exp(BinOp(Mult, lexp, rexp, ty)) in
-		  let newExp2 = dummy_exp(BinOp(Div, lexp, rexp, ty)) in
-		  let newExp3 = dummy_exp(BinOp(PlusA, lexp, rexp, ty)) in
-		  let labelExp1 = dummy_exp(BinOp(Ne, newExp1, e, ty)) in 
-		  let labelExp2 = dummy_exp(BinOp(Ne, newExp2, e, ty)) in 
-		  let labelExp3 = dummy_exp(BinOp(Ne, newExp3, e, ty)) in 
+		  let newExp1 = Utils.mk_exp(BinOp(Mult, lexp, rexp, ty)) in
+		  let newExp2 = Utils.mk_exp(BinOp(Div, lexp, rexp, ty)) in
+		  let newExp3 = Utils.mk_exp(BinOp(PlusA, lexp, rexp, ty)) in
+		  let labelExp1 = Utils.mk_exp(BinOp(Ne, newExp1, e, ty)) in 
+		  let labelExp2 = Utils.mk_exp(BinOp(Ne, newExp2, e, ty)) in 
+		  let labelExp3 = Utils.mk_exp(BinOp(Ne, newExp3, e, ty)) in 
 		  let labelStmt1 = makeLabel labelExp1 loc "AOR" in
 		  let labelStmt2 = makeLabel labelExp2 loc "AOR" in
 		  let labelStmt3 = makeLabel labelExp3 loc "AOR" in
@@ -451,12 +454,12 @@ class labelsVisitor = object(_self)
 	  | BinOp(Lt, lexp, rexp, ty) ->
 	      if !rorOption = true then
 		begin
-		  let newExp1 = dummy_exp(BinOp(Le, lexp, rexp, ty)) in
-		  let newExp2 = dummy_exp(BinOp(Gt, lexp, rexp, ty)) in
-		  let newExp3 = dummy_exp(BinOp(Ge, lexp, rexp, ty)) in
-		  let labelExp1 = dummy_exp(BinOp(Ne, newExp1, e, ty)) in 
-		  let labelExp2 = dummy_exp(BinOp(Ne, newExp2, e, ty)) in 
-		  let labelExp3 = dummy_exp(BinOp(Ne, newExp3, e, ty)) in 
+		  let newExp1 = Utils.mk_exp(BinOp(Le, lexp, rexp, ty)) in
+		  let newExp2 = Utils.mk_exp(BinOp(Gt, lexp, rexp, ty)) in
+		  let newExp3 = Utils.mk_exp(BinOp(Ge, lexp, rexp, ty)) in
+		  let labelExp1 = Utils.mk_exp(BinOp(Ne, newExp1, e, ty)) in 
+		  let labelExp2 = Utils.mk_exp(BinOp(Ne, newExp2, e, ty)) in 
+		  let labelExp3 = Utils.mk_exp(BinOp(Ne, newExp3, e, ty)) in 
 		  let labelStmt1 = makeLabel labelExp1 loc "ROR" in
 		  let labelStmt2 = makeLabel labelExp2 loc "ROR" in
 		  let labelStmt3 = makeLabel labelExp3 loc "ROR" in
@@ -469,12 +472,12 @@ class labelsVisitor = object(_self)
 	  | BinOp(Gt, lexp, rexp, ty) ->
 	      if !rorOption = true then
 		begin
-		  let newExp1 = dummy_exp(BinOp(Lt, lexp, rexp, ty)) in
-		  let newExp2 = dummy_exp(BinOp(Le, lexp, rexp, ty)) in
-		  let newExp3 = dummy_exp(BinOp(Ge, lexp, rexp, ty)) in
-		  let labelExp1 = dummy_exp(BinOp(Ne, newExp1, e, ty)) in 
-		  let labelExp2 = dummy_exp(BinOp(Ne, newExp2, e, ty)) in 
-		  let labelExp3 = dummy_exp(BinOp(Ne, newExp3, e, ty)) in 
+		  let newExp1 = Utils.mk_exp(BinOp(Lt, lexp, rexp, ty)) in
+		  let newExp2 = Utils.mk_exp(BinOp(Le, lexp, rexp, ty)) in
+		  let newExp3 = Utils.mk_exp(BinOp(Ge, lexp, rexp, ty)) in
+		  let labelExp1 = Utils.mk_exp(BinOp(Ne, newExp1, e, ty)) in 
+		  let labelExp2 = Utils.mk_exp(BinOp(Ne, newExp2, e, ty)) in 
+		  let labelExp3 = Utils.mk_exp(BinOp(Ne, newExp3, e, ty)) in 
 		  let labelStmt1 = makeLabel labelExp1 loc "ROR" in
 		  let labelStmt2 = makeLabel labelExp2 loc "ROR" in
 		  let labelStmt3 = makeLabel labelExp3 loc "ROR" in
@@ -487,12 +490,12 @@ class labelsVisitor = object(_self)
 	  | BinOp(Le, lexp, rexp, ty) ->
 	      if !rorOption = true then
 		begin
-		  let newExp1 = dummy_exp(BinOp(Lt, lexp, rexp, ty)) in
-		  let newExp2 = dummy_exp(BinOp(Gt, lexp, rexp, ty)) in
-		  let newExp3 = dummy_exp(BinOp(Ge, lexp, rexp, ty)) in
-		  let labelExp1 = dummy_exp(BinOp(Ne, newExp1, e, ty)) in 
-		  let labelExp2 = dummy_exp(BinOp(Ne, newExp2, e, ty)) in 
-		  let labelExp3 = dummy_exp(BinOp(Ne, newExp3, e, ty)) in 
+		  let newExp1 = Utils.mk_exp(BinOp(Lt, lexp, rexp, ty)) in
+		  let newExp2 = Utils.mk_exp(BinOp(Gt, lexp, rexp, ty)) in
+		  let newExp3 = Utils.mk_exp(BinOp(Ge, lexp, rexp, ty)) in
+		  let labelExp1 = Utils.mk_exp(BinOp(Ne, newExp1, e, ty)) in 
+		  let labelExp2 = Utils.mk_exp(BinOp(Ne, newExp2, e, ty)) in 
+		  let labelExp3 = Utils.mk_exp(BinOp(Ne, newExp3, e, ty)) in 
 		  let labelStmt1 = makeLabel labelExp1 loc "ROR" in
 		  let labelStmt2 = makeLabel labelExp2 loc "ROR" in
 		  let labelStmt3 = makeLabel labelExp3 loc "ROR" in
@@ -505,12 +508,12 @@ class labelsVisitor = object(_self)
 	  | BinOp(Ge, lexp, rexp, ty) ->
 	      if !rorOption = true then
 		begin
-		  let newExp1 = dummy_exp(BinOp(Lt, lexp, rexp, ty)) in
-		  let newExp2 = dummy_exp(BinOp(Le, lexp, rexp, ty)) in
-		  let newExp3 = dummy_exp(BinOp(Gt, lexp, rexp, ty)) in
-		  let labelExp1 = dummy_exp(BinOp(Ne, newExp1, e, ty)) in 
-		  let labelExp2 = dummy_exp(BinOp(Ne, newExp2, e, ty)) in 
-		  let labelExp3 = dummy_exp(BinOp(Ne, newExp3, e, ty)) in 
+		  let newExp1 = Utils.mk_exp(BinOp(Lt, lexp, rexp, ty)) in
+		  let newExp2 = Utils.mk_exp(BinOp(Le, lexp, rexp, ty)) in
+		  let newExp3 = Utils.mk_exp(BinOp(Gt, lexp, rexp, ty)) in
+		  let labelExp1 = Utils.mk_exp(BinOp(Ne, newExp1, e, ty)) in 
+		  let labelExp2 = Utils.mk_exp(BinOp(Ne, newExp2, e, ty)) in 
+		  let labelExp3 = Utils.mk_exp(BinOp(Ne, newExp3, e, ty)) in 
 		  let labelStmt1 = makeLabel labelExp1 loc "ROR" in
 		  let labelStmt2 = makeLabel labelExp2 loc "ROR" in
 		  let labelStmt3 = makeLabel labelExp3 loc "ROR" in
@@ -523,8 +526,8 @@ class labelsVisitor = object(_self)
 	  | BinOp(Eq, lexp, rexp, ty) ->
 	      if !rorOption = true then
 		begin
-		  let newExp = dummy_exp(BinOp(Ne, lexp, rexp, ty)) in
-		  let labelExp = dummy_exp(BinOp(Ne, newExp, e, ty)) in  
+		  let newExp = Utils.mk_exp(BinOp(Ne, lexp, rexp, ty)) in
+		  let labelExp = Utils.mk_exp(BinOp(Ne, newExp, e, ty)) in  
 		  let labelStmt = makeLabel labelExp loc "ROR" in
 		    labelsStmts := List.append !labelsStmts [labelStmt];
 		end;
@@ -535,8 +538,8 @@ class labelsVisitor = object(_self)
 	  | BinOp(Ne, lexp, rexp, ty) ->
 	      if !rorOption = true then
 		begin
-		  let newExp = dummy_exp(BinOp(Eq, lexp, rexp, ty)) in
-		  let labelExp = dummy_exp(BinOp(Ne, newExp, e, ty)) in  
+		  let newExp = Utils.mk_exp(BinOp(Eq, lexp, rexp, ty)) in
+		  let labelExp = Utils.mk_exp(BinOp(Ne, newExp, e, ty)) in  
 		  let labelStmt = makeLabel labelExp loc "ROR" in
 		    labelsStmts := List.append !labelsStmts [labelStmt];
 		end;
@@ -547,8 +550,8 @@ class labelsVisitor = object(_self)
 	  | BinOp(Shiftlt, lexp, rexp, ty) ->
 	      if !aorOption = true then
 		begin
-		  let newExp = dummy_exp(BinOp(Shiftrt, lexp, rexp, ty)) in
-		  let labelExp = dummy_exp(BinOp(Ne, newExp, e, ty)) in  
+		  let newExp = Utils.mk_exp(BinOp(Shiftrt, lexp, rexp, ty)) in
+		  let labelExp = Utils.mk_exp(BinOp(Ne, newExp, e, ty)) in  
 		  let labelStmt = makeLabel labelExp loc "AOR" in
 		    labelsStmts := List.append !labelsStmts [labelStmt];
 		end;
@@ -559,8 +562,8 @@ class labelsVisitor = object(_self)
 	  | BinOp(Shiftrt, lexp, rexp, ty) ->
 	      if !aorOption = true then
 		begin
-		  let newExp = dummy_exp(BinOp(Shiftlt, lexp, rexp, ty)) in
-		  let labelExp = dummy_exp(BinOp(Ne, newExp, e, ty)) in  
+		  let newExp = Utils.mk_exp(BinOp(Shiftlt, lexp, rexp, ty)) in
+		  let labelExp = Utils.mk_exp(BinOp(Ne, newExp, e, ty)) in  
 		  let labelStmt = makeLabel labelExp loc "AOR" in
 		    labelsStmts := List.append !labelsStmts [labelStmt];
 		end;
@@ -577,7 +580,7 @@ class labelsVisitor = object(_self)
 	  | UnOp(Neg, exp, ty) ->
 	      if !aorOption = true then
 		begin
-		  let labelExp = dummy_exp(BinOp(Ne, exp, e, ty)) in  
+		  let labelExp = Utils.mk_exp(BinOp(Ne, exp, e, ty)) in  
 		  let labelStmt = makeLabel labelExp loc "AOR" in
 		    labelsStmts := List.append !labelsStmts [labelStmt];
 		end;
@@ -590,8 +593,8 @@ class labelsVisitor = object(_self)
 	  | Lval(_l) ->
 	    if !absOption = true then
 	      begin
-		let zeroExp = dummy_exp (Const(CInt64(Integer.of_int(0),IInt,None))) in
-		let labelExp = dummy_exp(BinOp(Lt, e, zeroExp, intType)) in
+		let zeroExp = Utils.mk_exp (Const(CInt64(Integer.of_int(0),IInt,None))) in
+		let labelExp = Utils.mk_exp(BinOp(Lt, e, zeroExp, intType)) in
 		let labelStmt = makeLabel labelExp loc "ABS" in
 		  labelsStmts := List.append !labelsStmts [labelStmt];
 	      end;

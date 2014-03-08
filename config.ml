@@ -1,4 +1,3 @@
-open Cil_types
 exception NoInputFile
 
 
