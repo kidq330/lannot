@@ -6,7 +6,7 @@ PLUGIN_NAME	= Genlabels
 
 PLUGIN_TESTS_DIRS:=bubblesort
 
-PLUGIN_CMO	= options config utils instru register
+PLUGIN_CMO	= options config utils annotators instru decision function register
 include $(FRAMAC_SHARE)/Makefile.dynamic
 
  

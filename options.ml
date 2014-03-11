@@ -4,48 +4,25 @@ include Plugin.Register (struct
   let help = "generate labels"
 end)
 
-module Enabled = False (struct
+module Annotators = StringSet (struct
   let option_name = "-genlabels"
-  let help = "generate labels"
+  let arg_name = "CATEGORIES"
+  let help = "generate labels for each category (comma-separated list of categories, among MCC, CC, IDP, F, D, WM) "
 end)
+(* annotators.ml calls Annotators.set_possible_values *)
 
-module SimpleCond = False (struct
-  let option_name = "-genlabels-simple"
-  let help = "generate labels with simple conditions"
+module Mutators = FilledStringSet (struct
+  let option_name = "-genlabels-mutators"
+  let arg_name = "MUTATORS"
+  let help = "select mutators for WM-label annotation (comma-separated list of mutators among AOR, ROR, COR, ABS, default: all)"
+  let default = Datatype.String.Set.of_list ["AOR"; "ROR"; "COR"; "ABS"] 
 end)
-
-module MultiCond = False (struct
-  let option_name = "-genlabels-multi"
-  let help = "generate labels with multiple conditions"
-end)
-
-module AOR = False (struct
-  let option_name = "-genlabels-aor"
-  let help = "generate mutants based on the AOR criteria (Arithmetic Operator Replacement)"
-end)
-
-module ROR = False (struct
-  let option_name = "-genlabels-ror"
-  let help = "generate mutants based on the ROR criteria"
-end)
-
-module COR = False (struct
-  let option_name = "-genlabels-cor"
-  let help = "generate mutants based on the COR criteria"
-end)
-
-module ABS = False (struct
-  let option_name = "-genlabels-abs"
-  let help = "generate mutants based on the ABS criteria"
-end)
-
-module PARTITION = False (struct
-  let option_name = "-genlabels-partition"
-  let help = "generate labels partitioning input"
-end)
+(*TODO instru.ml should called set_possible_values with the mutator lists *)
+let () = Mutators.set_possible_values ["AOR"; "ROR"; "COR"; "ABS"]
 
 module FunctionNames = StringSet (struct
   let arg_name = "FUNS"
-  let option_name = "-genlabels-filter"
+  let option_name = "-genlabels-functions"
   let help = "filter by function names (by default: disabled)"
 end)
+

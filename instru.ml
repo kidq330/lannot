@@ -2,19 +2,12 @@ open Cil
 open Cil_types
 open Lexing
 
-let nextLabelId : int ref = ref 1
-
-let multiCondOption : bool ref = ref false
 let aorOption : bool ref = ref false
 let rorOption : bool ref = ref false
 let corOption : bool ref = ref false
 let absOption : bool ref = ref false
-let partitionOption : bool ref = ref false
-let simpleOption : bool ref = ref false
 
-(* (file,line, id, cond, type) *)
-let labelsList : (string*int*int*exp*string) list ref = ref []
-
+(*
 (* val print_project: Project.t -> string *)
 let print_project prj filename =
   let out = open_out filename in
@@ -24,14 +17,30 @@ let print_project prj filename =
   let _ = Format.set_formatter_out_channel Pervasives.stdout in
     filename
 
-let shouldInstrument fun_varinfo =
-  let names = Options.FunctionNames.get () in
-  (* TODO filter builtin functions *)
-  if Datatype.String.Set.is_empty names then
-    true
-  else
-    Datatype.String.Set.mem fun_varinfo.vname names
+let prepareLabelsBuffer labelsList myBuffer = 
+  Buffer.add_string myBuffer "<labels>\n";
 
+  let rec printLabels labels =
+    match labels with
+      |	(fileName,lineNb, id, cond, ltype)::rest ->
+	  let myBuf = Buffer.create 128 in
+	  let fmt = Format.formatter_of_buffer myBuf in
+	    Printer.pp_exp fmt cond;
+	    Format.pp_print_flush fmt ();
+	    Buffer.add_string myBuffer ("<label>\n");
+	    Buffer.add_string myBuffer ("<id>" ^ (string_of_int id)  ^ "</id>\n");
+	    Buffer.add_string myBuffer ("<cond>" ^ (Buffer.contents myBuf) ^ "</cond>\n");
+	    Buffer.add_string myBuffer ("<file>" ^ fileName  ^ "</file>\n");
+	    Buffer.add_string myBuffer ("<line>" ^ (string_of_int lineNb)  ^ "</line>\n");
+	    Buffer.add_string myBuffer ("<type>" ^ ltype  ^ "</type>\n");
+	  Buffer.add_string myBuffer ("</label>\n");
+	  printLabels rest 
+      | [] -> ()
+  in 
+    printLabels (List.rev !labelsList);
+    Buffer.add_string myBuffer "</labels>\n"
+*)
+(*
 let makeLabel cond loc ltype = 
   let labelTypeExp = Utils.mk_exp (Const(CStr(ltype))) in
   let labelIdExp = Utils.mk_exp (Const(CInt64(Integer.of_int(!nextLabelId),IInt,None))) in
@@ -40,59 +49,64 @@ let makeLabel cond loc ltype =
     labelsList := (fileName,lineNumber,!nextLabelId, cond, ltype)::!labelsList;
     nextLabelId := !nextLabelId+1;
     Utils.mk_call "pc_label" [ cond; labelIdExp; labelTypeExp ]
+*)
 
-let rec genLabelPerExp exp loc =
+module CC = Annotators.Register (struct
+  let name = "CC"
+  let descr = "Condition Coverage"
+
+let rec genLabelPerExp mk_label exp loc =
   match exp.enode with
     | BinOp(LAnd, e1, e2, _) ->
-        List.append (genLabelPerExp e1 loc) (genLabelPerExp e2 loc)
+        List.append (genLabelPerExp mk_label e1 loc) (genLabelPerExp mk_label e2 loc)
 
     | BinOp(LOr, e1, e2, _) ->
-        List.append (genLabelPerExp e1 loc) (genLabelPerExp e2 loc)
+        List.append (genLabelPerExp mk_label e1 loc) (genLabelPerExp mk_label e2 loc)
 
     | BinOp(Lt, e1, e2, t) ->
         let nonExp = Utils.mk_exp(BinOp(Ge, e1, e2, t)) in
-          [makeLabel exp loc "CC"; makeLabel nonExp loc "CC"]
+          [mk_label exp loc; mk_label nonExp loc]
 
     | BinOp(Gt, e1, e2, t) ->
         let nonExp = Utils.mk_exp(BinOp(Le, e1, e2, t)) in
-	  [makeLabel exp loc "CC"; makeLabel nonExp loc "CC"]
+	  [mk_label exp loc; mk_label nonExp loc]
 
     | BinOp(Le, e1, e2, t) ->
         let nonExp = Utils.mk_exp(BinOp(Gt, e1, e2, t)) in
-	  [makeLabel exp loc "CC"; makeLabel nonExp loc "CC"]
+	  [mk_label exp loc; mk_label nonExp loc]
 
 
     | BinOp(Ge, e1, e2, t) ->
         let nonExp = Utils.mk_exp(BinOp(Lt, e1, e2, t)) in
-	  [makeLabel exp loc "CC"; makeLabel nonExp loc "CC"]
+	  [mk_label exp loc; mk_label nonExp loc]
 
     | BinOp(Eq, e1, e2, t) ->
         let nonExp = Utils.mk_exp(BinOp(Ne, e1, e2, t)) in
-	  [makeLabel exp loc "CC"; makeLabel nonExp loc "CC"]
+	  [mk_label exp loc; mk_label nonExp loc]
 
     | BinOp(Ne, e1, e2, t) ->
         let nonExp = Utils.mk_exp(BinOp(Eq, e1, e2, t)) in
-	  [makeLabel exp loc "CC"; makeLabel nonExp loc "CC"]
+	  [mk_label exp loc; mk_label nonExp loc]
 
     | BinOp(_, _e1, _e2, _) ->
         let nonExp = Utils.mk_exp(UnOp(LNot, exp, intType)) in
-	  [makeLabel exp loc "CC"; makeLabel nonExp loc "CC"]
+	  [mk_label exp loc; mk_label nonExp loc]
 
     | Lval(_lv) ->
         let nonExp = Utils.mk_exp(UnOp(LNot, exp, intType)) in
-	  [makeLabel exp loc "CC"; makeLabel nonExp loc "CC"]
+	  [mk_label exp loc; mk_label nonExp loc]
 
     | UnOp(LNot, e1, _) ->
-        genLabelPerExp e1 loc
+        genLabelPerExp mk_label e1 loc
 
     | _ -> []
 
 
-class genLabelsVisitor = object(_self)
+class genLabelsVisitor mk_label = object(_self)
   inherit Visitor.frama_c_inplace
 
   method! vfunc dec =
-    if shouldInstrument dec.svar then DoChildren else SkipChildren
+    if Annotators.shouldInstrument dec.svar then DoChildren else SkipChildren
 
   method! vstmt_aux stmt =
     let genLabels s =
@@ -100,7 +114,7 @@ class genLabelsVisitor = object(_self)
 
         | If(e, _, _, _) ->
             let loc = Utils.get_stmt_loc s in
-            let finalList = List.append  (genLabelPerExp e loc) ([s]) in
+            let finalList = List.append  (genLabelPerExp mk_label e loc) ([s]) in
             let b2 = mkBlock finalList in
             let i = mkStmt (Block(b2)) in
               i
@@ -112,6 +126,13 @@ class genLabelsVisitor = object(_self)
             ChangeDoChildrenPost (stmt, genLabels)
         | _ -> DoChildren
 end
+
+let compute mk_label ast =
+  Visitor.visitFramacFileSameGlobals
+    (new genLabelsVisitor mk_label :> Visitor.frama_c_inplace)
+    ast
+
+end)
 
 (* ******************************************************* *)
 (* ******************************************************* *)
@@ -138,31 +159,31 @@ let rec getConditionsNumber exp =
       | _ -> 0
   end
 
+module MCC = Annotators.Register (struct
 
+  let name = "MCC"
+  let descr = "Multiple Condition Coverage"
 
-let generateStatementFromConditionsList conds loc =
-  let rec mergeConds condsList =
-    match condsList with
+  let generateStatementFromConditionsList mk_label conds loc =
+    let rec mergeConds condsList =
+      match condsList with
       | [] -> assert false
       | a::[] -> a
       | a::b::tail->
           let newExp = Utils.mk_exp(BinOp(LAnd, a, b, intType)) in
             mergeConds (List.append [newExp] tail)
-  in
-    match conds with
+    in
+      match conds with
       | [] ->
-            let stmt = makeLabel (Cil.one Cil_datatype.Location.unknown) loc "MCC" in
+            let stmt = mk_label (Cil.one Cil_datatype.Location.unknown) loc in
               stmt
       | _ ->
           let newCond = mergeConds conds in
-	  let lineNumber = (fst loc).pos_lnum in
-	  let fileName = (fst loc).pos_fname in
-	    labelsList := (fileName,lineNumber,!nextLabelId, newCond, "MCC")::!labelsList;
-            let stmt = makeLabel newCond loc "MCC" in
-	      stmt
+          let stmt = mk_label newCond loc in
+	  stmt
 
-let getNegativeCond exp =
-  match exp.enode with
+  let getNegativeCond exp =
+    match exp.enode with
     | BinOp(Lt, e1, e2, t) ->
         Utils.mk_exp(BinOp(Ge, e1, e2, t))
 
@@ -188,10 +209,10 @@ let getNegativeCond exp =
 
     | _ -> Utils.mk_exp(UnOp(LNot, exp, Cil.intType))
 
-let rec genMultiLabel allConds conditionsNb currentNb newConds cumul loc =
-  match allConds with
+  let rec genMultiLabel mk_label allConds conditionsNb currentNb newConds cumul loc =
+    match allConds with
     | [] ->
-        generateStatementFromConditionsList newConds loc
+        generateStatementFromConditionsList mk_label newConds loc
 
     | a :: tail ->
         (* let ex = pow(2, conditionsNb) in *)
@@ -201,93 +222,75 @@ let rec genMultiLabel allConds conditionsNb currentNb newConds cumul loc =
             let curCond = a in
             let newCumul = cumul + ( pow(2, conditionsNb) ) in
             let newNewConds = List.append newConds [curCond] in
-              genMultiLabel tail (conditionsNb-1) currentNb newNewConds newCumul loc
+              genMultiLabel mk_label tail (conditionsNb-1) currentNb newNewConds newCumul loc
           end
         else
           begin
             let curCond = getNegativeCond a in
             let newCumul = cumul in
             let newNewConds = List.append newConds [curCond] in
-              genMultiLabel tail (conditionsNb-1) currentNb newNewConds newCumul loc
+              genMultiLabel mk_label tail (conditionsNb-1) currentNb newNewConds newCumul loc
           end
 
-let rec genMultiLabels allConds conditionsNb currentNb labelStmts loc =
-  let casesNb = pow(2, conditionsNb) in
+  let rec genMultiLabels mk_label allConds conditionsNb currentNb labelStmts loc =
+    let casesNb = pow(2, conditionsNb) in
     if currentNb = casesNb then
       begin
         labelStmts
       end
     else
       begin
-        let curStmt = genMultiLabel allConds (conditionsNb-1) currentNb [] 0 loc in
+        let curStmt = genMultiLabel mk_label allConds (conditionsNb-1) currentNb [] 0 loc in
           let newStmts = List.append labelStmts [curStmt] in
-            genMultiLabels allConds conditionsNb (currentNb+1) newStmts loc
+            genMultiLabels mk_label allConds conditionsNb (currentNb+1) newStmts loc
       end
 
 
-let rec getUnitaryConditionsInExp exp =
-  match exp.enode with
-  | BinOp(LAnd, e1, e2, _) ->
-      List.append (getUnitaryConditionsInExp e1) (getUnitaryConditionsInExp e2)
-  | BinOp(LOr, e1, e2, _) ->
-      List.append (getUnitaryConditionsInExp e1) (getUnitaryConditionsInExp e2)
-  | BinOp(_, _e1, _e2, _) -> [exp]
+  let rec getUnitaryConditionsInExp exp =
+    match exp.enode with
+    | BinOp(LAnd, e1, e2, _) ->
+        List.append (getUnitaryConditionsInExp e1) (getUnitaryConditionsInExp e2)
+    | BinOp(LOr, e1, e2, _) ->
+        List.append (getUnitaryConditionsInExp e1) (getUnitaryConditionsInExp e2)
+    | BinOp(_, _e1, _e2, _) -> [exp]
 
-  | Lval(_lv) -> [exp]
+    | Lval(_lv) -> [exp]
 
-  | UnOp(LNot, e1, _) -> getUnitaryConditionsInExp e1
+    | UnOp(LNot, e1, _) -> getUnitaryConditionsInExp e1
 
-  | _ -> []
+    | _ -> []
 
 
-let prepareLabelsBuffer labelsList myBuffer = 
-  Buffer.add_string myBuffer "<labels>\n";
+  class genMultiLabelsVisitor mk_label = object(_self)
+    inherit Visitor.frama_c_inplace
 
-  let rec printLabels labels =
-    match labels with
-      |	(fileName,lineNb, id, cond, ltype)::rest ->
-	  let myBuf = Buffer.create 128 in
-	  let fmt = Format.formatter_of_buffer myBuf in
-	    Printer.pp_exp fmt cond;
-	    Format.pp_print_flush fmt ();
-	    Buffer.add_string myBuffer ("<label>\n");
-	    Buffer.add_string myBuffer ("<id>" ^ (string_of_int id)  ^ "</id>\n");
-	    Buffer.add_string myBuffer ("<cond>" ^ (Buffer.contents myBuf) ^ "</cond>\n");
-	    Buffer.add_string myBuffer ("<file>" ^ fileName  ^ "</file>\n");
-	    Buffer.add_string myBuffer ("<line>" ^ (string_of_int lineNb)  ^ "</line>\n");
-	    Buffer.add_string myBuffer ("<type>" ^ ltype  ^ "</type>\n");
-	  Buffer.add_string myBuffer ("</label>\n");
-	  printLabels rest 
-      | [] -> ()
-  in 
-    printLabels (List.rev !labelsList);
-    Buffer.add_string myBuffer "</labels>\n"
+    method! vfunc dec =
+      if Annotators.shouldInstrument dec.svar then DoChildren else SkipChildren
 
-(*****************************************)
-class genMultiLabelsVisitor = object(_self)
-  inherit Visitor.frama_c_inplace
+    method! vstmt_aux stmt =
+      let genLabels s =
+        match s.skind with
+        | If(e, _, _, _) ->
+          let loc = Utils.get_stmt_loc s in
+          let nbCond = getConditionsNumber e in
+          let allConds = getUnitaryConditionsInExp e in
+          let finalList = List.append (genMultiLabels mk_label allConds nbCond 0 [] loc) ([s]) in
+          let b2 = mkBlock finalList in
+          let i = mkStmt (Block(b2)) in
+            i
+        | _ -> s
+      in
+        match stmt.skind with
+        | If _ ->
+          ChangeDoChildrenPost (stmt, genLabels)
+        | _ -> DoChildren
+  end
 
-  method! vfunc dec =
-    if shouldInstrument dec.svar then DoChildren else SkipChildren
-
-  method! vstmt_aux stmt =
-    let genLabels s =
-      match s.skind with
-      | If(e, _, _, _) ->
-        let loc = Utils.get_stmt_loc s in
-        let nbCond = getConditionsNumber e in
-        let allConds = getUnitaryConditionsInExp e in
-        let finalList = List.append  (genMultiLabels allConds nbCond 0 [] loc) ([s]) in
-        let b2 = mkBlock finalList in
-        let i = mkStmt (Block(b2)) in
-          i
-      | _ -> s
-    in
-      match stmt.skind with
-      | If _ ->
-        ChangeDoChildrenPost (stmt, genLabels)
-      | _ -> DoChildren
-end
+  let compute mk_label ast =
+    Visitor.visitFramacFileSameGlobals
+      (new genMultiLabelsVisitor mk_label :> Visitor.frama_c_inplace)
+      ast
+end)
 
 (*****************************************)
 
@@ -300,55 +303,77 @@ let getLocFromFunction f =
     | a::_ -> Cil_datatype.Stmt.loc a
     | [] -> Cil_datatype.Location.unknown
 
+module Partition = Annotators.Register (struct
 
-let makeLabelsFromInput myParam loc =
-  match myParam.vtype with 
+  let name = "IDP"
+  let descr = "Input Domain Partition"
+
+  let makeLabelsFromInput mk_label myParam loc =
+    match myParam.vtype with 
     | TInt _
     | TFloat _ ->
-	let formalExp = new_exp loc (Lval (var myParam)) in
+	let formalExp = Utils.mk_exp (Lval (var myParam)) in
 	let zeroExp = Utils.mk_exp (Const(CInt64(Integer.of_int(0),IInt,None))) in
-	let exp1 = Utils.mk_exp(BinOp(Lt, formalExp, zeroExp, intType)) in
-	let exp2 = Utils.mk_exp(BinOp(Gt, formalExp, zeroExp, intType)) in
-	let exp3 = Utils.mk_exp(BinOp(Eq, formalExp, zeroExp, intType)) in
-	let stmt1 = makeLabel exp1 loc "PARTITION" in
-	let stmt2 = makeLabel exp2 loc "PARTITION" in
-	let stmt3 = makeLabel exp3 loc "PARTITION" in
+	let exp1 = Utils.mk_exp (BinOp(Lt, formalExp, zeroExp, intType)) in
+	let exp2 = Utils.mk_exp (BinOp(Gt, formalExp, zeroExp, intType)) in
+	let exp3 = Utils.mk_exp (BinOp(Eq, formalExp, zeroExp, intType)) in
+	let stmt1 = mk_label exp1 loc in
+	let stmt2 = mk_label exp2 loc in
+	let stmt3 = mk_label exp3 loc in
 	  [stmt1; stmt2; stmt3]
-
-    | TPtr _ -> 
-	let formalExp = new_exp loc (Lval (var myParam)) in
+    | TPtr _ ->
+	let formalExp = Utils.mk_exp (Lval (var myParam)) in
 	let zeroExp = Utils.mk_exp (Const(CInt64(Integer.of_int(0),IInt,None))) in
 	let exp1 = Utils.mk_exp(BinOp(Eq, formalExp, zeroExp, intType)) in
 	let exp2 = Utils.mk_exp(BinOp(Ne, formalExp, zeroExp, intType)) in
-	let stmt1 = makeLabel exp1 loc "PARTITION" in
-	let stmt2 = makeLabel exp2 loc "PARTITION" in
+	let stmt1 = mk_label exp1 loc in
+	let stmt2 = mk_label exp2 loc in
 	  [stmt1; stmt2]
     | _ ->  []
 
+  class inputDomainVisitor mk_label = object
+    inherit Visitor.frama_c_inplace
 
-(*****************************************)
-(*****************************************)
-class labelsVisitor = object(_self)
-  inherit Visitor.frama_c_inplace
-
-  method! vfunc f =
-    if shouldInstrument f.svar && !partitionOption = true then
+    method! vfunc f =
+      if Annotators.shouldInstrument f.svar then
       begin
 	let loc = getLocFromFunction f in
 	let rec labelsFromFormals formals = 
 	  match formals with 
 	    | [] -> []
 	    | a :: tail -> 
-		List.append (makeLabelsFromInput a loc) (labelsFromFormals tail)
+		List.append (makeLabelsFromInput mk_label a loc) (labelsFromFormals tail)
 	in 
 	let oldBody = mkStmt (Block(f.sbody)) in
 	let newStmts = List.append (labelsFromFormals f.sformals) [oldBody] in
 	let newBody = mkBlock newStmts in
 	  f.sbody <- newBody;
       end;
-    if shouldInstrument f.svar then DoChildren else SkipChildren
+      SkipChildren
+  end
+
+  let compute mk_label ast =
+    Visitor.visitFramacFileSameGlobals
+      (new inputDomainVisitor mk_label :> Visitor.frama_c_inplace)
+      ast
+
+end)
+
+(*****************************************)
+
+module WM = Annotators.RegisterWithExtraTags (struct
+
+  let name = "WM"
+  let descr = "Weak Mutation"
+
+  class mutationVisitor mk_label = object(_self)
+    inherit Visitor.frama_c_inplace
+
+    method! vfunc f =
+      if Annotators.shouldInstrument f.svar then DoChildren else SkipChildren
 
   method! vstmt_aux stmt =      	  
+    let makeLabel cond loc category = mk_label ~extra:[category] cond loc in
     let rec traitExp e loc = 
       let labelsStmts = ref [] in
 	begin match e.enode with
@@ -635,77 +660,11 @@ class labelsVisitor = object(_self)
       | _ -> s
     in  
       ChangeDoChildrenPost (stmt, genLabels)
-
 end
 
+  let compute mk_label ast =
+    Visitor.visitFramacFileSameGlobals
+      (new mutationVisitor mk_label :> Visitor.frama_c_inplace)
+      ast
+end)
 
-let getProject _stmts prj_name =
-  let prj = File.create_project_from_visitor prj_name (fun prj -> new Visitor.frama_c_copy prj) in 
-    prj
-
-
-(*****************************************)
-(* val generate_labels_prj: Project.t -> unit *)
-let generate_wm_prj mainProj =
-  Project.set_current mainProj;
-  Visitor.visitFramacFile
-    (new labelsVisitor :> Visitor.frama_c_inplace)
-    (Ast.get())
-
-
-(* val generate_labels_prj: Project.t -> unit *)
-let generate_labels_prj prj =
-  Project.set_current prj;
-  Visitor.visitFramacFile
-    (new genLabelsVisitor :> Visitor.frama_c_inplace)
-    (Ast.get())
-
-let generate_multi_labels_prj prj =
-  Project.set_current prj;
-  Visitor.visitFramacFile
-    (new genMultiLabelsVisitor :> Visitor.frama_c_inplace)
-    (Ast.get())
-
-
-module type Type = sig
-  val process : stmt list -> unit
-  val name : string
-end
-
-(*************************)
-(* NONE                  *)
-(*************************)
-module CC:Type = struct
-  let name = "none"
-  let process _ =
-    let prj = getProject !Utils.all_stmts (Config.input_file()) in
-    let filename = (Project.get_name prj) ^ "_CC.c" in
-      generate_labels_prj prj;
-      let _ = print_project prj filename in
-	()
-end
-
-module MCC:Type = struct
-  let name = "multi"
-  let process _ =
-    let mainProj = Project.current () in
-    let prj = getProject !Utils.all_stmts (Config.input_file()) in
-    let filename = (Project.get_name prj) ^ "_MCC.c" in
-      generate_multi_labels_prj prj;
-      let _ = print_project prj filename in
-	Project.set_current mainProj;
-	()
-end
-
-
-module WM:Type = struct
-  let name = "label"
-  let process _ =
-    let mainProj = Project.current () in
-    let prj = getProject !Utils.all_stmts (Config.input_file()) in
-    let filename = (Project.get_name prj) ^ "_WM.c" in
-      generate_wm_prj prj;
-      let _ = print_project prj filename in
-	Project.set_current mainProj;
-	()
-end
