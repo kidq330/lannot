@@ -74,7 +74,7 @@ Available mutators are ABS, AOR, COR and ROR.
 
 TODO
 
-### F (Function coverage)
+### FC (Function Coverage)
 
 The following example:
 
@@ -90,7 +90,7 @@ will be instrumented as follows:
     }
 
 
-### D (Decision coverage)
+### DC (Decision Coverage)
 
 The following example:
 

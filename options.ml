@@ -7,7 +7,7 @@ end)
 module Annotators = StringSet (struct
   let option_name = "-genlabels"
   let arg_name = "CATEGORIES"
-  let help = "generate labels for each category (comma-separated list of categories, among MCC, CC, IDP, F, D, WM) "
+  let help = "generate labels for each criterion (comma-separated list of criteria, among MCC, CC, IDP, FC, DC, WM) "
 end)
 (* annotators.ml calls Annotators.set_possible_values *)
 

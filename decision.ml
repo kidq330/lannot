@@ -3,8 +3,8 @@ open Annotators
 
 include Register (struct
 
-let name = "D"
-let descr = "Decision coverage"
+let name = "DC"
+let descr = "Decision Coverage"
 
 (**
  * Add one label of each branch of a If.
