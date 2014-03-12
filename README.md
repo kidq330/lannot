@@ -1,57 +1,120 @@
 GenLabels
 =========
 
-GenLabels est un greffon pour la version spéciale «label» de Frama-C.
+GenLabels is a Frama-C plugin. It requires a patched version of Frama-C.
 
 Installation
 ------------
 
-Après avoir installer Frama-C, compiler et installer Frama-C de la façon
-suivante:
+Once Frama-C is installed, compile and install GenLabels:
 
     make
-    sudo make install
+    make install
 
-Utilisation
------------
+The former command may need to be run as root (or sudo) depending on your Frama-C installation.
 
-### Labels à conditions simples
+Usage
+-----
 
-Pour générer des labels à conditions simples, il faut utiliser la commande:
+    frama-c -genlabels=CRITERIA file.c
 
-    frama-c -genlabels file.c
+where CRITERIA is a comma-separated list of criteria. It outputs a new annotated file named `file_labels.c`, with labels for each selected criterion.
 
-Cette commande crée un nouveau fichier `file_labels.c` qui contient le code du fichier `file.c` auquel on a ajouté des labels
+Implemented criteria are CC, MCC, WM, IDP, F and D.
 
-Par exemple :
+### CC (Conditition Coverage)
 
-      if (a <= b && c >= b) {
+    frama-c -genlabels=CC file.c
 
-devient :
+This command creates an annoted file with condition coverage labels only.
 
-    pc_label(a <= b);
-    pc_label(! (a <= b));
-    pc_label(c >= b);
-    pc_label(! (c >= b));
-    if (a <= b && c >= b) {
-
-### Labels à conditions multiples
-
-Pour générer des labels à conditions multiple, il faut utiliser la commande:
-
-    frama-c -genlabels -genlabels-multi file.c
-
-Cette commande crée un nouveau fichier `file_multilabels.c` qui contient le code du fichier `file.c` auquel on a ajouté des labels
-
-Exemple :
+For instance, if `file.c` contains:
 
     if (a <= b && c >= b) {
 
-devient :
+`file_labels.c` may contains:
 
-    pc_label(! (a <= b) && ! (c >= b));
-    pc_label(! (a <= b) && c >= b);
-    pc_label(a <= b && ! (c >= b));
-    pc_label(a <= b && c >= b);
+    pc_label(a <= b,1,"CC");
+    pc_label(! (a <= b),2,"CC");
+    pc_label(c >= b,3,"CC");
+    pc_label(! (c >= b),4,"CC");
     if (a <= b && c >= b) {
 
+Note that the second parameter of `pc_label` may vary, it's a unique identifier for each label.
+
+### MCC (Multiple Condition Coverage)
+
+    frama-c -genlabels=MCC file.c
+
+The following branch:
+
+    if (a <= b && c >= b) {
+
+becomes:
+
+    pc_label(! (a <= b) && ! (c >= b),1,"MCC");
+    pc_label(! (a <= b) && c >= b,2,"MCC");
+    pc_label(a <= b && ! (c >= b),3,"MCC");
+    pc_label(a <= b && c >= b,4,"MCC");
+    if (a <= b && c >= b) {
+
+### WM (Weak Mutation)
+
+    frama-c -genlabels=WM file.c
+
+This command creates an annoted file with labels corresponding to every available mutators.
+One can select more precisely mutators, like so:
+
+    frama-c -genlabels=WM -genlabels-mutators=AOR,COR file.c
+
+Available mutators are ABS, AOR, COR and ROR.
+
+
+### IDP (Input Domain Partition)
+
+TODO
+
+### F (Function coverage)
+
+The following example:
+
+    void f() {
+      ...
+    }
+
+will be instrumented as follows:
+
+    void f() {
+      pc_label(TRUE,1,"F");
+      ...
+    }
+
+
+### D (Decision coverage)
+
+The following example:
+
+    if (a <=b && c >= b) {
+      ...
+    } else {
+      ...
+    }
+
+becomes:
+
+    if (a <=b && c >= b) {
+      pc_label(TRUE,1,"D");
+      ...
+    } else {
+      pc_label(TRUE,2,"D");
+      ...
+    }
+
+### Authors
+
+Omar Chebaro
+Mickaël Delahaye, CEA
+
+### License
+
+TODO
