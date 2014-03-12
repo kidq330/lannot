@@ -4,7 +4,7 @@ open Annotators
 include Register (struct
 
 let name = "FC"
-let descr = "Function Coverage"
+let help = "Function Coverage"
 
 (** A visitor that adds a label at the start of each function's body *)
 let visitor mk_label = object

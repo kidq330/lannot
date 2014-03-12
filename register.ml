@@ -121,7 +121,12 @@ let run () =
     | e -> Options.feedback "exception: %s" (Printexc.to_string e)
 	
 let run () =
-  if not (Options.Annotators.is_empty ()) then
+  if Options.AnnotatorsHelp.get () then
+  begin
+    Annotators.print_help Format.std_formatter;
+    exit 0;
+  end
+  else if not (Options.Annotators.is_empty ()) then
     let deps = [Ast.self] in
     let f, _self = State_builder.apply_once "GENLABELS" deps run in
       Kernel.LogicalOperators.on ();

@@ -4,7 +4,7 @@ open Annotators
 include Register (struct
 
 let name = "DC"
-let descr = "Decision Coverage"
+let help = "Decision Coverage"
 
 (**
  * Add one label of each branch of a If.

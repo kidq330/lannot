@@ -4,18 +4,18 @@ type annotation = int * string * exp * location
 
 type annotator = {
   name:string;
-  descr: string;
+  help: string;
   compute: int ref -> annotation list ref -> Cil_types.file -> unit
 }
 
 module type ANNOTATOR = sig
   val name : string
-  val descr : string
+  val help : string
   val compute : (Cil_types.exp -> Cil_types.location -> Cil_types.stmt) -> Cil_types.file -> unit
 end
 module type ANNOTATOR_WITH_EXTRA_TAGS = sig
   val name : string
-  val descr : string
+  val help : string
   val compute : (extra:string list -> Cil_types.exp -> Cil_types.location -> Cil_types.stmt) -> Cil_types.file -> unit
 end
 
@@ -42,6 +42,13 @@ let annotate names ast =
   in
   List.fold_left f [] names
 
+let print_help fmt =
+  let annotators = Hashtbl.fold (fun _k v acc -> v :: acc) annotators [] in
+  let annotators = List.sort (fun a b -> compare a.name b.name) annotators in
+  let width = List.fold_left (fun acc ann -> max (String.length ann.name) acc) 0 annotators in
+  let f ann = Format.fprintf fmt "%-*s @[%s@]@." width ann.name ann.help in
+  List.iter f annotators
+
 let mk_compute compute name nextId acc ast =
   let label_maker cond loc =
     let tag = name in
@@ -67,16 +74,20 @@ let mk_compute_extras compute name nextId acc ast =
   compute label_maker ast
 
 let register_annotator ann =
-  Hashtbl.replace annotators ann.name ann;
-  Options.Annotators.set_possible_values (Hashtbl.fold (fun k _v acc -> k :: acc) annotators [])
+  Options.debug1 "register %s annotator" ann.name;
+  Hashtbl.replace annotators ann.name ann
+(* (* TO LATE *)
+  let all = Hashtbl.fold (fun k _v acc -> k :: acc) annotators [] in
+  Options.Annotators.set_possible_values all
+*)
 
 module Register (A : ANNOTATOR) = struct
-  let self = { name = A.name; descr = A.descr; compute = mk_compute A.compute A.name }
+  let self = { name = A.name; help = A.help; compute = mk_compute A.compute A.name }
   let () = register_annotator self
 end
 
 module RegisterWithExtraTags (A : ANNOTATOR_WITH_EXTRA_TAGS) = struct
-  let self = { name = A.name; descr = A.descr; compute = mk_compute_extras A.compute A.name }
+  let self = { name = A.name; help = A.help; compute = mk_compute_extras A.compute A.name }
   let () = register_annotator self
 end
 

@@ -1,6 +1,5 @@
 open Cil
 open Cil_types
-open Lexing
 
 let aorOption : bool ref = ref false
 let rorOption : bool ref = ref false
@@ -53,10 +52,10 @@ let makeLabel cond loc ltype =
 
 module CC = Annotators.Register (struct
   let name = "CC"
-  let descr = "Condition Coverage"
+  let help = "Condition Coverage"
 
-let rec genLabelPerExp mk_label exp loc =
-  match exp.enode with
+  let rec genLabelPerExp mk_label exp loc =
+    match exp.enode with
     | BinOp(LAnd, e1, e2, _) ->
         List.append (genLabelPerExp mk_label e1 loc) (genLabelPerExp mk_label e2 loc)
 
@@ -162,7 +161,7 @@ let rec getConditionsNumber exp =
 module MCC = Annotators.Register (struct
 
   let name = "MCC"
-  let descr = "Multiple Condition Coverage"
+  let help = "Multiple Condition Coverage"
 
   let generateStatementFromConditionsList mk_label conds loc =
     let rec mergeConds condsList =
@@ -306,7 +305,7 @@ let getLocFromFunction f =
 module Partition = Annotators.Register (struct
 
   let name = "IDP"
-  let descr = "Input Domain Partition"
+  let help = "Input Domain Partition"
 
   let makeLabelsFromInput mk_label myParam loc =
     match myParam.vtype with 
@@ -364,7 +363,7 @@ end)
 module WM = Annotators.RegisterWithExtraTags (struct
 
   let name = "WM"
-  let descr = "Weak Mutation"
+  let help = "Weak Mutation"
 
   class mutationVisitor mk_label = object(_self)
     inherit Visitor.frama_c_inplace

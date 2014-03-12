@@ -4,7 +4,7 @@ type annotator
 (** Module type of annotators *)
 module type ANNOTATOR = sig
   val name : string
-  val descr : string
+  val help : string
 
   (** Insert IN PLACE the annotation on the given AST.
    *
@@ -17,7 +17,7 @@ module type ANNOTATOR = sig
 end
 module type ANNOTATOR_WITH_EXTRA_TAGS = sig
   val name : string
-  val descr : string
+  val help : string
   val compute : (extra:string list -> Cil_types.exp -> Cil_types.location -> Cil_types.stmt) -> Cil_types.file -> unit
 end
 
@@ -40,3 +40,5 @@ val annotate_with : ?acc:annotation list -> ?nextId:int ref -> annotator -> Cil_
 val annotate : string list -> Cil_types.file -> annotation list
 
 val shouldInstrument : Cil_types.varinfo -> bool
+
+val print_help : Format.formatter -> unit
