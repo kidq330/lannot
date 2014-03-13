@@ -1,7 +1,7 @@
-GenLabels
+LAnnotate
 =========
 
-GenLabels is a Frama-C plugin. It requires a patched version of Frama-C.
+LAnnotate is a Frama-C plugin. It requires a patched version of Frama-C.
 
 Installation
 ------------
@@ -16,7 +16,7 @@ The former command may need to be run as root (or sudo) depending on your Frama-
 Usage
 -----
 
-    frama-c -genlabels=CRITERIA file.c
+    frama-c -lannot=CRITERIA file.c
 
 where CRITERIA is a comma-separated list of criteria. It outputs a new annotated file named `file_labels.c`, with labels for each selected criterion.
 
@@ -24,7 +24,7 @@ Implemented criteria are CC, MCC, WM, IDP, F and D.
 
 ### CC (Conditition Coverage)
 
-    frama-c -genlabels=CC file.c
+    frama-c -lannot=CC file.c
 
 This command creates an annoted file with condition coverage labels only.
 
@@ -44,7 +44,7 @@ Note that the second parameter of `pc_label` may vary, it's a unique identifier 
 
 ### MCC (Multiple Condition Coverage)
 
-    frama-c -genlabels=MCC file.c
+    frama-c -lannot=MCC file.c
 
 The following branch:
 
@@ -60,12 +60,12 @@ becomes:
 
 ### WM (Weak Mutation)
 
-    frama-c -genlabels=WM file.c
+    frama-c -lannot=WM file.c
 
 This command creates an annoted file with labels corresponding to every available mutators.
 One can select more precisely mutators, like so:
 
-    frama-c -genlabels=WM -genlabels-mutators=AOR,COR file.c
+    frama-c -lannot=WM -lannot-mutators=AOR,COR file.c
 
 Available mutators are ABS, AOR, COR and ROR.
 
