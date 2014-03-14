@@ -29,15 +29,15 @@ module Mutators = FilledStringSet (struct
 end)
 let () = Mutators.set_possible_values mutators
 
-let () = Plugin.argument_is_function_name ()
+let () = Parameter_customize.argument_is_function_name ()
 module FunctionNames = StringSet (struct
   let arg_name = "funs"
   let option_name = "-lannot-functions"
   let help = "filter by function names (by default: disabled)"
 end)
 
-let () = Plugin.set_group help
-let () = Plugin.do_not_journalize ()
+let () = Parameter_customize.set_group help
+let () = Parameter_customize.do_not_journalize ()
 module AnnotatorsHelp = False (struct
   let option_name = "-lannot-criteria-help"
   let help = "show criteria help"
