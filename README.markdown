@@ -1,7 +1,15 @@
-LAnnotate
-=========
+Frama-C/LTest: LAnnotate
+========================
 
-LAnnotate is a Frama-C plugin. It requires a patched version of Frama-C.
+Frama-C/LTest (or LTest for short) is a generic and integrated toolkit for
+automation of white-box testing of C programs. This toolkit provides a unified
+support of many different testing criteria as well as an easy integration of
+new criteria. *LAnnotate* is the module of LTest in charge of adding coverage
+objectives into program in the form of annotations.
+
+LAnnotate is a Frama-C plugin. It requires a patched version of Frama-C. The
+patch, as well as an already patched Frama-C, are available for download online
+at http://micdel.fr/ltest.html .
 
 Installation
 ------------
@@ -110,11 +118,30 @@ becomes:
       ...
     }
 
-### Authors
+Authors
+-------
 
 Omar Chebaro
-Mickaël Delahaye, CEA
+Mickaël Delahaye
+Nikolai Kosmatov
+Sébastien Bardin
 
-### License
+License
+-------
 
-TODO
+This file is part of Frama-C/LTest
+
+Copyright (C) 2013-2014
+  CEA (Commissariat à l'énergie atomique et aux énergies alternatives)
+
+You may redistribute it and/or modify it under the terms of the GNU
+Lesser General Public License as published by the Free Software
+Foundation, version 2.1.
+
+It is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+See the GNU Lesser General Public License version 2.1
+for more details (enclosed in the file LICENSE).
