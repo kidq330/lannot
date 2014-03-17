@@ -129,7 +129,7 @@ Sébastien Bardin
 License
 -------
 
-This file is part of Frama-C/LTest
+This file is part of Frama-C
 
 Copyright (C) 2013-2014
   CEA (Commissariat à l'énergie atomique et aux énergies alternatives)
