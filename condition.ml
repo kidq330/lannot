@@ -43,7 +43,7 @@ module GenericConditionCoverage (C : CONFIG) = struct
     let loc = bexpr.eloc in
     let atoms = atomic_conditions bexpr in
     let natoms = List.length atoms in
-    Options.debug3 "%d atoms in @[%a@]" natoms Cil_printer.pp_exp bexpr;
+    Options.debug3 "%d atoms in @[%a@]" natoms Printer.pp_exp bexpr;
 
     (* Compute subsets of m atoms *)
     let n = if n <= 0 then natoms else min n natoms in
