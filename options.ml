@@ -42,12 +42,10 @@ end)
 let () = Annotators.set_possible_values annotators
 let () = Annotators.add_aliases ["-lannotate"]
 
-let () = Parameter_customize.do_not_projectify () (* !!! Allbools does not seem to stick without it*)
 module AllBoolExps = False (struct
   let option_name = "-lannot-allbool"
   let help = "indicates that in addition to branching condition, all boolean expression should be taken into account (*CC, DC for coverage)"
 end)
-let () = AllBoolExps.add_update_hook (fun oldb newb -> debug "allbool change %B %B" oldb newb)
 
 module N = Int (struct
   let option_name = "-lannot-n"
@@ -55,8 +53,6 @@ module N = Int (struct
   let help = "set the N parameter (NCC: 0 means MCC and 1 means CC)"
   let default = 2
 end)
-let () = N.add_update_hook (fun oldb newb -> debug "N change %d %d" oldb newb)
-
 
 let mutators = ["AOR"; "ROR"; "COR"; "ABS"]
 module Mutators = FilledStringSet (struct

@@ -6,14 +6,12 @@ module type CONFIG = sig
   val all_boolean : bool
   val mk_label : exp -> location -> stmt
 end
-;;
-
-let pos atom = Cil.copy_exp atom
-let neg atom = Utils.mk_exp (UnOp (LNot, Cil.copy_exp atom, Cil.intType))
-
 
 module GenericConditionCoverage (C : CONFIG) = struct
   open C
+
+  let pos atom = Cil.copy_exp atom
+  let neg atom = Utils.mk_exp (UnOp (LNot, Cil.copy_exp atom, Cil.intType))
 
   (**
     Generates labels from a boolean expression.
@@ -22,20 +20,28 @@ module GenericConditionCoverage (C : CONFIG) = struct
   let gen_labels (acc : stmt list) (bexpr : exp) : stmt list =
     let loc = bexpr.eloc in
     let atoms = atomic_conditions bexpr in
-    let m = if n <= 0 then List.length atoms else n in
-    Options.debug3 "%d atoms in @[b%a@]" (List.length atoms) Cil_printer.pp_exp bexpr;
+    let natoms = List.length atoms in
+    Options.debug3 "%d atoms in @[%a@]" natoms Cil_printer.pp_exp bexpr;
 
     (* Compute subsets of m atoms *)
-    let subsets = rev_combine m atoms in
-    Options.debug2 "%d subsets of %d atoms" (List.length subsets) m;
+    let n = if n <= 0 then natoms else min n natoms in
+    let subsets = rev_combine n atoms in
+    Options.debug2 "%d subsets of %d atoms" (List.length subsets) n;
 
+    (* For each signed subset of atoms, *)
     let for_signed_subset (acc : stmt list) (signed_subset : exp list) : stmt list =
+      (* Get conjunction as an expression*)
       let exp = andify signed_subset in
+      (* Create a label and put it in front of acc *)
       mk_label exp loc :: acc
     in
+
+    (* For each subset of atoms, *)
     let for_subset (acc : stmt list) (subset : exp list) : stmt list =
-      (* For each subset of atoms, compute every sign combination *)
+      (* Compute signed subsets in reverse order *)
       let signed_subsets = rev_sign_combine pos neg subset in
+      (* Create labels for each signed subset (taken in rev. order)
+        and put them in rev. in front of acc (N.B. [rev rev l = l]) *)
       List.fold_left for_signed_subset acc signed_subsets
     in
     List.fold_left for_subset acc subsets;;
@@ -82,25 +88,39 @@ module GenericConditionCoverage (C : CONFIG) = struct
         Cil.DoChildren
   end
 
-  let compute file =
+  let apply file =
     Visitor.visitFramacFileSameGlobals (new visitor :> Visitor.frama_c_visitor) file
-
 end
+
+let apply n all_boolean mk_label file =
+  Options.debug2 "n-Condition Coverage config: n=%d, all booleans=%B" n all_boolean;
+  let module G = GenericConditionCoverage (struct
+    let n = n
+    let all_boolean = all_boolean
+    let mk_label = mk_label
+  end) in
+  G.apply file
+
+module CC = Annotators.Register (struct
+  let name = "CC"
+  let help = "Condition Coverage"
+
+  let compute mk_label file =
+    apply 1 (Options.AllBoolExps.get ()) mk_label file
+end)
 
 module NCC = Annotators.Register (struct
   let name = "NCC"
-  let help = "n-condition coverage"
+  let help = "n-Condition Coverage"
 
   let compute mk_label file =
-    let n = Options.N.get () in
-    let all_boolean = Options.AllBoolExps.get () in
-    Options.debug2 "n-condition coverage config: n=%d, all booleans=%B" n all_boolean;
-    let module G = GenericConditionCoverage (struct
-      let n = n
-      let all_boolean = all_boolean
-      let mk_label = mk_label
-    end) in
-    G.compute file
-
+    apply (Options.N.get ()) (Options.AllBoolExps.get ()) mk_label file
 end)
 
+module MCC = Annotators.Register (struct
+  let name = "MCC"
+  let help = "Multiple Condition Coverage"
+
+  let compute mk_label file =
+    apply 0 (Options.AllBoolExps.get ()) mk_label file
+end)

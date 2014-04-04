@@ -86,12 +86,12 @@ let store_label_data out annotations =
 let annotate ann_names =
   Options.feedback "started";
   let prj_name = Config.input_file () in
-  let prj = File.create_project_from_visitor prj_name
-    (fun prj -> new Visitor.frama_c_copy prj) in
+  let prj = Project.create_by_copy prj_name in
   (* TODO use an options to set the output filename *)
   let filename = (Project.get_name prj) ^ "_labels.c" in
   let data_filename = (Project.get_name prj) ^ "_labels.labels" in
   Project.set_current prj;
+
   let annotations = Annotators.annotate ann_names (Ast.get ()) in
 
   (* output modified c file *)

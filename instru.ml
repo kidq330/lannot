@@ -73,7 +73,7 @@ let makeLabel cond loc ltype =
 *)
 
 module CC = Annotators.Register (struct
-  let name = "CC"
+  let name = "CC_OLD"
   let help = "Condition Coverage"
 
   let rec genLabelPerExp mk_label exp loc =
@@ -182,7 +182,7 @@ let rec getConditionsNumber exp =
 
 module MCC = Annotators.Register (struct
 
-  let name = "MCC"
+  let name = "MCC_OLD"
   let help = "Multiple Condition Coverage"
 
   let generateStatementFromConditionsList mk_label conds loc =
