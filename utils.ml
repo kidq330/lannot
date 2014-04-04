@@ -53,3 +53,88 @@ let mk_exp ?(loc=Cil_datatype.Location.unknown) enode =
 let mkdir x =
   if not (Sys.file_exists x) then
     Unix.mkdir x 0o744
+
+
+(**
+  Indicates whether an expression is boolean in itself.
+  Used to detect boolean expression outside conditional statement
+*)
+let is_boolean e =
+  Options.debug "is boolean? @[%a@]@." Cil_printer.pp_exp e;
+  match e.enode with
+  (* C99 _Bool type *)
+  | BinOp (_, _, _, TInt (IBool, _))
+  | UnOp (_, _, TInt (IBool, _))
+
+  (* Use of logical operators or relational operators *)
+  | BinOp ((LAnd|LOr|Lt|Gt|Le|Ge|Eq|Ne), _, _, _)
+  | UnOp (LNot, _, _) -> true
+  | _ -> false
+
+(**
+  Links a list of expressions with boolean ands.
+*)
+let andify ?(loc=Cil_datatype.Location.unknown) conj =
+  match conj with
+  | [] -> assert false
+  | head :: tail ->
+    List.fold_left (fun acc e -> Cil.mkBinOp loc LAnd acc e) head tail
+
+(**
+  Get atomic conditions from a boolean expression.
+*)
+let atomic_conditions =
+  let rec aux acc exp =
+    match exp.enode with
+    | BinOp (Ne, e, zero, _)
+    | BinOp (Ne, zero, e, _) when Cil.isZero zero && is_boolean e ->
+      (* Cil adds !=0 when && or || are present in normal expression (don't do that for !)*)
+      aux acc e
+    | BinOp ((LAnd | LOr), e1, e2, _) ->
+      aux (aux acc e1) e2
+    | UnOp (LNot, e, _) ->
+      aux acc e
+    | _ ->
+      exp :: acc
+  in
+  fun exp -> List.rev (aux [] exp)
+
+let rev_combine : int -> 'a list -> 'a list list =
+  let rec comb_aux rev_startswith acc n l =
+    match n, l with
+    | 0, _ -> (List.rev rev_startswith) :: acc
+    | _, [] -> acc
+    | _, head :: tail ->
+      let acc = comb_aux (head :: rev_startswith) acc (n-1) tail in
+      comb_aux rev_startswith acc n tail
+  in
+  fun n l -> comb_aux [] [] n l (*Needed to keep polymorphism, wtf!?*)
+
+(** [combine n l] computes the combinations of [n] elements from the list [l].
+
+  Returns the combination in the order of the list [l].
+  For instance, [combine 2 [1;2;3]] returns [[1;2];[1;3];[2;3]].
+*)
+let combine n (l : 'a list) : 'a list list =
+  List.rev (rev_combine n l)
+
+(**
+  [sign_combine pos neg l] computes all sign combinations of a list of elements [l], given two sign functions [pos] and [neg].
+
+  Preserves the original order of the list, i.e. each sublist is in the same order.
+
+  For instance, [sign_combine (fun x ->"+"^x) (fun x -> "-"^x) ["1";"2"]] returns [["+1";"+2"];["+1";"-2"];["-1";"+2"];["-1";"-2"]].
+*)
+let rev_sign_combine ~(pos: 'a -> 'b) ~(neg : 'a -> 'b) : 'a list -> 'b list list =
+  let rec aux acc revpref l =
+    match l with
+    | [] -> (List.rev revpref) :: acc
+    | head :: tail ->
+      let acc = aux acc (pos head :: revpref) tail in
+      aux acc (neg head :: revpref) tail
+  in
+  aux [] []
+
+let sign_combine ~pos ~neg l =
+  List.rev (rev_sign_combine pos neg l)
+
