@@ -30,7 +30,14 @@ val mk_call :
   ?loc:location ->
   ?result:lval -> string -> exp list -> stmt
 val mk_exp : ?loc:location -> exp_node -> exp
+
+(** Make a block statement from a list of statements. *)
+val mk_block_stmt : stmt list -> stmt
+
 val mkdir : string -> unit
+
+(** Indicates whether an instruction is a label. *)
+val is_label : instr -> bool
 
 (**
   Indicates whether an expression is boolean in itself.

@@ -49,10 +49,21 @@ let mk_call ?(loc=Cil_datatype.Location.unknown) ?result fname args =
 let mk_exp ?(loc=Cil_datatype.Location.unknown) enode =
   Cil.new_exp loc enode
 
+(** Make a block statement from a list of statements. *)
+let mk_block_stmt stmts = Cil.mkStmt (Block (Cil.mkBlock stmts))
+
 (* val mkdir: string -> unit *)
 let mkdir x =
   if not (Sys.file_exists x) then
     Unix.mkdir x 0o744
+
+
+(** Indicates whether an instruction is a label. *)
+let is_label instr =
+  match instr with
+  | Call (_, {enode=Lval (Var {vname=name}, NoOffset)}, _, _) when name = "pc_label"->
+    true
+  | _ -> false
 
 
 (**

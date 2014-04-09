@@ -5,6 +5,6 @@ int main (int a, int b, int c) {
 
   }
 
-  int n = ! (a && z);
+  int n = ! (a && z) + 2*5 - (a || c);
   return n;
 }
