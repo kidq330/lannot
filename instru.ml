@@ -148,7 +148,7 @@ class genLabelsVisitor mk_label = object(_self)
         | _ -> DoChildren
 end
 
-let compute mk_label ast =
+let apply mk_label ast =
   Visitor.visitFramacFileSameGlobals
     (new genLabelsVisitor mk_label :> Visitor.frama_c_inplace)
     ast
@@ -307,7 +307,7 @@ module MCC = Annotators.Register (struct
         | _ -> DoChildren
   end
 
-  let compute mk_label ast =
+  let apply mk_label ast =
     Visitor.visitFramacFileSameGlobals
       (new genMultiLabelsVisitor mk_label :> Visitor.frama_c_inplace)
       ast
@@ -373,7 +373,7 @@ module Partition = Annotators.Register (struct
       SkipChildren
   end
 
-  let compute mk_label ast =
+  let apply mk_label ast =
     Visitor.visitFramacFileSameGlobals
       (new inputDomainVisitor mk_label :> Visitor.frama_c_inplace)
       ast
@@ -683,7 +683,7 @@ module WM = Annotators.RegisterWithExtraTags (struct
       ChangeDoChildrenPost (stmt, genLabels)
 end
 
-  let compute mk_label ast =
+  let apply mk_label ast =
     Visitor.visitFramacFileSameGlobals
       (new mutationVisitor mk_label :> Visitor.frama_c_inplace)
       ast

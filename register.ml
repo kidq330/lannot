@@ -43,7 +43,10 @@ let annotate ann_names =
   let data_filename = (Project.get_name prj) ^ "_labels.labels" in
   Project.set_current prj;
 
-  let annotations = Annotators.annotate ann_names (Ast.get ()) in
+  let annotations = ref [] in
+  let collect ann = annotations := ann :: !annotations in
+  Annotators.annotate ~collect ann_names (Ast.get ());
+  let annotations = !annotations in
 
   (* output modified c file *)
   Options.feedback "write modified C file";

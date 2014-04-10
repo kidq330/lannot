@@ -22,47 +22,54 @@
 
 open Cil_types
 
-type annotation = int * string * exp * location
+type annotation =
+  int * string * exp * location
 
 type annotator = {
   name:string;
   help: string;
-  compute: int ref -> annotation list ref -> Cil_types.file -> unit
+  apply: (unit -> int) -> (annotation -> unit) -> Cil_types.file -> unit
 }
 
 module type ANNOTATOR = sig
   val name : string
   val help : string
-  val compute : (Cil_types.exp -> Cil_types.location -> Cil_types.stmt) -> Cil_types.file -> unit
+  val apply : (Cil_types.exp -> Cil_types.location -> Cil_types.stmt) -> Cil_types.file -> unit
 end
 module type ANNOTATOR_WITH_EXTRA_TAGS = sig
   val name : string
   val help : string
-  val compute : (extra:string list -> Cil_types.exp -> Cil_types.location -> Cil_types.stmt) -> Cil_types.file -> unit
+  val apply : (extra:string list -> Cil_types.exp -> Cil_types.location -> Cil_types.stmt) -> Cil_types.file -> unit
 end
 
 module type S = sig
   val self : annotator
+  val apply : ?id:(unit -> int) -> ?collect:(annotation -> unit) -> Cil_types.file -> unit
 end
 
 let annotators = Hashtbl.create 10
+
 let nextId = ref 1
 
-let annotate_with ?(acc=[]) ?(nextId=nextId) annotator ast =
-  let acc = ref acc in
-  Options.feedback "apply annotations for %s@." annotator.name;
-  annotator.compute nextId acc ast;
-  !acc
+let next () =
+  let id = !nextId in
+  incr nextId;
+  id
 
-let annotate names ast =
-  let f acc name =
+let nocollect _ = ()
+
+let annotate_with annotator ?(id=next) ?(collect=nocollect) ast =
+  Options.feedback "apply annotations for %s@." annotator.name;
+  annotator.apply id collect ast
+
+let annotate names ?(id=next) ?(collect=nocollect) ast =
+  let f name =
     try
-      annotate_with ~acc (Hashtbl.find annotators name) ast
+      annotate_with ~id ~collect (Hashtbl.find annotators name) ast
     with Not_found ->
       Options.warning "unknown annotators `%s`" name;
-      acc
   in
-  List.fold_left f [] names
+  List.iter f names
 
 let print_help fmt =
   let annotators = Hashtbl.fold (fun _k v acc -> v :: acc) annotators [] in
@@ -71,29 +78,25 @@ let print_help fmt =
   let f ann = Format.fprintf fmt "%-*s @[%s@]@." width ann.name ann.help in
   List.iter f annotators
 
-let mk_compute compute name nextId acc ast =
-  let label_maker cond loc =
-    let tag = name in
-    let id = !nextId in
-    incr nextId;
-    acc := (id,tag,cond,loc) :: !acc;
-    let tagExp = Utils.mk_exp (Const (CStr tag)) in
-    let idExp = Utils.mk_exp (Const (CInt64 (Integer.of_int id, IInt, None))) in
-    Utils.mk_call "pc_label" [ cond; idExp; tagExp ]
-  in
-  compute label_maker ast
+let label_function_name = "pc_label"
 
-let mk_compute_extras compute name nextId acc ast =
-  let label_maker ~extra cond loc =
-    let tag = String.concat " " (name::extra) in
-    let id = !nextId in
-    incr nextId;
-    acc := (id,tag,cond,loc) :: !acc;
-    let tagExp = Utils.mk_exp (Const (CStr tag)) in
-    let idExp = Utils.mk_exp (Const (CInt64 (Integer.of_int id, IInt, None))) in
-    Utils.mk_call "pc_label" [ cond; idExp; tagExp ]
+let mk_label id collect tag cond loc =
+  let id = id () in
+  collect (id,tag,cond,loc);
+  let tagExp = Utils.mk_exp (Const (CStr tag)) in
+  let idExp = Cil.integer Cil_datatype.Location.unknown id in
+  Utils.mk_call label_function_name [ cond; idExp; tagExp ]
+
+
+let mk_apply apply name id collect ast =
+  apply (mk_label id collect name) ast
+
+let mk_compute_extras apply name id collect ast =
+  let mk_label' ~extra cond loc=
+    let tag = String.concat " " (name :: extra) in
+    mk_label id collect tag cond loc
   in
-  compute label_maker ast
+  apply mk_label' ast
 
 let register_annotator ann =
   Options.debug1 "register %s annotator" ann.name;
@@ -104,12 +107,14 @@ let register_annotator ann =
 *)
 
 module Register (A : ANNOTATOR) = struct
-  let self = { name = A.name; help = A.help; compute = mk_compute A.compute A.name }
+  let self = { name = A.name; help = A.help; apply = mk_apply A.apply A.name }
+  let apply = annotate_with self
   let () = register_annotator self
 end
 
 module RegisterWithExtraTags (A : ANNOTATOR_WITH_EXTRA_TAGS) = struct
-  let self = { name = A.name; help = A.help; compute = mk_compute_extras A.compute A.name }
+  let self = { name = A.name; help = A.help; apply = mk_compute_extras A.apply A.name }
+  let apply = annotate_with self
   let () = register_annotator self
 end
 

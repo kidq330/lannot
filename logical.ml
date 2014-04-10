@@ -122,7 +122,7 @@ module CC = Annotators.Register (struct
   let name = "CC"
   let help = "Condition Coverage"
 
-  let compute mk_label file =
+  let apply mk_label file =
     apply_ncc mk_label 1 (Options.AllBoolExps.get ()) file
 end)
 
@@ -130,7 +130,7 @@ module NCC = Annotators.Register (struct
   let name = "NCC"
   let help = "n-Condition Coverage"
 
-  let compute mk_label file =
+  let apply mk_label file =
     apply_ncc mk_label (Options.N.get ()) (Options.AllBoolExps.get ()) file
 end)
 
@@ -138,13 +138,13 @@ module MCC = Annotators.Register (struct
   let name = "MCC"
   let help = "Multiple Condition Coverage"
 
-  let compute mk_label file =
+  let apply mk_label file =
     apply_ncc mk_label 0 (Options.AllBoolExps.get ()) file
 end)
 
 module DC = Annotators.Register (struct
   let name = "DC"
   let help = "Decision Coverage"
-  let compute mk_label file =
+  let apply mk_label file =
     apply (gen_labels_dc mk_label) (Options.AllBoolExps.get ()) file
 end)

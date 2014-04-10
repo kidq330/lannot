@@ -40,7 +40,7 @@ let visitor mk_label = object
     Cil.SkipChildren
 end
 
-let compute f ast =
+let apply f ast =
   Visitor.visitFramacFileSameGlobals (visitor f) ast
 
 end)
