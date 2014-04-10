@@ -71,7 +71,7 @@ let is_label instr =
   Used to detect boolean expression outside conditional statement
 *)
 let is_boolean e =
-  Options.debug "is boolean? @[%a@]@." Cil_printer.pp_exp e;
+  Options.debug2 ~level:3 "is boolean? @[%a@]@." Cil_printer.pp_exp e;
   match e.enode with
   (* C99 _Bool type *)
   | BinOp (_, _, _, TInt (IBool, _))
@@ -97,10 +97,14 @@ let andify ?(loc=Cil_datatype.Location.unknown) conj =
 let atomic_conditions =
   let rec aux acc exp =
     match exp.enode with
-    | BinOp (Ne, e, zero, _)
-    | BinOp (Ne, zero, e, _) when Cil.isZero zero && is_boolean e ->
+    | BinOp ((Ne|Eq), a, b, _) ->
       (* Cil adds !=0 when && or || are present in normal expression (don't do that for !)*)
-      aux acc e
+      if Cil.isZero b && is_boolean a then
+        aux acc a
+      else if Cil.isZero a && is_boolean b then
+        aux acc b
+      else
+        exp :: acc
     | BinOp ((LAnd | LOr), e1, e2, _) ->
       aux (aux acc e1) e2
     | UnOp (LNot, e, _) ->
