@@ -27,5 +27,5 @@ PLUGIN_NAME	= LAnnotate
 
 PLUGIN_TESTS_DIRS:=bubblesort
 
-PLUGIN_CMO	= options config utils annotators instru logical function register
+PLUGIN_CMO	= options utils annotators instru logical function register
 include $(FRAMAC_SHARE)/Makefile.dynamic

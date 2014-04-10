@@ -33,15 +33,26 @@ let store_label_data out annotations =
   List.iter print_one annotations;
   Format.pp_print_flush formatter ()
 
+let compute_outfile opt files =
+  if opt = "" then
+    if files = [] then
+      "a_labels.out"
+    else
+      let base = List.hd files in
+      (* TODO check if it's not better to take the last filename *)
+      let prefix = Filename.chop_extension base in
+      let len_prefix = String.length prefix in
+      let suffix = String.sub base len_prefix ((String.length base)-len_prefix) in
+      prefix ^ "_labels" ^ suffix
+  else
+    opt;;
 
 let annotate ann_names =
-  Options.feedback "started";
-  let prj_name = Config.input_file () in
+  let base_project = Project.current () in
+  let prj_name = (Project.get_name base_project) ^ "_labels" in
   let prj = Project.create_by_copy prj_name in
-  (* TODO use an options to set the output filename *)
-  let filename = (Project.get_name prj) ^ "_labels.c" in
-  let data_filename = (Project.get_name prj) ^ "_labels.labels" in
   Project.set_current prj;
+  Options.debug "start project %s" prj_name;
 
   let annotations = ref [] in
   let collect ann = annotations := ann :: !annotations in
@@ -49,7 +60,8 @@ let annotate ann_names =
   let annotations = !annotations in
 
   (* output modified c file *)
-  Options.feedback "write modified C file";
+  let filename = compute_outfile (Options.Output.get ()) (Kernel.Files.get ()) in
+  Options.feedback "write modified C file (to %s)" filename;
   let out = open_out filename in
   let formatter = Format.formatter_of_out_channel out in
   File.pretty_ast ~prj:prj ~fmt:formatter ();
@@ -57,11 +69,14 @@ let annotate ann_names =
   close_out out;
 
   (* output label data *)
-  Options.feedback "write label data";
+  let data_filename = (Filename.chop_extension filename) ^ ".labels" in
+  Options.feedback "write label data (to %s)" data_filename;
   let out = open_out data_filename in
   store_label_data out annotations;
   close_out out;
-  Options.feedback "finished"
+  Options.feedback "finished";
+  Project.set_current base_project
+  ;;
 
 let setupMutatorOptions () =
   let f mutname =
@@ -78,14 +93,13 @@ let run () =
     setupMutatorOptions ();
     annotate (Datatype.String.Set.elements (Options.Annotators.get ()))
   with
-    | Globals.No_such_entry_point _ ->
-	Options.feedback "`-main` parameter missing"
-    | Dynamic.Unbound_value(s) -> Options.feedback "%s unbound" s
-    | Dynamic.Incompatible_type(s) -> Options.feedback "%s incompatible" s
-    | Config.NoInputFile -> Options.feedback "no input file"
-    | Failure s -> Options.feedback "failure: %s" s
-    | e -> Options.feedback "exception: %s" (Printexc.to_string e)
-	
+  | Globals.No_such_entry_point _ ->
+      Options.abort "`-main` parameter missing"
+  | Dynamic.Unbound_value(s) -> Options.fatal "%s unbound" s
+  | Dynamic.Incompatible_type(s) -> Options.fatal "%s incompatible" s
+  | Failure s -> Options.fatal "unexpected failure: %s" s
+  | e -> Options.fatal "unexpected exception: %s" (Printexc.to_string e)
+
 let run () =
   if Options.AnnotatorsHelp.get () then
   begin

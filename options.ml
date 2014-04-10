@@ -42,6 +42,13 @@ end)
 let () = Annotators.set_possible_values annotators
 let () = Annotators.add_aliases ["-lannotate"]
 
+module Output = EmptyString (struct
+  let option_name = "-lannot-o"
+  let arg_name = "file"
+  let help = "set output file (default: add _labels before extension)"
+end)
+let () = Annotators.add_aliases ["-lannot-output"]
+
 module AllBoolExps = False (struct
   let option_name = "-lannot-allbool"
   let help = "indicates that in addition to branching condition, all boolean expression should be taken into account (*CC, DC for coverage)"
@@ -50,7 +57,7 @@ end)
 module N = Int (struct
   let option_name = "-lannot-n"
   let arg_name = "N"
-  let help = "set the N parameter (NCC: 0 means MCC and 1 means CC)"
+  let help = "set the N parameter for N-wise Condition Coverage (0 means MCC and 1 means CC)"
   let default = 2
 end)
 
