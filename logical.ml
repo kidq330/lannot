@@ -51,7 +51,7 @@ let gen_labels_ncc mk_label n (bexpr : exp) : stmt =
 
   (* For each subset of atoms, *)
   let for_subset (acc : stmt list) (subset : exp list) : stmt list =
-    (* Compute signed subsets in reverse order *)
+    (* Compute signed subsets *)
     let signed_subsets = sign_combine pos neg subset in
     (* Create labels for each signed subset (taken in rev. order)
       and put them in rev. in front of acc (N.B. [rev rev l = l]) *)
@@ -65,6 +65,10 @@ let gen_labels_dc mk_label bexpr =
   let labels = [mk_label (pos bexpr) loc; mk_label (neg bexpr) loc] in
   mk_block_stmt labels;;
 
+(**
+ * Frama-C in-place visitor that injects labels at each conditition/boolean
+ * expression using some injection function
+ *)
 class visitor gen_labels all_boolean = object(self)
   inherit Visitor.frama_c_inplace
 
@@ -111,13 +115,18 @@ class visitor gen_labels all_boolean = object(self)
       Cil.DoChildren
 end
 
+(** Generic condition/boolean expression annotator *)
 let apply gen_labels all_boolean file =
     Visitor.visitFramacFileSameGlobals (new visitor gen_labels all_boolean :> Visitor.frama_c_visitor) file
 
+(** n-CC condition/boolean expression annotator *)
 let apply_ncc mk_label n all_boolean file =
   Options.debug2 "n-Condition Coverage config: n=%d, all booleans=%B" n all_boolean;
   apply (gen_labels_ncc mk_label n) all_boolean file
 
+(**
+ * Condition coverage annotator, special case of n-CC for n=1
+ *)
 module CC = Annotators.Register (struct
   let name = "CC"
   let help = "Condition Coverage"
@@ -126,14 +135,21 @@ module CC = Annotators.Register (struct
     apply_ncc mk_label 1 (Options.AllBoolExps.get ()) file
 end)
 
+(**
+ * n-wise condition coverage annotator
+ *)
 module NCC = Annotators.Register (struct
   let name = "NCC"
-  let help = "n-Condition Coverage"
+  let help = "n-wise Condition Coverage"
 
   let apply mk_label file =
     apply_ncc mk_label (Options.N.get ()) (Options.AllBoolExps.get ()) file
 end)
 
+(**
+ * Multiple condition coverage annotator, special case of n-CC for n=infinite
+ * (coded zero)
+ *)
 module MCC = Annotators.Register (struct
   let name = "MCC"
   let help = "Multiple Condition Coverage"

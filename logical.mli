@@ -2,13 +2,13 @@
  * Annotators for code-based logical coverage
  *)
 
-(** Condition coverage *)
+(** Condition coverage, special case of n-CC for n=1 *)
 module CC : Annotators.S
 
-(** N-wise Condition coverage *)
+(** N-wise Condition Coverage *)
 module NCC : Annotators.S
 
-(** Multiple Condition coverage *)
+(** Multiple Condition Coverage, special case of n-CC for n=Inf (coded 0) *)
 module MCC : Annotators.S
 
 (** Decision coverage *)
