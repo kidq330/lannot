@@ -61,6 +61,32 @@ module N = Int (struct
   let default = 2
 end)
 
+module MaxWidth = Int (struct
+  let option_name = "-lannot-maxwidth"
+  let arg_name = "NUM"
+  let help = "set the maximum number of elements to partition in arrays (default: 5)"
+  let default = 5
+end)
+
+module MaxDepth = Int (struct
+  let option_name = "-lannot-maxdepth"
+  let arg_name = "NUM"
+  let help = "set the maximal depth to partition, i.e. the maximum number of \
+    pointer indirections and field accesses), (default: 5)"
+  let default = 5
+end)
+
+module AllFuns = False (struct
+  let option_name = "-lannot-allfuns"
+  let help = "if IPD is enabled, inputs for all functions should be treated \
+    (not only main)"
+end)
+
+module GlobalsAsInput = False (struct
+  let option_name = "-lannot-globals"
+  let help = "global variables should be considered as input (disable by default)"
+end)
+
 let mutators = ["AOR"; "ROR"; "COR"; "ABS"]
 module Mutators = FilledStringSet (struct
   let option_name = "-lannot-mutators"

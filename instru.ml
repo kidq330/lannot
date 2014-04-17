@@ -326,7 +326,7 @@ let getLocFromFunction f =
 
 module Partition = Annotators.Register (struct
 
-  let name = "IDP"
+  let name = "IDP_OLD"
   let help = "Input Domain Partition"
 
   let makeLabelsFromInput mk_label myParam loc =

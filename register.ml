@@ -64,7 +64,7 @@ let annotate ann_names =
   Options.feedback "write modified C file (to %s)" filename;
   let out = open_out filename in
   let formatter = Format.formatter_of_out_channel out in
-  File.pretty_ast ~prj:prj ~fmt:formatter ();
+  Utils.Printer.pp_file formatter (Ast.get ());
   Format.pp_print_flush formatter ();
   close_out out;
 

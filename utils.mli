@@ -22,6 +22,29 @@
 
 open Cil_types
 
+module Printer : Printer_api.S
+
+module Ast_const : sig
+  module Exp : sig
+    val mk : ?loc:location -> exp_node -> exp
+    val zero : ?loc:location -> unit -> exp
+    val one : ?loc:location -> unit -> exp
+    val integer : ?loc:location -> int -> exp
+    val var : ?loc:location -> varinfo -> exp
+    val lval : ?loc:location -> lval -> exp
+    val mem : ?loc:location -> addr:exp -> off:offset -> exp
+    val binop : ?loc:location -> binop -> exp -> exp -> exp
+    val copy : exp -> exp
+  end
+  module Lval : sig
+    val var : varinfo -> lval
+    val mem : addr:exp -> off:offset -> lval
+    val addOffset: off:offset -> base:lval -> lval
+  end
+end
+
+val extract_global_vars : file -> varinfo list
+
 val all_stmts : stmt list ref
 val get_stmt_loc : stmt -> location
 val get_stmt_loc_int : stmt -> int
