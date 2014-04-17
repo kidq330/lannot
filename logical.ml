@@ -22,9 +22,10 @@
 
 open Cil_types
 open Utils
+open Ast_const
 
-let pos atom = Cil.copy_exp atom
-let neg atom = Utils.mk_exp (UnOp (LNot, Cil.copy_exp atom, Cil.intType))
+let pos atom = Exp.copy atom
+let neg atom = Exp.mk (UnOp (LNot, Exp.copy atom, Cil.intType))
 
 (**
   Generates labels for n-CC coverage from a boolean expression.
@@ -44,7 +45,7 @@ let gen_labels_ncc mk_label n (bexpr : exp) : stmt =
   (* For each signed subset of atoms, *)
   let for_signed_subset (acc : stmt list) (signed_subset : exp list) : stmt list =
     (* Get conjunction as an expression*)
-    let exp = andify signed_subset in
+    let exp = Exp.join LAnd signed_subset in
     (* Create a label and put it in front of acc *)
     mk_label exp loc :: acc
   in
@@ -58,15 +59,15 @@ let gen_labels_ncc mk_label n (bexpr : exp) : stmt =
     List.fold_left for_signed_subset acc signed_subsets
   in
   let stmts = List.rev (List.fold_left for_subset [] subsets) in
-  mk_block_stmt stmts;;
+  Stmt.block stmts;;
 
 let gen_labels_dc mk_label bexpr =
   let loc = bexpr.eloc in
   let labels = [mk_label (pos bexpr) loc; mk_label (neg bexpr) loc] in
-  mk_block_stmt labels;;
+  Stmt.block labels;;
 
 (**
- * Frama-C in-place visitor that injects labels at each conditition/boolean
+ * Frama-C in-place visitor that injects labels at each condition/boolean
  * expression using some injection function
  *)
 class visitor gen_labels all_boolean = object(self)
@@ -84,9 +85,9 @@ class visitor gen_labels all_boolean = object(self)
     match bexprs with
     | [] -> stmt
     | _ ->
-      let labels = mk_block_stmt (List.rev_map gen_labels bexprs) in
+      let labels = Stmt.block (List.rev_map gen_labels bexprs) in
       bexprs <- [];
-      mk_block_stmt [labels; stmt]
+      Stmt.block [labels; stmt]
 
   method! vstmt_aux stmt =
     match stmt.skind with
@@ -96,7 +97,7 @@ class visitor gen_labels all_boolean = object(self)
       let thenb = Visitor.visitFramacBlock (self :> Visitor.frama_c_visitor) thenb in
       let elseb = Visitor.visitFramacBlock (self :> Visitor.frama_c_visitor) elseb in
       stmt.skind <- If (e, thenb, elseb, loc);
-      Cil.ChangeTo (mk_block_stmt [labels_stmt; stmt])
+      Cil.ChangeTo (Stmt.block [labels_stmt; stmt])
     | _ ->
       if all_boolean then
         Cil.DoChildrenPost (fun stmt -> self#vstmt_post stmt)

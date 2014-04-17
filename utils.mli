@@ -24,25 +24,6 @@ open Cil_types
 
 module Printer : Printer_api.S
 
-module Ast_const : sig
-  module Exp : sig
-    val mk : ?loc:location -> exp_node -> exp
-    val zero : ?loc:location -> unit -> exp
-    val one : ?loc:location -> unit -> exp
-    val integer : ?loc:location -> int -> exp
-    val var : ?loc:location -> varinfo -> exp
-    val lval : ?loc:location -> lval -> exp
-    val mem : ?loc:location -> addr:exp -> off:offset -> exp
-    val binop : ?loc:location -> binop -> exp -> exp -> exp
-    val copy : exp -> exp
-  end
-  module Lval : sig
-    val var : varinfo -> lval
-    val mem : addr:exp -> off:offset -> lval
-    val addOffset: off:offset -> base:lval -> lval
-  end
-end
-
 val extract_global_vars : file -> varinfo list
 
 val all_stmts : stmt list ref
@@ -52,10 +33,6 @@ val same_line : stmt -> stmt -> bool
 val mk_call :
   ?loc:location ->
   ?result:lval -> string -> exp list -> stmt
-val mk_exp : ?loc:location -> exp_node -> exp
-
-(** Make a block statement from a list of statements. *)
-val mk_block_stmt : stmt list -> stmt
 
 val mkdir : string -> unit
 
@@ -67,11 +44,6 @@ val is_label : instr -> bool
   Used to detect boolean expression outside conditional statement
 *)
 val is_boolean: exp -> bool
-
-(**
-  Makes an expresion that links the given list of expressions with boolean ands.
-*)
-val andify : ?loc:location -> exp list -> exp
 
 (**
   Get atomic conditons form a boolean expression.

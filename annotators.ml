@@ -21,6 +21,8 @@
 (**************************************************************************)
 
 open Cil_types
+open Ast_const
+
 
 type annotation =
   int * string * exp * location
@@ -83,8 +85,8 @@ let label_function_name = "pc_label"
 let mk_label id collect tag cond loc =
   let id = id () in
   collect (id,tag,cond,loc);
-  let tagExp = Utils.mk_exp (Const (CStr tag)) in
-  let idExp = Cil.integer Cil_datatype.Location.unknown id in
+  let tagExp = Exp.mk (Const (CStr tag)) in
+  let idExp = Exp.integer id in
   Utils.mk_call label_function_name [ cond; idExp; tagExp ]
 
 

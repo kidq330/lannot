@@ -1,5 +1,4 @@
 open Cil_types
-open Utils
 open Ast_const
 
 (**
@@ -135,13 +134,13 @@ class inputDomainVisitor max_depth max_width all_funs globals mk_label = object 
       partition_lval max_depth max_width emit var.vtype (fun () -> Lval.var var)
     in
     List.iter gen_for_var vars;
-    Utils.mk_block_stmt (List.rev !acc)
+    Stmt.block (List.rev !acc)
 
   method! vfunc f =
     if Annotators.shouldInstrument f.svar && (all_funs || f.svar.vname =
       Kernel.MainFunction.get ()) then begin
-      let oldBody = Cil.mkStmt (Block (f.sbody)) in
-      f.sbody <- Cil.mkBlock (self#gformals (globals @ f.sformals) f.svar.vdecl :: [oldBody]);
+      let oldBody = Stmt.mk (Block (f.sbody)) in
+      f.sbody <- Block.mk (self#gformals (globals @ f.sformals) f.svar.vdecl :: [oldBody]);
     end;
     Cil.SkipChildren
 end
@@ -157,7 +156,7 @@ module Partition = Annotators.Register (struct
     let all_funs = Options.AllFuns.get () in
     let globals_as_input = Options.GlobalsAsInput.get () in
     Options.debug4 "input domain partition (max depth %d, max width %d, all funs? %b, globals as input? %b)" max_depth max_width all_funs globals_as_input;
-    let globals = if globals_as_input then extract_global_vars ast else [] in
+    let globals = if globals_as_input then Utils.extract_global_vars ast else [] in
     Visitor.visitFramacFileSameGlobals
       (new inputDomainVisitor max_depth max_width all_funs globals mk_label :> Visitor.frama_c_inplace)
       ast

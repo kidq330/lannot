@@ -35,36 +35,6 @@ module Printer = Printer_builder.Make (struct
   end
 end)
 
-module Ast_const = struct
-  let unk_loc = Cil_datatype.Location.unknown
-
-  module Exp = struct
-    let mk ?(loc=unk_loc) = Cil.new_exp ~loc
-    let zero ?(loc=unk_loc) () =
-      Cil.zero ~loc
-    let one ?(loc=unk_loc) () =
-      Cil.one ~loc
-    let integer ?(loc=unk_loc) =
-      Cil.integer ~loc
-    let var ?(loc=unk_loc) varinfo =
-      Cil.evar ~loc varinfo
-    let lval ?(loc=Cil_datatype.Location.unknown) lval =
-      Cil.new_exp ~loc (Lval lval)
-    let mem ?(loc=unk_loc) ~addr ~off =
-      Cil.new_exp ~loc (Lval (Cil.mkMem ~addr ~off))
-    let binop ?(loc=unk_loc) op left right =
-      Cil.mkBinOp ~loc op left right
-    (* XXX let unop = *)
-    let copy = Cil.copy_exp
-  end
-
-  module Lval = struct
-    let var = Cil.var
-    let mem = Cil.mkMem
-    let addOffset ~off ~base = Cil.addOffsetLval off base
-  end
-end
-
 (** Extracts global variables from an AST *)
 let extract_global_vars file =
   let module S = Cil_datatype.Varinfo.Set in
@@ -99,13 +69,6 @@ let mk_call ?(loc=Cil_datatype.Location.unknown) ?result fname args =
   let f = new_lval loc (Cil.makeGlobalVar fname ty) in
   Cil.mkStmt ~valid_sid:true (Instr (Call (result, f, args, loc)))
 
-(* val mk_exp: ?loc:location -> exp_node -> exp *)
-let mk_exp ?(loc=Cil_datatype.Location.unknown) enode =
-  Cil.new_exp loc enode
-
-(** Make a block statement from a list of statements. *)
-let mk_block_stmt stmts = Cil.mkStmt (Block (Cil.mkBlock stmts))
-
 (* val mkdir: string -> unit *)
 let mkdir x =
   if not (Sys.file_exists x) then
@@ -135,15 +98,6 @@ let is_boolean e =
   | BinOp ((LAnd|LOr|Lt|Gt|Le|Ge|Eq|Ne), _, _, _)
   | UnOp (LNot, _, _) -> true
   | _ -> false
-
-(**
-  Links a list of expressions with boolean ands.
-*)
-let andify ?(loc=Cil_datatype.Location.unknown) conj =
-  match conj with
-  | [] -> assert false
-  | head :: tail ->
-    List.fold_left (fun acc e -> Cil.mkBinOp loc LAnd acc e) head tail
 
 (**
   Get atomic conditions from a boolean expression.
