@@ -30,12 +30,14 @@ let rec partition_lval ~depth ~width ~(emit: exp -> unit) typ lval =
 
   (* Structure or union (does not make much sense on union) *)
   | TComp (comp, _, _) ->
-    let onfield i field =
-      if i < width then
+    let i = ref (-1) in
+    let onfield field =
+      incr i;
+      if !i < width then
         let lval' () = Cil.addOffsetLval (Field (field, NoOffset)) (lval ()) in
         partition_lval ~depth:(depth-1) ~width ~emit field.ftype lval'
     in
-    List.iteri onfield comp.cfields
+    List.iter onfield comp.cfields
 
   (* Array length provided *)
   | TArray (typ, Some length, _, _) ->
