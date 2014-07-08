@@ -13,3 +13,6 @@ module MCC : Annotators.S
 
 (** Decision coverage *)
 module DC : Annotators.S
+
+(** General Active Clause Coverage (weakened MC/DC) *)
+module GACC : Annotators.S

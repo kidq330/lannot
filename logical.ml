@@ -24,6 +24,7 @@ open Cil_types
 open Utils
 open Ast_const
 
+let as_bool e = Exp.binop Ne e (Exp.zero ())
 let pos atom = Exp.copy atom
 let neg atom = Exp.mk (UnOp (LNot, Exp.copy atom, Cil.intType))
 
@@ -65,6 +66,27 @@ let gen_labels_dc mk_label bexpr =
   let loc = bexpr.eloc in
   let labels = [mk_label (pos bexpr) loc; mk_label (neg bexpr) loc] in
   Stmt.block labels;;
+
+let gen_labels_gacc_for mk_label whole part =
+  let loc = whole.eloc in
+  let w0 = Exp.replace whole part (Exp.one ()) in
+  let w1 = Exp.replace whole part (Exp.zero ()) in
+
+  (* rather than to test w0 != w1, do (w0 || w1) && !(w0 && w1) *)
+  let w0_or_w1 = Exp.binop LOr w0 w1 in
+  let w0_nand_w1 = neg (Exp.binop LAnd w0 w1) in
+  let indep = Exp.binop LAnd w0_or_w1 w0_nand_w1 in
+
+  let a_indep = Exp.binop LAnd (pos part) (Exp.copy indep) in
+  let na_indep = Exp.binop LAnd (neg part) (Exp.copy indep) in
+  Stmt.block [mk_label a_indep loc; mk_label na_indep loc];;
+
+
+let gen_labels_gacc mk_label bexpr =
+  let atoms = atomic_conditions bexpr in
+  Stmt.block (List.map (gen_labels_gacc_for mk_label bexpr) atoms);;
+
+
 
 (**
  * Frama-C in-place visitor that injects labels at each condition/boolean
@@ -164,4 +186,11 @@ module DC = Annotators.Register (struct
   let help = "Decision Coverage"
   let apply mk_label file =
     apply (gen_labels_dc mk_label) (Options.AllBoolExps.get ()) file
+end)
+
+module GACC = Annotators.Register (struct
+  let name = "GACC"
+  let help = "General Active Clause Coverage (weakened MC/DC)"
+  let apply mk_label file = 
+    apply (gen_labels_gacc mk_label) (Options.AllBoolExps.get ()) file
 end)

@@ -20,6 +20,20 @@ module Exp = struct
   let binop ?(loc=unk_loc) op left right =
     Cil.mkBinOp ~loc op left right
 
+  let rec replace ~whole ~part ~(repl: exp) : exp=
+    if part == whole then repl
+    else
+      match whole.enode with
+      | UnOp (op, e, typ) ->
+        let e' = replace e part repl in
+        if e == e' then whole else mk ~loc:whole.eloc (UnOp (op, e', typ))
+      | BinOp (op, e1, e2, typ) ->
+        let e1' = replace e1 part repl in
+        let e2' = replace e2 part repl in
+        if e1 == e1' && e2 == e2' then whole else mk ~loc:whole.eloc (BinOp (op, e1', e2', typ))
+      | _ -> whole
+
+
   (** Joins some expressions (at least one) with a binary operator. *)
   let join ?(loc=Cil_datatype.Location.unknown) op l =
     match l with

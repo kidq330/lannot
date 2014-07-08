@@ -9,6 +9,7 @@ module Exp : sig
   val lval : ?loc:location -> lval -> exp
   val mem : ?loc:location -> addr:exp -> off:offset -> exp
   val binop : ?loc:location -> binop -> exp -> exp -> exp
+  val replace : whole:exp -> part:exp -> repl:exp -> exp
 
   (** Joins some expressions (at least one) with a binary operator. *)
   val join : ?loc:location -> binop -> exp list -> exp
