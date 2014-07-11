@@ -11,7 +11,7 @@ module NCC : Annotators.S
 (** Multiple Condition Coverage, special case of n-CC for n=Inf (coded 0) *)
 module MCC : Annotators.S
 
-(** Decision coverage *)
+(** Decision Coverage *)
 module DC : Annotators.S
 
 (** General Active Clause Coverage (weakened MC/DC) *)

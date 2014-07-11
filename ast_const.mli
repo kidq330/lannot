@@ -2,13 +2,32 @@ open Cil_types
 
 module Exp : sig
   val mk : ?loc:location -> exp_node -> exp
+
+  (** [int] zero *)
   val zero : ?loc:location -> unit -> exp
+
+  (** [int] one *)
   val one : ?loc:location -> unit -> exp
+
+  (** [int] constant *)
   val integer : ?loc:location -> int -> exp
+
   val var : ?loc:location -> varinfo -> exp
+
   val lval : ?loc:location -> lval -> exp
+
   val mem : ?loc:location -> addr:exp -> off:offset -> exp
+
+  (** Logical not *)
+  val lnot : ?loc:location -> exp -> exp
+
+  (** Arithmetic negation *)
+  val neg : ?loc:location -> exp -> exp
+
+  (** Binary operation *)
   val binop : ?loc:location -> binop -> exp -> exp -> exp
+
+  (** Replace some subexpression by another (== equality) *)
   val replace : whole:exp -> part:exp -> repl:exp -> exp
 
   (** Joins some expressions (at least one) with a binary operator. *)

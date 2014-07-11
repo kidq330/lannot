@@ -3,19 +3,37 @@ open Cil_types
 let unk_loc = Cil_datatype.Location.unknown
 
 module Exp = struct
-  let mk ?(loc=unk_loc) = Cil.new_exp ~loc
+  let mk ?(loc=unk_loc) =
+    Cil.new_exp ~loc
+
   let zero ?(loc=unk_loc) () =
     Cil.zero ~loc
+
   let one ?(loc=unk_loc) () =
     Cil.one ~loc
+
   let integer ?(loc=unk_loc) =
     Cil.integer ~loc
+
   let var ?(loc=unk_loc) varinfo =
     Cil.evar ~loc varinfo
+
   let lval ?(loc=Cil_datatype.Location.unknown) lval =
     Cil.new_exp ~loc (Lval lval)
+
   let mem ?(loc=unk_loc) ~addr ~off =
     Cil.new_exp ~loc (Lval (Cil.mkMem ~addr ~off))
+
+  let lnot ?(loc=unk_loc) e =
+    Cil.new_exp ~loc (UnOp (LNot, e, Cil.intType))
+
+  let neg ?(loc=unk_loc) e =
+    let oldt = Cil.typeOf e in
+    let newt = Cil.integralPromotion oldt in
+    (* make integral promotion explicit *)
+    let e' = Cil.mkCastT e oldt newt in
+    Cil.new_exp ~loc (UnOp (Neg, e', newt))
+
   (* XXX let unop = *)
   let binop ?(loc=unk_loc) op left right =
     Cil.mkBinOp ~loc op left right

@@ -24,12 +24,11 @@ open Cil_types
 open Utils
 open Ast_const
 
-let as_bool e = Exp.binop Ne e (Exp.zero ())
 let pos atom = Exp.copy atom
-let neg atom = Exp.mk (UnOp (LNot, Exp.copy atom, Cil.intType))
+let neg atom = Exp.lnot (Exp.copy atom)
 
 (**
-  Generates labels for n-CC coverage from a boolean expression.
+  Generate labels for n-CC coverage from a Boolean expression.
   And puts them all in a single block statement.
 *)
 let gen_labels_ncc mk_label n (bexpr : exp) : stmt =
@@ -62,11 +61,13 @@ let gen_labels_ncc mk_label n (bexpr : exp) : stmt =
   let stmts = List.rev (List.fold_left for_subset [] subsets) in
   Stmt.block stmts;;
 
+(** Generate DC labels for the given Boolean formula *)
 let gen_labels_dc mk_label bexpr =
   let loc = bexpr.eloc in
   let labels = [mk_label (pos bexpr) loc; mk_label (neg bexpr) loc] in
   Stmt.block labels;;
 
+(** Generate GACC labels for one particular active clause *)
 let gen_labels_gacc_for mk_label whole part =
   let loc = whole.eloc in
   let w0 = Exp.replace whole part (Exp.one ()) in
@@ -81,7 +82,7 @@ let gen_labels_gacc_for mk_label whole part =
   let na_indep = Exp.binop LAnd (neg part) (Exp.copy indep) in
   Stmt.block [mk_label a_indep loc; mk_label na_indep loc];;
 
-
+(** Generate GACC labels for the given Boolean formula *)
 let gen_labels_gacc mk_label bexpr =
   let atoms = atomic_conditions bexpr in
   Stmt.block (List.map (gen_labels_gacc_for mk_label bexpr) atoms);;
@@ -181,6 +182,9 @@ module MCC = Annotators.Register (struct
     apply_ncc mk_label 0 (Options.AllBoolExps.get ()) file
 end)
 
+(**
+ * Decision Coverage annotator
+ *)
 module DC = Annotators.Register (struct
   let name = "DC"
   let help = "Decision Coverage"
@@ -188,6 +192,9 @@ module DC = Annotators.Register (struct
     apply (gen_labels_dc mk_label) (Options.AllBoolExps.get ()) file
 end)
 
+(**
+ * General Active Clause Coverage annotator
+ *)
 module GACC = Annotators.Register (struct
   let name = "GACC"
   let help = "General Active Clause Coverage (weakened MC/DC)"
