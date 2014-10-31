@@ -133,3 +133,6 @@ val print_dnf_expression : dnf_expression -> unit
 (** Prints a minterm of a dnf expression to the standard
   output. *)
 val print_dnf_minterm : dnf_minterm -> unit
+
+val pp_dnf_minterm : Format.formatter -> dnf_minterm -> unit
+val pp_dnf_expression : Format.formatter -> dnf_expression -> unit
