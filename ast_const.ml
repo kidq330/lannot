@@ -34,7 +34,6 @@ module Exp = struct
     let e' = Cil.mkCastT e oldt newt in
     Cil.new_exp ~loc (UnOp (Neg, e', newt))
 
-  (* XXX let unop = *)
   let binop ?(loc=unk_loc) op left right =
     Cil.mkBinOp ~loc op left right
 
@@ -53,11 +52,14 @@ module Exp = struct
 
 
   (** Joins some expressions (at least one) with a binary operator. *)
-  let join ?(loc=Cil_datatype.Location.unknown) op l =
+  let rev_join ?(loc=Cil_datatype.Location.unknown) op l =
     match l with
     | [] -> invalid_arg "join"
     | head :: tail ->
-      List.fold_left (fun acc e -> Cil.mkBinOp loc op acc e) head tail
+      List.fold_left (fun acc e -> Cil.mkBinOp loc op e acc) head tail
+
+  let join ?(loc=Cil_datatype.Location.unknown) op l =
+    rev_join ~loc op (List.rev l)
 
   let copy = Cil.copy_exp
 end

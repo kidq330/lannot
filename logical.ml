@@ -79,8 +79,12 @@ let gen_labels_gacc_for mk_label whole part =
   let indep = Exp.binop LAnd w0_or_w1 w0_nand_w1 in
 
   let a_indep = Exp.binop LAnd (pos part) (Exp.copy indep) in
+  let a_indep_simp = Simplify.simplify_exp a_indep in
   let na_indep = Exp.binop LAnd (neg part) (Exp.copy indep) in
-  Stmt.block [mk_label a_indep loc; mk_label na_indep loc];;
+  let na_indep_simp = Simplify.simplify_exp na_indep in
+  (* Options.feedback "simplify %a to %a@." Printer.pp_exp a_indep Printer.pp_exp a_indep_simp; *)
+  (* Options.feedback "simplify %a to %a@." Printer.pp_exp a_indep Printer.pp_exp na_indep_simp; *)
+  Stmt.block [mk_label a_indep_simp loc; mk_label na_indep_simp loc];;
 
 (** Generate GACC labels for the given Boolean formula *)
 let gen_labels_gacc mk_label bexpr =

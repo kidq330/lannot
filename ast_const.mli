@@ -32,6 +32,7 @@ module Exp : sig
 
   (** Joins some expressions (at least one) with a binary operator. *)
   val join : ?loc:location -> binop -> exp list -> exp
+  val rev_join : ?loc:location -> binop -> exp list -> exp
 
   val copy : exp -> exp
 end
