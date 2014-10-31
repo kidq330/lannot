@@ -84,6 +84,12 @@ let label_function_name = "pc_label"
 
 let mk_label id collect tag cond loc =
   let id = id () in
+  let cond =
+    if Options.Simplify.get () then
+      Simplify.simplify_exp cond
+    else
+      cond
+  in
   collect (id,tag,cond,loc);
   let tagExp = Exp.mk (Const (CStr tag)) in
   let idExp = Exp.integer id in

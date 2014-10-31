@@ -119,3 +119,7 @@ module AnnotatorsHelp = False (struct
     let help = "show criteria help"
   end)
 
+module Simplify = False (struct
+    let option_name = "-lannot-simplify"
+    let help = "enable the simplification of boolean expressions before annotations"
+  end)
