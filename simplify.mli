@@ -1,11 +1,12 @@
 
-type formula =
-  | TAnd of formula * formula
-  | TOr of formula * formula
-  | TNot of formula
-  | TAtom of int
-  | TTrue
-  | TFalse
+type formula = [
+  | `TAnd of formula * formula
+  | `TOr of formula * formula
+  | `TNot of formula
+  | `TAtom of int
+  | `TTrue
+  | `TFalse
+]
 
 val simplify : int -> formula -> formula
 
