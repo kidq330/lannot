@@ -73,22 +73,45 @@ let gen_labels_gacc_for mk_label whole part =
   let w0 = Exp.replace whole part (Exp.one ()) in
   let w1 = Exp.replace whole part (Exp.zero ()) in
 
-  (* rather than to test w0 != w1, do (w0 || w1) && !(w0 && w1) *)
-  let w0_or_w1 = Exp.binop LOr w0 w1 in
-  let w0_nand_w1 = neg (Exp.binop LAnd w0 w1) in
-  let indep = Exp.binop LAnd w0_or_w1 w0_nand_w1 in
+  (* rather than to test w0 != w1, do (w0 && !w1) || (!w0 && w1) *)
+  let indep = Exp.niff w0 w1 in
 
   let a_indep = Exp.binop LAnd (pos part) (Exp.copy indep) in
   let na_indep = Exp.binop LAnd (neg part) (Exp.copy indep) in
 
-  Stmt.block [mk_label a_indep loc; mk_label na_indep loc];;
+  Stmt.block (List.map (fun e -> mk_label e loc) [a_indep; na_indep]);;
 
 (** Generate GACC labels for the given Boolean formula *)
 let gen_labels_gacc mk_label bexpr =
   let atoms = atomic_conditions bexpr in
   Stmt.block (List.map (gen_labels_gacc_for mk_label bexpr) atoms);;
 
+(** Generate GICC labels for the given Boolean formula *)
+let gen_labels_gicc_for mk_label whole part =
+  let loc = whole.eloc in
+  (* Compute negative and positive Shannon's factors wrt to part *)
+  let factor0 = Exp.replace whole part (Exp.one ()) in
+  let factor1 = Exp.replace whole part (Exp.one ()) in
+  (* Check the inactivity of part *)
+  let inactive = Exp.iff factor0 factor1 in
 
+  let true_inactive = Exp.binop LAnd (pos part) inactive in
+  let false_inactive = Exp.binop LAnd (neg part) inactive in
+  let true_inactive_true = Exp.binop LAnd true_inactive (pos whole) in
+  let true_inactive_false = Exp.binop LAnd true_inactive (neg whole) in
+  let false_inactive_true = Exp.binop LAnd false_inactive (pos whole) in
+  let false_inactive_false = Exp.binop LAnd false_inactive (neg whole) in
+  Stmt.block (List.map (fun e -> mk_label e loc) [
+    true_inactive_true;
+    true_inactive_false;
+    false_inactive_true;
+    false_inactive_false;
+  ])
+
+(** Generate GICC labels for the given Boolean formula *)
+let gen_labels_gicc mk_label bexpr =
+  let atoms = atomic_conditions bexpr in
+  Stmt.block (List.map (gen_labels_gicc_for mk_label bexpr) atoms)
 
 (**
  * Frama-C in-place visitor that injects labels at each condition/boolean
@@ -201,4 +224,16 @@ module GACC = Annotators.Register (struct
   let help = "General Active Clause Coverage (weakened MC/DC)"
   let apply mk_label file = 
     apply (gen_labels_gacc mk_label) (Options.AllBoolExps.get ()) file
+end)
+
+(**
+
+  General Inactive Clause Coverage annotator
+*)
+module GICC = Annotators.Register (struct
+  let name = "GICC"
+  let help = "General Inactive Clause Coverage"
+  let apply mk_label file = 
+    apply (gen_labels_gicc mk_label) (Options.AllBoolExps.get ()) file
+
 end)

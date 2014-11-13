@@ -109,10 +109,6 @@ let mk_compute_extras apply name id collect ast =
 let register_annotator ann =
   Options.debug1 "register %s annotator" ann.name;
   Hashtbl.replace annotators ann.name ann
-(* (* TO LATE *)
-  let all = Hashtbl.fold (fun k _v acc -> k :: acc) annotators [] in
-  Options.Annotators.set_possible_values all
-*)
 
 module Register (A : ANNOTATOR) = struct
   let self = { name = A.name; help = A.help; apply = mk_apply A.apply A.name }

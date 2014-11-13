@@ -37,6 +37,20 @@ module Exp = struct
   let binop ?(loc=unk_loc) op left right =
     Cil.mkBinOp ~loc op left right
 
+  let implies ?(loc=unk_loc) l r =
+    let n_l = lnot ~loc l in
+    Cil.mkBinOp ~loc LOr n_l r
+
+  let iff ?(loc=unk_loc) l r =
+    let l_imp_r = implies ~loc l r in
+    let r_imp_l = implies ~loc r l in
+    Cil.mkBinOp ~loc LAnd l_imp_r r_imp_l
+
+  let niff ?(loc=unk_loc) l r =
+    let nl_and_r = Cil.mkBinOp ~loc LAnd (lnot ~loc l) r in
+    let l_and_nr = Cil.mkBinOp ~loc LAnd l (lnot ~loc r) in
+    Cil.mkBinOp ~loc LOr nl_and_r l_and_nr
+
   let rec replace ~whole ~part ~(repl: exp) : exp=
     if part == whole then repl
     else

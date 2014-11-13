@@ -33,14 +33,12 @@ let rec string_list l =
   | a :: b :: [] -> a^" and "^b
   | head :: tail -> head^", "^string_list tail
 
-let annotators = ["MCC"; "CC"; "FC"; "DC"; "WM"; "IDP"]
 module Annotators = StringSet (struct
     let option_name = "-lannot"
     let arg_name = "criteria"
     let help = "generate labels for each criterion (comma-separated \
-                list of criteria, among "^string_list annotators^")"
+                list of criteria, see -lannot-list)"
   end)
-let () = Annotators.set_possible_values annotators
 let () = Annotators.add_aliases ["-lannotate"]
 
 module Output = EmptyString (struct
@@ -114,9 +112,9 @@ let () = Parameter_customize.set_group help
 let () = Parameter_customize.do_not_journalize ()
 let () = Parameter_customize.do_not_projectify ()
 let () = Parameter_customize.do_not_save ()
-module AnnotatorsHelp = False (struct
-    let option_name = "-lannot-criteria-help"
-    let help = "show criteria help"
+module ListAnnotators = False (struct
+    let option_name = "-lannot-list"
+    let help = "show list of criteria"
   end)
 
 module Simplify = False (struct

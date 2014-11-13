@@ -27,6 +27,15 @@ module Exp : sig
   (** Binary operation *)
   val binop : ?loc:location -> binop -> exp -> exp -> exp
 
+  (** Implies *)
+  val implies : ?loc:location -> exp -> exp -> exp
+
+  (** Iff *)
+  val iff : ?loc:location -> exp -> exp -> exp
+
+  (** Xor, boolean disequality *)
+  val niff : ?loc:location -> exp -> exp -> exp
+
   (** Replace some subexpression by another (== equality) *)
   val replace : whole:exp -> part:exp -> repl:exp -> exp
 

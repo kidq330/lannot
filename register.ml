@@ -101,7 +101,7 @@ let run () =
   | e -> Options.fatal "unexpected exception: %s" (Printexc.to_string e)
 
 let run () =
-  if Options.AnnotatorsHelp.get () then
+  if Options.ListAnnotators.get () then
   begin
     Annotators.print_help Format.std_formatter;
     exit 0;

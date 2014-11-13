@@ -19,7 +19,7 @@ Once Frama-C is installed, compile and install GenLabels:
     make
     make install
 
-The former command may need to be run as root (or sudo) depending on your
+The second command may need to be run as root (or sudo) depending on your
 Frama-C installation.
 
 Usage
@@ -30,7 +30,7 @@ Usage
 where CRITERIA is a comma-separated list of criteria. It outputs a new
 annotated file named `file_labels.c`, with labels for each selected criterion.
 
-Implemented criteria are CC, MCC, WM, IDP, F and D.
+Implemented criteria are CC, MCC, n-CC, WM, IDP, FC, DC, GACC and GICC:
 
 ### CC (Conditition Coverage)
 
@@ -157,13 +157,48 @@ becomes:
       ...
     }
 
+## GACC (General Active Clause Coverage) [Ammann & Offut, p109]
+
+Weak MCDC, requires two labels by atomic condition in every decision.
+
+The following branch:
+
+    if (a && || c) ...
+
+becomes:
+
+    pc_label(a && ((! (b || c) && c) || ((b || c) && ! c)),1,"GACC");
+    pc_label(! a && ((! (b || c) && c) || ((b || c) && ! c)),2,"GACC");
+    pc_label(b && ((! (a || c) && c) || ((a || c) && ! c)),3,"GACC");
+    pc_label(! b && ((! (a || c) && c) || ((a || c) && ! c)),4,"GACC");
+    pc_label(c && ! (a && b),5,"GACC");
+    pc_label(! c && ! (a && b),6,"GACC");
+    if (a && || c) ...
+
+Each label includes two parts:
+  - the atomic condition or its negation;
+  - the independence condition (inequality of positive and negative
+    Shannon's cofactors w.r.t. to the atom).
+
+Note that the Boolean inequality of the independence condition `F⁺ ≠ F⁻` is
+encoded as `(F⁺&&!F⁻) || (!F⁺&&F⁻)` to allow for more simplifications with
+`-lannot-simplify`.
+
+Also supports `-lannot-allbool` in addition to `-lannot-simplify`.
+
+## GICC (General Inactive Clause Coverage) [Ammann & Offut, p112]
+
+Requires four labels by atomic condition.
+
 Authors
 -------
 
-Omar Chebaro
-Mickaël Delahaye
-Nikolai Kosmatov
-Sébastien Bardin
+- Omar Chebaro
+- Mickaël Delahaye
+
+Also many thanks to the rest of LTest's team:
+- Nikolai Kosmatov
+- Sébastien Bardin
 
 License
 -------
