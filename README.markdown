@@ -177,10 +177,10 @@ becomes:
 
 Each label includes two parts:
   - the atomic condition or its negation;
-  - the independence condition (inequality of positive and negative
+  - the activity condition (inequality of positive and negative
     Shannon's cofactors w.r.t. to the atom).
 
-Note that the Boolean inequality of the independence condition `F⁺ ≠ F⁻` is
+Note that the Boolean inequality of the activity condition `F⁺ ≠ F⁻` is
 encoded as `(F⁺&&!F⁻) || (!F⁺&&F⁻)` to allow for more simplifications with
 `-lannot-simplify`.
 
@@ -189,6 +189,46 @@ Also supports `-lannot-allbool` in addition to `-lannot-simplify`.
 ## GICC (General Inactive Clause Coverage) [Ammann & Offut, p112]
 
 Requires four labels by atomic condition.
+
+The following branch:
+
+    if (a && || c) ...
+
+becomes:
+
+    int __retres;
+    pc_label((a && ((! (b || c) || (b || c)) && (! (b || c) || (b || c)))) &&
+      ((a && b) || c),1,"GICC");
+    pc_label((a && ((! (b || c) || (b || c)) && (! (b || c) || (b || c)))) &&
+      ! ((a && b) || c),2,"GICC");
+    pc_label((! a && ((! (b || c) || (b || c)) && (! (b || c) || (b || c)))) &&
+      ((a && b) || c),3,"GICC");
+    pc_label((! a && ((! (b || c) || (b || c)) && (! (b || c) || (b || c)))) &&
+      ! ((a && b) || c),4,"GICC");
+    pc_label((b && ((! (a || c) || (a || c)) && (! (a || c) || (a || c)))) &&
+      ((a && b) || c),5,"GICC");
+    pc_label((b && ((! (a || c) || (a || c)) && (! (a || c) || (a || c)))) &&
+      ! ((a && b) || c),6,"GICC");
+    pc_label((! b && ((! (a || c) || (a || c)) && (! (a || c) || (a || c)))) &&
+      ((a && b) || c),7,"GICC");
+    pc_label((! b && ((! (a || c) || (a || c)) && (! (a || c) || (a || c)))) &&
+      ! ((a && b) || c),8,"GICC");
+    pc_label(c && ((a && b) || c),9,"GICC");
+    pc_label(c && ! ((a && b) || c),10,"GICC");
+    pc_label(! c && ((a && b) || c),11,"GICC");
+    pc_label(! c && ! ((a && b) || c),12,"GICC");
+    if (a && || c) ...
+
+Each label includes two parts:
+  - the atomic condition or its negation;
+  - the inactivity condition (equality of positive and negative
+    Shannon's cofactors w.r.t. to the atom).
+
+Note that the Boolean inequality of the inactivity condition `F⁺ = F⁻` is
+encoded as `(F⁺||!F⁻) && (F⁻||!F⁺)` to allow for more simplifications with
+`-lannot-simplify`.
+
+Also supports `-lannot-allbool` in addition to `-lannot-simplify`.
 
 Authors
 -------
