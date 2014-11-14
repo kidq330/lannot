@@ -24,11 +24,12 @@ let store_label_data out annotations =
   (* TODO do that in its own module, ultimately shared with the other LTest-tools *)
   (* TODO (later) do something better than csv *)
   let formatter = Format.formatter_of_out_channel out in
-  Format.fprintf formatter "# id, status, tags, origin, current@.";
-  let print_one (id, tags, _cond, origin_loc) =
+  Format.fprintf formatter "# id, status, tags, origin, current, verdict emitter@.";
+  let print_one (id, tags, cond, origin_loc) =
     let origin_file = (fst origin_loc).Lexing.pos_fname in
     let origin_line = (fst origin_loc).Lexing.pos_lnum in
-    Format.fprintf formatter "%d, unknown, %s, %s:%d,@." id tags origin_file origin_line
+    let verdict = if Cil.isZero cond then "uncoverable" else "unknown" in
+    Format.fprintf formatter "%d,%s,%s,%s:%d,,lannot@." id verdict tags origin_file origin_line
   in
   List.iter print_one annotations;
   Format.pp_print_flush formatter ()
