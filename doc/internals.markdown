@@ -1,0 +1,63 @@
+Internals
+=========
+
+Core modules
+------------
+
+### `Annotators`
+specifies what is an annotator and the mechanism to register new annotators.
+
+It provides the `make_label` function to annotators.
+The function builds the label statements and calls simplify if demanded.
+
+TODO one day remove the actual annotation from the annotators to be done once
+as single pass by Annotators.
+
+### `Logical`
+implements the Boolean expression annotators: DC, CC, MCC, NCC, GACC and GICC
+
+### `Partition`
+implements the input partition domain (IPD) annotator.
+
+### `Simplify`
+contains the simplification passes (or pass for now).
+
+Implemented: use Bes to simplify the purely Boolean part of expression, works
+pretty well, but its mainly minimizes the DNF. Does not seem optimal for DSE?
+
+### `Instru`
+used to contain almost everything. But now only the WM annotator is in there.
+Still a lot of legacy code to be remove.
+And one day to be remove.
+
+TODO cleanup and rename
+
+### `Utils`
+some utilities but lots of legacy code.
+
+TODO cleanup
+
+### `Ast_const`
+utilities to make AST elements, extend and replace somewhat Cil in this role
+
+Frama-C's classics
+------------------
+
+### `Options`
+defines the plug-in's command line options.
+
+### `Register`
+implements and registers the plug-in's main.
+Too much code in there... in particular the writing of .labels.
+
+TODO refactor to other modules
+TODO unified management of .labels data between LTest's tools
+
+
+External
+--------
+
+Bes: a Boolean expression simplifier, old with lots of unused variables but
+hey it does work pretty well.
+Note that it's really too much for our use, something simpler like BDDs
+(RO but not minimized) may be more indicated.

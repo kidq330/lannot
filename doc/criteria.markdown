@@ -108,9 +108,10 @@ if (a && b || c) ...
 The criterion also supports the `-lannot-allbool` flag.
 
 
-### GACC (General Active Clause Coverage) [Ammann & Offut, p109]
+### GACC (General Active Clause Coverage)
 
 Weak MCDC, requires two labels by atomic condition in every decision.
+See [Ammann & Offut, p109].
 
 The following branch:
 
@@ -141,9 +142,10 @@ encoded as `(F⁺&&!F⁻) || (!F⁺&&F⁻)` to allow for more simplifications wi
 
 Also supports `-lannot-allbool` in addition to `-lannot-simplify`.
 
-### GICC (General Inactive Clause Coverage) [Ammann & Offut, p112]
+### GICC (General Inactive Clause Coverage)
 
 Requires four labels by atomic condition.
+See [Ammann & Offut, p112].
 
 The following branch:
 
