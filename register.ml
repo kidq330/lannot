@@ -28,6 +28,8 @@ let store_label_data out annotations =
   let print_one (id, tags, cond, origin_loc) =
     let origin_file = (fst origin_loc).Lexing.pos_fname in
     let origin_line = (fst origin_loc).Lexing.pos_lnum in
+    (* let us note obviously uncoverable labels as uncoverable
+       (should only work when -lannot-simplify is on) *)
     let verdict = if Cil.isZero cond then "uncoverable" else "unknown" in
     Format.fprintf formatter "%d,%s,%s,%s:%d,,lannot@." id verdict tags origin_file origin_line
   in
@@ -48,12 +50,8 @@ let compute_outfile opt files =
   else
     opt;;
 
-let annotate ann_names =
-  let base_project = Project.current () in
-  let prj_name = (Project.get_name base_project) ^ "_labels" in
-  let prj = Project.create_by_copy prj_name in
-  Project.set_current prj;
-  Options.debug "start project %s" prj_name;
+let annotate_on_project ann_names =
+  Kernel.LogicalOperators.on (); (* invalidate the Ast if any *)
 
   let annotations = ref [] in
   let collect ann = annotations := ann :: !annotations in
@@ -75,9 +73,14 @@ let annotate ann_names =
   let out = open_out data_filename in
   store_label_data out annotations;
   close_out out;
-  Options.feedback "finished";
-  Project.set_current base_project
-  ;;
+  Options.feedback "finished"
+
+let annotate ann_names =
+  let base_project = Project.current () in
+  let prj_name = (Project.get_name base_project) ^ "_labels" in
+  let prj = Project.create_by_copy prj_name in
+  Options.debug "start project %s" prj_name;
+  Project.on prj annotate_on_project ann_names
 
 let setupMutatorOptions () =
   let f mutname =
@@ -95,7 +98,7 @@ let run () =
     annotate (Datatype.String.Set.elements (Options.Annotators.get ()))
   with
   | Globals.No_such_entry_point _ ->
-      Options.abort "`-main` parameter missing"
+    Options.abort "`-main` parameter missing"
   | Dynamic.Unbound_value(s) -> Options.fatal "%s unbound" s
   | Dynamic.Incompatible_type(s) -> Options.fatal "%s incompatible" s
   | Failure s -> Options.fatal "unexpected failure: %s" s
@@ -103,16 +106,13 @@ let run () =
 
 let run () =
   if Options.ListAnnotators.get () then
-  begin
-    Annotators.print_help Format.std_formatter;
-    exit 0;
-  end
+    begin
+      Annotators.print_help Format.std_formatter;
+      exit 0;
+    end
   else if not (Options.Annotators.is_empty ()) then
-    let deps = [Ast.self] in
-    let f, _self = State_builder.apply_once "GENLABELS" deps run in
-      Kernel.LogicalOperators.on ();
-      f ();
-      Kernel.LogicalOperators.off ()
+    run ();
+  Kernel.LogicalOperators.off ()
 
 let () =
   Db.Main.extend run

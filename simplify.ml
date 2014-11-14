@@ -124,25 +124,25 @@ let propagate_nots (formula : formula) : formula2 =
   res
 
 let rec to_dnf_aux n t =
-    match t with
-    | `TAnd (a, b) ->
-      let a = to_dnf_aux n a in
-      let b = to_dnf_aux n b in
-      let res = dnf_and n a b in
-      Options.debug6 ~level:(debug_level+1) "@[%a@] . @[%a@] = @[%a@]"
-        Bes.pp_dnf_expression a Bes.pp_dnf_expression b Bes.pp_dnf_expression res;
-      res
-    | `TOr (a, b) ->
-      let a = to_dnf_aux n a in
-      let b = to_dnf_aux n b in
-      let res = dnf_or n a b in
-      Options.debug6 ~level:(debug_level+1) "@[%a@] + @[%a@] = @[%a@]"
-        Bes.pp_dnf_expression a Bes.pp_dnf_expression b Bes.pp_dnf_expression res;
-      res
-    | `TAtomPos id -> dnf_var n id `True
-    | `TAtomNeg id -> dnf_var n id `False
-    | `TTrue -> dnf_true n
-    | `TFalse -> dnf_false n
+  match t with
+  | `TAnd (a, b) ->
+    let a = to_dnf_aux n a in
+    let b = to_dnf_aux n b in
+    let res = dnf_and n a b in
+    Options.debug6 ~level:(debug_level+1) "@[%a@] . @[%a@] = @[%a@]"
+      Bes.pp_dnf_expression a Bes.pp_dnf_expression b Bes.pp_dnf_expression res;
+    res
+  | `TOr (a, b) ->
+    let a = to_dnf_aux n a in
+    let b = to_dnf_aux n b in
+    let res = dnf_or n a b in
+    Options.debug6 ~level:(debug_level+1) "@[%a@] + @[%a@] = @[%a@]"
+      Bes.pp_dnf_expression a Bes.pp_dnf_expression b Bes.pp_dnf_expression res;
+    res
+  | `TAtomPos id -> dnf_var n id `True
+  | `TAtomNeg id -> dnf_var n id `False
+  | `TTrue -> dnf_true n
+  | `TFalse -> dnf_false n
 
 let to_dnf n (t : formula) =
   let res = to_dnf_aux n (propagate_nots t) in

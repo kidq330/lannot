@@ -8,3 +8,4 @@
 .*.swp
 .depend
 *_DEP
+.merlin

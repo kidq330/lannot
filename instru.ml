@@ -73,87 +73,87 @@ let makeLabel cond loc ltype =
 *)
 
 module CC = Annotators.Register (struct
-  let name = "CC_OLD"
-  let help = "Condition Coverage"
+    let name = "CC_OLD"
+    let help = "Condition Coverage"
 
-  let rec genLabelPerExp mk_label exp loc =
-    match exp.enode with
-    | BinOp(LAnd, e1, e2, _) ->
+    let rec genLabelPerExp mk_label exp loc =
+      match exp.enode with
+      | BinOp(LAnd, e1, e2, _) ->
         List.append (genLabelPerExp mk_label e1 loc) (genLabelPerExp mk_label e2 loc)
 
-    | BinOp(LOr, e1, e2, _) ->
+      | BinOp(LOr, e1, e2, _) ->
         List.append (genLabelPerExp mk_label e1 loc) (genLabelPerExp mk_label e2 loc)
 
-    | BinOp(Lt, e1, e2, t) ->
+      | BinOp(Lt, e1, e2, t) ->
         let nonExp = Ast_const.Exp.mk(BinOp(Ge, e1, e2, t)) in
-          [mk_label exp loc; mk_label nonExp loc]
+        [mk_label exp loc; mk_label nonExp loc]
 
-    | BinOp(Gt, e1, e2, t) ->
+      | BinOp(Gt, e1, e2, t) ->
         let nonExp = Ast_const.Exp.mk(BinOp(Le, e1, e2, t)) in
-	  [mk_label exp loc; mk_label nonExp loc]
+        [mk_label exp loc; mk_label nonExp loc]
 
-    | BinOp(Le, e1, e2, t) ->
+      | BinOp(Le, e1, e2, t) ->
         let nonExp = Ast_const.Exp.mk(BinOp(Gt, e1, e2, t)) in
-	  [mk_label exp loc; mk_label nonExp loc]
+        [mk_label exp loc; mk_label nonExp loc]
 
 
-    | BinOp(Ge, e1, e2, t) ->
+      | BinOp(Ge, e1, e2, t) ->
         let nonExp = Ast_const.Exp.mk(BinOp(Lt, e1, e2, t)) in
-	  [mk_label exp loc; mk_label nonExp loc]
+        [mk_label exp loc; mk_label nonExp loc]
 
-    | BinOp(Eq, e1, e2, t) ->
+      | BinOp(Eq, e1, e2, t) ->
         let nonExp = Ast_const.Exp.mk(BinOp(Ne, e1, e2, t)) in
-	  [mk_label exp loc; mk_label nonExp loc]
+        [mk_label exp loc; mk_label nonExp loc]
 
-    | BinOp(Ne, e1, e2, t) ->
+      | BinOp(Ne, e1, e2, t) ->
         let nonExp = Ast_const.Exp.mk(BinOp(Eq, e1, e2, t)) in
-	  [mk_label exp loc; mk_label nonExp loc]
+        [mk_label exp loc; mk_label nonExp loc]
 
-    | BinOp(_, _e1, _e2, _) ->
+      | BinOp(_, _e1, _e2, _) ->
         let nonExp = Ast_const.Exp.mk(UnOp(LNot, exp, intType)) in
-	  [mk_label exp loc; mk_label nonExp loc]
+        [mk_label exp loc; mk_label nonExp loc]
 
-    | Lval(_lv) ->
+      | Lval(_lv) ->
         let nonExp = Ast_const.Exp.mk(UnOp(LNot, exp, intType)) in
-	  [mk_label exp loc; mk_label nonExp loc]
+        [mk_label exp loc; mk_label nonExp loc]
 
-    | UnOp(LNot, e1, _) ->
+      | UnOp(LNot, e1, _) ->
         genLabelPerExp mk_label e1 loc
 
-    | _ -> []
+      | _ -> []
 
 
-class genLabelsVisitor mk_label = object(_self)
-  inherit Visitor.frama_c_inplace
+    class genLabelsVisitor mk_label = object(_self)
+      inherit Visitor.frama_c_inplace
 
-  method! vfunc dec =
-    if Annotators.shouldInstrument dec.svar then DoChildren else SkipChildren
+      method! vfunc dec =
+        if Annotators.shouldInstrument dec.svar then DoChildren else SkipChildren
 
-  method! vstmt_aux stmt =
-    let genLabels s =
-      match s.skind with
+      method! vstmt_aux stmt =
+        let genLabels s =
+          match s.skind with
 
-        | If(e, _, _, _) ->
+          | If(e, _, _, _) ->
             let loc = Utils.get_stmt_loc s in
             let finalList = List.append  (genLabelPerExp mk_label e loc) ([s]) in
             let b2 = mkBlock finalList in
             let i = mkStmt (Block(b2)) in
-              i
+            i
 
-        | _ -> s
-    in
-      match stmt.skind with
+          | _ -> s
+        in
+        match stmt.skind with
         | If _ ->
-            ChangeDoChildrenPost (stmt, genLabels)
+          ChangeDoChildrenPost (stmt, genLabels)
         | _ -> DoChildren
-end
+    end
 
-let apply mk_label ast =
-  Visitor.visitFramacFileSameGlobals
-    (new genLabelsVisitor mk_label :> Visitor.frama_c_inplace)
-    ast
+    let apply mk_label ast =
+      Visitor.visitFramacFileSameGlobals
+        (new genLabelsVisitor mk_label :> Visitor.frama_c_inplace)
+        ast
 
-end)
+  end)
 
 (* ******************************************************* *)
 (* ******************************************************* *)
@@ -167,75 +167,75 @@ let rec pow(n, x) =
 let rec getConditionsNumber exp =
   begin
     match exp.enode with
-      | BinOp(LAnd, e1, e2, _) ->
-          (getConditionsNumber e1) + (getConditionsNumber e2)
-      | BinOp(LOr, e1, e2, _) ->
-          (getConditionsNumber e1) + (getConditionsNumber e2)
-      | BinOp(_, _e1, _e2, _) -> 1
-	  
-      | Lval(_lv) -> 1
-	  
-      | UnOp(LNot, e1, _) -> getConditionsNumber e1
-	  
-      | _ -> 0
+    | BinOp(LAnd, e1, e2, _) ->
+      (getConditionsNumber e1) + (getConditionsNumber e2)
+    | BinOp(LOr, e1, e2, _) ->
+      (getConditionsNumber e1) + (getConditionsNumber e2)
+    | BinOp(_, _e1, _e2, _) -> 1
+
+    | Lval(_lv) -> 1
+
+    | UnOp(LNot, e1, _) -> getConditionsNumber e1
+
+    | _ -> 0
   end
 
 module MCC = Annotators.Register (struct
 
-  let name = "MCC_OLD"
-  let help = "Multiple Condition Coverage"
+    let name = "MCC_OLD"
+    let help = "Multiple Condition Coverage"
 
-  let generateStatementFromConditionsList mk_label conds loc =
-    let rec mergeConds condsList =
-      match condsList with
-      | [] -> assert false
-      | a::[] -> a
-      | a::b::tail->
+    let generateStatementFromConditionsList mk_label conds loc =
+      let rec mergeConds condsList =
+        match condsList with
+        | [] -> assert false
+        | a::[] -> a
+        | a::b::tail->
           let newExp = Ast_const.Exp.mk(BinOp(LAnd, a, b, intType)) in
-            mergeConds (List.append [newExp] tail)
-    in
+          mergeConds (List.append [newExp] tail)
+      in
       match conds with
       | [] ->
-            let stmt = mk_label (Cil.one Cil_datatype.Location.unknown) loc in
-              stmt
+        let stmt = mk_label (Cil.one Cil_datatype.Location.unknown) loc in
+        stmt
       | _ ->
-          let newCond = mergeConds conds in
-          let stmt = mk_label newCond loc in
-	  stmt
+        let newCond = mergeConds conds in
+        let stmt = mk_label newCond loc in
+        stmt
 
-  let getNegativeCond exp =
-    match exp.enode with
-    | BinOp(Lt, e1, e2, t) ->
+    let getNegativeCond exp =
+      match exp.enode with
+      | BinOp(Lt, e1, e2, t) ->
         Ast_const.Exp.mk(BinOp(Ge, e1, e2, t))
 
-    | BinOp(Gt, e1, e2, t) ->
+      | BinOp(Gt, e1, e2, t) ->
         Ast_const.Exp.mk(BinOp(Le, e1, e2, t))
 
-    | BinOp(Le, e1, e2, t) ->
+      | BinOp(Le, e1, e2, t) ->
         Ast_const.Exp.mk(BinOp(Gt, e1, e2, t))
 
-    | BinOp(Ge, e1, e2, t) ->
+      | BinOp(Ge, e1, e2, t) ->
         Ast_const.Exp.mk(BinOp(Lt, e1, e2, t))
 
-    | BinOp(Eq, e1, e2, t) ->
+      | BinOp(Eq, e1, e2, t) ->
         Ast_const.Exp.mk(BinOp(Ne, e1, e2, t))
 
-    | BinOp(Ne, e1, e2, t) ->
+      | BinOp(Ne, e1, e2, t) ->
         Ast_const.Exp.mk(BinOp(Eq, e1, e2, t))
 
-    | Lval(_lv) ->
+      | Lval(_lv) ->
         Ast_const.Exp.mk(UnOp(LNot, exp, intType))
 
-    | UnOp(LNot, e1, _) -> e1
+      | UnOp(LNot, e1, _) -> e1
 
-    | _ -> Ast_const.Exp.mk(UnOp(LNot, exp, Cil.intType))
+      | _ -> Ast_const.Exp.mk(UnOp(LNot, exp, Cil.intType))
 
-  let rec genMultiLabel mk_label allConds conditionsNb currentNb newConds cumul loc =
-    match allConds with
-    | [] ->
+    let rec genMultiLabel mk_label allConds conditionsNb currentNb newConds cumul loc =
+      match allConds with
+      | [] ->
         generateStatementFromConditionsList mk_label newConds loc
 
-    | a :: tail ->
+      | a :: tail ->
         (* let ex = pow(2, conditionsNb) in *)
         (* Format.printf "+++++5-3- %d@." ex; *)
         if (currentNb - cumul) / ( pow(2, conditionsNb)) = 1 then
@@ -243,449 +243,449 @@ module MCC = Annotators.Register (struct
             let curCond = a in
             let newCumul = cumul + ( pow(2, conditionsNb) ) in
             let newNewConds = List.append newConds [curCond] in
-              genMultiLabel mk_label tail (conditionsNb-1) currentNb newNewConds newCumul loc
+            genMultiLabel mk_label tail (conditionsNb-1) currentNb newNewConds newCumul loc
           end
         else
           begin
             let curCond = getNegativeCond a in
             let newCumul = cumul in
             let newNewConds = List.append newConds [curCond] in
-              genMultiLabel mk_label tail (conditionsNb-1) currentNb newNewConds newCumul loc
+            genMultiLabel mk_label tail (conditionsNb-1) currentNb newNewConds newCumul loc
           end
 
-  let rec genMultiLabels mk_label allConds conditionsNb currentNb labelStmts loc =
-    let casesNb = pow(2, conditionsNb) in
-    if currentNb = casesNb then
-      begin
-        labelStmts
-      end
-    else
-      begin
-        let curStmt = genMultiLabel mk_label allConds (conditionsNb-1) currentNb [] 0 loc in
+    let rec genMultiLabels mk_label allConds conditionsNb currentNb labelStmts loc =
+      let casesNb = pow(2, conditionsNb) in
+      if currentNb = casesNb then
+        begin
+          labelStmts
+        end
+      else
+        begin
+          let curStmt = genMultiLabel mk_label allConds (conditionsNb-1) currentNb [] 0 loc in
           let newStmts = List.append labelStmts [curStmt] in
-            genMultiLabels mk_label allConds conditionsNb (currentNb+1) newStmts loc
-      end
+          genMultiLabels mk_label allConds conditionsNb (currentNb+1) newStmts loc
+        end
 
 
-  let rec getUnitaryConditionsInExp exp =
-    match exp.enode with
-    | BinOp(LAnd, e1, e2, _) ->
+    let rec getUnitaryConditionsInExp exp =
+      match exp.enode with
+      | BinOp(LAnd, e1, e2, _) ->
         List.append (getUnitaryConditionsInExp e1) (getUnitaryConditionsInExp e2)
-    | BinOp(LOr, e1, e2, _) ->
+      | BinOp(LOr, e1, e2, _) ->
         List.append (getUnitaryConditionsInExp e1) (getUnitaryConditionsInExp e2)
-    | BinOp(_, _e1, _e2, _) -> [exp]
+      | BinOp(_, _e1, _e2, _) -> [exp]
 
-    | Lval(_lv) -> [exp]
+      | Lval(_lv) -> [exp]
 
-    | UnOp(LNot, e1, _) -> getUnitaryConditionsInExp e1
+      | UnOp(LNot, e1, _) -> getUnitaryConditionsInExp e1
 
-    | _ -> []
+      | _ -> []
 
 
-  class genMultiLabelsVisitor mk_label = object(_self)
-    inherit Visitor.frama_c_inplace
+    class genMultiLabelsVisitor mk_label = object(_self)
+      inherit Visitor.frama_c_inplace
 
-    method! vfunc dec =
-      if Annotators.shouldInstrument dec.svar then DoChildren else SkipChildren
+      method! vfunc dec =
+        if Annotators.shouldInstrument dec.svar then DoChildren else SkipChildren
 
-    method! vstmt_aux stmt =
-      let genLabels s =
-        match s.skind with
-        | If(e, _, _, _) ->
-          let loc = Utils.get_stmt_loc s in
-          let nbCond = getConditionsNumber e in
-          let allConds = getUnitaryConditionsInExp e in
-          let finalList = List.append (genMultiLabels mk_label allConds nbCond 0 [] loc) ([s]) in
-          let b2 = mkBlock finalList in
-          let i = mkStmt (Block(b2)) in
+      method! vstmt_aux stmt =
+        let genLabels s =
+          match s.skind with
+          | If(e, _, _, _) ->
+            let loc = Utils.get_stmt_loc s in
+            let nbCond = getConditionsNumber e in
+            let allConds = getUnitaryConditionsInExp e in
+            let finalList = List.append (genMultiLabels mk_label allConds nbCond 0 [] loc) ([s]) in
+            let b2 = mkBlock finalList in
+            let i = mkStmt (Block(b2)) in
             i
-        | _ -> s
-      in
+          | _ -> s
+        in
         match stmt.skind with
         | If _ ->
           ChangeDoChildrenPost (stmt, genLabels)
         | _ -> DoChildren
-  end
+    end
 
-  let apply mk_label ast =
-    Visitor.visitFramacFileSameGlobals
-      (new genMultiLabelsVisitor mk_label :> Visitor.frama_c_inplace)
-      ast
-end)
+    let apply mk_label ast =
+      Visitor.visitFramacFileSameGlobals
+        (new genMultiLabelsVisitor mk_label :> Visitor.frama_c_inplace)
+        ast
+  end)
 
 (*****************************************)
 
 
 (***  let loc = Cil_datatype.Location.unknown in  
-Locations.loc_of_varinfo y
+      Locations.loc_of_varinfo y
 *)
 let getLocFromFunction f = 
   match f.sbody.bstmts with
-    | a::_ -> Cil_datatype.Stmt.loc a
-    | [] -> Cil_datatype.Location.unknown
+  | a::_ -> Cil_datatype.Stmt.loc a
+  | [] -> Cil_datatype.Location.unknown
 
 module Partition = Annotators.Register (struct
 
-  let name = "IDP_OLD"
-  let help = "Input Domain Partition"
+    let name = "IDP_OLD"
+    let help = "Input Domain Partition"
 
-  let makeLabelsFromInput mk_label myParam loc =
-    match myParam.vtype with 
-    | TInt _
-    | TFloat _ ->
-	let formalExp = Ast_const.Exp.mk (Lval (var myParam)) in
-	let zeroExp = Ast_const.Exp.mk (Const(CInt64(Integer.of_int(0),IInt,None))) in
-	let exp1 = Ast_const.Exp.mk (BinOp(Lt, formalExp, zeroExp, intType)) in
-	let exp2 = Ast_const.Exp.mk (BinOp(Gt, formalExp, zeroExp, intType)) in
-	let exp3 = Ast_const.Exp.mk (BinOp(Eq, formalExp, zeroExp, intType)) in
-	let stmt1 = mk_label exp1 loc in
-	let stmt2 = mk_label exp2 loc in
-	let stmt3 = mk_label exp3 loc in
-	  [stmt1; stmt2; stmt3]
-    | TPtr _ ->
-	let formalExp = Ast_const.Exp.mk (Lval (var myParam)) in
-	let zeroExp = Ast_const.Exp.mk (Const(CInt64(Integer.of_int(0),IInt,None))) in
-	let exp1 = Ast_const.Exp.mk(BinOp(Eq, formalExp, zeroExp, intType)) in
-	let exp2 = Ast_const.Exp.mk(BinOp(Ne, formalExp, zeroExp, intType)) in
-	let stmt1 = mk_label exp1 loc in
-	let stmt2 = mk_label exp2 loc in
-	  [stmt1; stmt2]
-    | _ ->  []
+    let makeLabelsFromInput mk_label myParam loc =
+      match myParam.vtype with 
+      | TInt _
+      | TFloat _ ->
+        let formalExp = Ast_const.Exp.mk (Lval (var myParam)) in
+        let zeroExp = Ast_const.Exp.mk (Const(CInt64(Integer.of_int(0),IInt,None))) in
+        let exp1 = Ast_const.Exp.mk (BinOp(Lt, formalExp, zeroExp, intType)) in
+        let exp2 = Ast_const.Exp.mk (BinOp(Gt, formalExp, zeroExp, intType)) in
+        let exp3 = Ast_const.Exp.mk (BinOp(Eq, formalExp, zeroExp, intType)) in
+        let stmt1 = mk_label exp1 loc in
+        let stmt2 = mk_label exp2 loc in
+        let stmt3 = mk_label exp3 loc in
+        [stmt1; stmt2; stmt3]
+      | TPtr _ ->
+        let formalExp = Ast_const.Exp.mk (Lval (var myParam)) in
+        let zeroExp = Ast_const.Exp.mk (Const(CInt64(Integer.of_int(0),IInt,None))) in
+        let exp1 = Ast_const.Exp.mk(BinOp(Eq, formalExp, zeroExp, intType)) in
+        let exp2 = Ast_const.Exp.mk(BinOp(Ne, formalExp, zeroExp, intType)) in
+        let stmt1 = mk_label exp1 loc in
+        let stmt2 = mk_label exp2 loc in
+        [stmt1; stmt2]
+      | _ ->  []
 
-  class inputDomainVisitor mk_label = object
-    inherit Visitor.frama_c_inplace
+    class inputDomainVisitor mk_label = object
+      inherit Visitor.frama_c_inplace
 
-    method! vfunc f =
-      if Annotators.shouldInstrument f.svar then
-      begin
-	let loc = getLocFromFunction f in
-	let rec labelsFromFormals formals = 
-	  match formals with 
-	    | [] -> []
-	    | a :: tail -> 
-		List.append (makeLabelsFromInput mk_label a loc) (labelsFromFormals tail)
-	in 
-	let oldBody = mkStmt (Block(f.sbody)) in
-	let newStmts = List.append (labelsFromFormals f.sformals) [oldBody] in
-	let newBody = mkBlock newStmts in
-	  f.sbody <- newBody;
-      end;
-      SkipChildren
-  end
+      method! vfunc f =
+        if Annotators.shouldInstrument f.svar then
+          begin
+            let loc = getLocFromFunction f in
+            let rec labelsFromFormals formals = 
+              match formals with 
+              | [] -> []
+              | a :: tail -> 
+                List.append (makeLabelsFromInput mk_label a loc) (labelsFromFormals tail)
+            in 
+            let oldBody = mkStmt (Block(f.sbody)) in
+            let newStmts = List.append (labelsFromFormals f.sformals) [oldBody] in
+            let newBody = mkBlock newStmts in
+            f.sbody <- newBody;
+          end;
+        SkipChildren
+    end
 
-  let apply mk_label ast =
-    Visitor.visitFramacFileSameGlobals
-      (new inputDomainVisitor mk_label :> Visitor.frama_c_inplace)
-      ast
+    let apply mk_label ast =
+      Visitor.visitFramacFileSameGlobals
+        (new inputDomainVisitor mk_label :> Visitor.frama_c_inplace)
+        ast
 
-end)
+  end)
 
 (*****************************************)
 
 module WM = Annotators.RegisterWithExtraTags (struct
 
-  let name = "WM"
-  let help = "Weak Mutation"
+    let name = "WM"
+    let help = "Weak Mutation"
 
-  class mutationVisitor mk_label = object(_self)
-    inherit Visitor.frama_c_inplace
+    class mutationVisitor mk_label = object(_self)
+      inherit Visitor.frama_c_inplace
 
-    method! vfunc f =
-      if Annotators.shouldInstrument f.svar then DoChildren else SkipChildren
+      method! vfunc f =
+        if Annotators.shouldInstrument f.svar then DoChildren else SkipChildren
 
-  method! vstmt_aux stmt =      	  
-    let makeLabel cond loc category = mk_label ~extra:[category] cond loc in
-    let rec traitExp e loc = 
-      let labelsStmts = ref [] in
-	begin match e.enode with
-	  | BinOp(LAnd, lexp, rexp, ty) ->
-	      if !corOption = true then
-		begin
-		  let newEnode = BinOp(LOr, lexp, rexp, ty) in
-		  let newExp = {e with enode = newEnode} in
-		  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in 
-		  let labelStmt = makeLabel labelExp loc "COR" in
-		    labelsStmts := List.append !labelsStmts [labelStmt];
-		end;
-	      labelsStmts := List.append !labelsStmts (traitExp lexp loc);
-	      labelsStmts := List.append !labelsStmts (traitExp rexp loc);
-	      !labelsStmts
-	     
-		
-	  | BinOp(LOr, lexp, rexp, ty) ->
-	      if !corOption = true then
-		begin
-		  let newEnode = BinOp(LAnd, lexp, rexp, ty) in
-		  let newExp = {e with enode = newEnode} in
-		  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in 
-		  let labelStmt = makeLabel labelExp loc "COR" in
-		    labelsStmts := List.append !labelsStmts [labelStmt];
-		end;
-	      labelsStmts := List.append !labelsStmts (traitExp lexp loc);
-	      labelsStmts := List.append !labelsStmts (traitExp rexp loc);
-	      !labelsStmts
-		
-	  | BinOp(Div, lexp, rexp, ty) ->
-	      if !aorOption = true then
-		begin
-		  let newExp1 = Ast_const.Exp.mk(BinOp(Mult, lexp, rexp, ty)) in
-		  let newExp2 = Ast_const.Exp.mk(BinOp(PlusA, lexp, rexp, ty)) in
-		  let newExp3 = Ast_const.Exp.mk(BinOp(MinusA, lexp, rexp, ty)) in
-		  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
-		  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
-		  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
-		  let labelStmt1 = makeLabel labelExp1 loc "AOR" in
-		  let labelStmt2 = makeLabel labelExp2 loc "AOR" in
-		  let labelStmt3 = makeLabel labelExp3 loc "AOR" in
-		    labelsStmts := List.append !labelsStmts [labelStmt1; labelStmt2; labelStmt3];
-		end;
-	      labelsStmts := List.append !labelsStmts (traitExp lexp loc);
-	      labelsStmts := List.append !labelsStmts (traitExp rexp loc);
-	      !labelsStmts
-
-	  | BinOp(Mult, lexp, rexp, ty) ->
-	      if !aorOption = true then
-		begin
-		  let newExp1 = Ast_const.Exp.mk(BinOp(Div, lexp, rexp, ty)) in
-		  let newExp2 = Ast_const.Exp.mk(BinOp(PlusA, lexp, rexp, ty)) in
-		  let newExp3 = Ast_const.Exp.mk(BinOp(MinusA, lexp, rexp, ty)) in
-		  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
-		  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
-		  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
-		  let labelStmt1 = makeLabel labelExp1 loc "AOR" in
-		  let labelStmt2 = makeLabel labelExp2 loc "AOR" in
-		  let labelStmt3 = makeLabel labelExp3 loc "AOR" in
-		    labelsStmts := List.append !labelsStmts [labelStmt1; labelStmt2; labelStmt3];
-		end;
-	      labelsStmts := List.append !labelsStmts (traitExp lexp loc);
-	      labelsStmts := List.append !labelsStmts (traitExp rexp loc);
-	      !labelsStmts
-
-	  | BinOp(PlusA, lexp, rexp, ty) ->
-	      if !aorOption = true then
-		begin
-		  let newExp1 = Ast_const.Exp.mk(BinOp(Mult, lexp, rexp, ty)) in
-		  let newExp2 = Ast_const.Exp.mk(BinOp(Div, lexp, rexp, ty)) in
-		  let newExp3 = Ast_const.Exp.mk(BinOp(MinusA, lexp, rexp, ty)) in
-		  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
-		  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
-		  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
-		  let labelStmt1 = makeLabel labelExp1 loc "AOR" in
-		  let labelStmt2 = makeLabel labelExp2 loc "AOR" in
-		  let labelStmt3 = makeLabel labelExp3 loc "AOR" in
-		    labelsStmts := List.append !labelsStmts [labelStmt1; labelStmt2; labelStmt3];
-		end;
-	      labelsStmts := List.append !labelsStmts (traitExp lexp loc);
-	      labelsStmts := List.append !labelsStmts (traitExp rexp loc);
-	      !labelsStmts
-
-	  | BinOp(MinusA, lexp, rexp, ty) ->
-	      if !aorOption = true then
-		begin
-		  let newExp1 = Ast_const.Exp.mk(BinOp(Mult, lexp, rexp, ty)) in
-		  let newExp2 = Ast_const.Exp.mk(BinOp(Div, lexp, rexp, ty)) in
-		  let newExp3 = Ast_const.Exp.mk(BinOp(PlusA, lexp, rexp, ty)) in
-		  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
-		  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
-		  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
-		  let labelStmt1 = makeLabel labelExp1 loc "AOR" in
-		  let labelStmt2 = makeLabel labelExp2 loc "AOR" in
-		  let labelStmt3 = makeLabel labelExp3 loc "AOR" in
-		    labelsStmts := List.append !labelsStmts [labelStmt1; labelStmt2; labelStmt3];
-		end;
-	      labelsStmts := List.append !labelsStmts (traitExp lexp loc);
-	      labelsStmts := List.append !labelsStmts (traitExp rexp loc);
-	      !labelsStmts
-
-	  | BinOp(Lt, lexp, rexp, ty) ->
-	      if !rorOption = true then
-		begin
-		  let newExp1 = Ast_const.Exp.mk(BinOp(Le, lexp, rexp, ty)) in
-		  let newExp2 = Ast_const.Exp.mk(BinOp(Gt, lexp, rexp, ty)) in
-		  let newExp3 = Ast_const.Exp.mk(BinOp(Ge, lexp, rexp, ty)) in
-		  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
-		  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
-		  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
-		  let labelStmt1 = makeLabel labelExp1 loc "ROR" in
-		  let labelStmt2 = makeLabel labelExp2 loc "ROR" in
-		  let labelStmt3 = makeLabel labelExp3 loc "ROR" in
-		    labelsStmts := List.append !labelsStmts [labelStmt1; labelStmt2; labelStmt3];
-		end;
-	      labelsStmts := List.append !labelsStmts (traitExp lexp loc);
-	      labelsStmts := List.append !labelsStmts (traitExp rexp loc);
-	      !labelsStmts
-
-	  | BinOp(Gt, lexp, rexp, ty) ->
-	      if !rorOption = true then
-		begin
-		  let newExp1 = Ast_const.Exp.mk(BinOp(Lt, lexp, rexp, ty)) in
-		  let newExp2 = Ast_const.Exp.mk(BinOp(Le, lexp, rexp, ty)) in
-		  let newExp3 = Ast_const.Exp.mk(BinOp(Ge, lexp, rexp, ty)) in
-		  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
-		  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
-		  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
-		  let labelStmt1 = makeLabel labelExp1 loc "ROR" in
-		  let labelStmt2 = makeLabel labelExp2 loc "ROR" in
-		  let labelStmt3 = makeLabel labelExp3 loc "ROR" in
-		    labelsStmts := List.append !labelsStmts [labelStmt1; labelStmt2; labelStmt3];
-		end;
-	      labelsStmts := List.append !labelsStmts (traitExp lexp loc);
-	      labelsStmts := List.append !labelsStmts (traitExp rexp loc);
-	      !labelsStmts
-
-	  | BinOp(Le, lexp, rexp, ty) ->
-	      if !rorOption = true then
-		begin
-		  let newExp1 = Ast_const.Exp.mk(BinOp(Lt, lexp, rexp, ty)) in
-		  let newExp2 = Ast_const.Exp.mk(BinOp(Gt, lexp, rexp, ty)) in
-		  let newExp3 = Ast_const.Exp.mk(BinOp(Ge, lexp, rexp, ty)) in
-		  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
-		  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
-		  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
-		  let labelStmt1 = makeLabel labelExp1 loc "ROR" in
-		  let labelStmt2 = makeLabel labelExp2 loc "ROR" in
-		  let labelStmt3 = makeLabel labelExp3 loc "ROR" in
-		    labelsStmts := List.append !labelsStmts [labelStmt1; labelStmt2; labelStmt3];
-		end;
-	      labelsStmts := List.append !labelsStmts (traitExp lexp loc);
-	      labelsStmts := List.append !labelsStmts (traitExp rexp loc);
-	      !labelsStmts
-
-	  | BinOp(Ge, lexp, rexp, ty) ->
-	      if !rorOption = true then
-		begin
-		  let newExp1 = Ast_const.Exp.mk(BinOp(Lt, lexp, rexp, ty)) in
-		  let newExp2 = Ast_const.Exp.mk(BinOp(Le, lexp, rexp, ty)) in
-		  let newExp3 = Ast_const.Exp.mk(BinOp(Gt, lexp, rexp, ty)) in
-		  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
-		  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
-		  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
-		  let labelStmt1 = makeLabel labelExp1 loc "ROR" in
-		  let labelStmt2 = makeLabel labelExp2 loc "ROR" in
-		  let labelStmt3 = makeLabel labelExp3 loc "ROR" in
-		    labelsStmts := List.append !labelsStmts [labelStmt1; labelStmt2; labelStmt3];
-		end;
-	      labelsStmts := List.append !labelsStmts (traitExp lexp loc);
-	      labelsStmts := List.append !labelsStmts (traitExp rexp loc);
-	      !labelsStmts
-
-	  | BinOp(Eq, lexp, rexp, ty) ->
-	      if !rorOption = true then
-		begin
-		  let newExp = Ast_const.Exp.mk(BinOp(Ne, lexp, rexp, ty)) in
-		  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in  
-		  let labelStmt = makeLabel labelExp loc "ROR" in
-		    labelsStmts := List.append !labelsStmts [labelStmt];
-		end;
-	      labelsStmts := List.append !labelsStmts (traitExp lexp loc);
-	      labelsStmts := List.append !labelsStmts (traitExp rexp loc);
-	      !labelsStmts
-
-	  | BinOp(Ne, lexp, rexp, ty) ->
-	      if !rorOption = true then
-		begin
-		  let newExp = Ast_const.Exp.mk(BinOp(Eq, lexp, rexp, ty)) in
-		  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in  
-		  let labelStmt = makeLabel labelExp loc "ROR" in
-		    labelsStmts := List.append !labelsStmts [labelStmt];
-		end;
-	      labelsStmts := List.append !labelsStmts (traitExp lexp loc);
-	      labelsStmts := List.append !labelsStmts (traitExp rexp loc);
-	      !labelsStmts
-
-	  | BinOp(Shiftlt, lexp, rexp, ty) ->
-	      if !aorOption = true then
-		begin
-		  let newExp = Ast_const.Exp.mk(BinOp(Shiftrt, lexp, rexp, ty)) in
-		  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in  
-		  let labelStmt = makeLabel labelExp loc "AOR" in
-		    labelsStmts := List.append !labelsStmts [labelStmt];
-		end;
-	      labelsStmts := List.append !labelsStmts (traitExp lexp loc);
-	      labelsStmts := List.append !labelsStmts (traitExp rexp loc);
-	      !labelsStmts
-
-	  | BinOp(Shiftrt, lexp, rexp, ty) ->
-	      if !aorOption = true then
-		begin
-		  let newExp = Ast_const.Exp.mk(BinOp(Shiftlt, lexp, rexp, ty)) in
-		  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in  
-		  let labelStmt = makeLabel labelExp loc "AOR" in
-		    labelsStmts := List.append !labelsStmts [labelStmt];
-		end;
-	      labelsStmts := List.append !labelsStmts (traitExp lexp loc);
-	      labelsStmts := List.append !labelsStmts (traitExp rexp loc);
-	      !labelsStmts
+      method! vstmt_aux stmt =      	  
+        let makeLabel cond loc category = mk_label ~extra:[category] cond loc in
+        let rec traitExp e loc = 
+          let labelsStmts = ref [] in
+          begin match e.enode with
+            | BinOp(LAnd, lexp, rexp, ty) ->
+              if !corOption = true then
+                begin
+                  let newEnode = BinOp(LOr, lexp, rexp, ty) in
+                  let newExp = {e with enode = newEnode} in
+                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in 
+                  let labelStmt = makeLabel labelExp loc "COR" in
+                  labelsStmts := List.append !labelsStmts [labelStmt];
+                end;
+              labelsStmts := List.append !labelsStmts (traitExp lexp loc);
+              labelsStmts := List.append !labelsStmts (traitExp rexp loc);
+              !labelsStmts
 
 
-	  | BinOp(_op, lexp, rexp, _ty) ->
-	      labelsStmts := List.append !labelsStmts (traitExp lexp loc);
-	      labelsStmts := List.append !labelsStmts (traitExp rexp loc);
-	      !labelsStmts
-	
-	  | UnOp(Neg, exp, ty) ->
-	      if !aorOption = true then
-		begin
-		  let labelExp = Ast_const.Exp.mk(BinOp(Ne, exp, e, ty)) in  
-		  let labelStmt = makeLabel labelExp loc "AOR" in
-		    labelsStmts := List.append !labelsStmts [labelStmt];
-		end;
-	      labelsStmts := List.append !labelsStmts (traitExp exp loc);
-	      !labelsStmts
-	
-	  | UnOp(_op, exp, _ty)->
-	      traitExp exp loc
+            | BinOp(LOr, lexp, rexp, ty) ->
+              if !corOption = true then
+                begin
+                  let newEnode = BinOp(LAnd, lexp, rexp, ty) in
+                  let newExp = {e with enode = newEnode} in
+                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in 
+                  let labelStmt = makeLabel labelExp loc "COR" in
+                  labelsStmts := List.append !labelsStmts [labelStmt];
+                end;
+              labelsStmts := List.append !labelsStmts (traitExp lexp loc);
+              labelsStmts := List.append !labelsStmts (traitExp rexp loc);
+              !labelsStmts
 
-	  | Lval(_l) ->
-	    if !absOption = true then
-	      begin
-		let zeroExp = Ast_const.Exp.mk (Const(CInt64(Integer.of_int(0),IInt,None))) in
-		let labelExp = Ast_const.Exp.mk(BinOp(Lt, e, zeroExp, intType)) in
-		let labelStmt = makeLabel labelExp loc "ABS" in
-		  labelsStmts := List.append !labelsStmts [labelStmt];
-	      end;
-	      !labelsStmts
-		
-	  | _ -> []
-	end
-    in
-    let traitStmt s e loc = 
-      let labelsList = traitExp e loc in
-	match labelsList with 
-	  | [] -> s
-	  | _ ->
-	      let finalList = List.append  labelsList [s] in
-	      let b2 = mkBlock finalList in
-	      let i = mkStmt (Block(b2)) in	  
-		i
-    in
-    let genLabels s =
-      match s.skind with
-	| Instr(Set(_l, e, loc)) ->
-	    traitStmt s e loc
-		
-	| If(e, _l, _ll, loc) ->
-	    traitStmt s e loc
-	      
-	| Return(e, loc) ->
-	    begin match e with 
-	      | Some exp ->
-		  traitStmt s exp loc
-	      | _ -> s 
-	    end
-	    
-	      
-	| Switch(e, _l,_ll, loc) ->
-	    traitStmt s e loc
-	      
-      | _ -> s
-    in  
-      ChangeDoChildrenPost (stmt, genLabels)
-end
+            | BinOp(Div, lexp, rexp, ty) ->
+              if !aorOption = true then
+                begin
+                  let newExp1 = Ast_const.Exp.mk(BinOp(Mult, lexp, rexp, ty)) in
+                  let newExp2 = Ast_const.Exp.mk(BinOp(PlusA, lexp, rexp, ty)) in
+                  let newExp3 = Ast_const.Exp.mk(BinOp(MinusA, lexp, rexp, ty)) in
+                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
+                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
+                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
+                  let labelStmt1 = makeLabel labelExp1 loc "AOR" in
+                  let labelStmt2 = makeLabel labelExp2 loc "AOR" in
+                  let labelStmt3 = makeLabel labelExp3 loc "AOR" in
+                  labelsStmts := List.append !labelsStmts [labelStmt1; labelStmt2; labelStmt3];
+                end;
+              labelsStmts := List.append !labelsStmts (traitExp lexp loc);
+              labelsStmts := List.append !labelsStmts (traitExp rexp loc);
+              !labelsStmts
 
-  let apply mk_label ast =
-    Visitor.visitFramacFileSameGlobals
-      (new mutationVisitor mk_label :> Visitor.frama_c_inplace)
-      ast
-end)
+            | BinOp(Mult, lexp, rexp, ty) ->
+              if !aorOption = true then
+                begin
+                  let newExp1 = Ast_const.Exp.mk(BinOp(Div, lexp, rexp, ty)) in
+                  let newExp2 = Ast_const.Exp.mk(BinOp(PlusA, lexp, rexp, ty)) in
+                  let newExp3 = Ast_const.Exp.mk(BinOp(MinusA, lexp, rexp, ty)) in
+                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
+                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
+                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
+                  let labelStmt1 = makeLabel labelExp1 loc "AOR" in
+                  let labelStmt2 = makeLabel labelExp2 loc "AOR" in
+                  let labelStmt3 = makeLabel labelExp3 loc "AOR" in
+                  labelsStmts := List.append !labelsStmts [labelStmt1; labelStmt2; labelStmt3];
+                end;
+              labelsStmts := List.append !labelsStmts (traitExp lexp loc);
+              labelsStmts := List.append !labelsStmts (traitExp rexp loc);
+              !labelsStmts
+
+            | BinOp(PlusA, lexp, rexp, ty) ->
+              if !aorOption = true then
+                begin
+                  let newExp1 = Ast_const.Exp.mk(BinOp(Mult, lexp, rexp, ty)) in
+                  let newExp2 = Ast_const.Exp.mk(BinOp(Div, lexp, rexp, ty)) in
+                  let newExp3 = Ast_const.Exp.mk(BinOp(MinusA, lexp, rexp, ty)) in
+                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
+                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
+                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
+                  let labelStmt1 = makeLabel labelExp1 loc "AOR" in
+                  let labelStmt2 = makeLabel labelExp2 loc "AOR" in
+                  let labelStmt3 = makeLabel labelExp3 loc "AOR" in
+                  labelsStmts := List.append !labelsStmts [labelStmt1; labelStmt2; labelStmt3];
+                end;
+              labelsStmts := List.append !labelsStmts (traitExp lexp loc);
+              labelsStmts := List.append !labelsStmts (traitExp rexp loc);
+              !labelsStmts
+
+            | BinOp(MinusA, lexp, rexp, ty) ->
+              if !aorOption = true then
+                begin
+                  let newExp1 = Ast_const.Exp.mk(BinOp(Mult, lexp, rexp, ty)) in
+                  let newExp2 = Ast_const.Exp.mk(BinOp(Div, lexp, rexp, ty)) in
+                  let newExp3 = Ast_const.Exp.mk(BinOp(PlusA, lexp, rexp, ty)) in
+                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
+                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
+                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
+                  let labelStmt1 = makeLabel labelExp1 loc "AOR" in
+                  let labelStmt2 = makeLabel labelExp2 loc "AOR" in
+                  let labelStmt3 = makeLabel labelExp3 loc "AOR" in
+                  labelsStmts := List.append !labelsStmts [labelStmt1; labelStmt2; labelStmt3];
+                end;
+              labelsStmts := List.append !labelsStmts (traitExp lexp loc);
+              labelsStmts := List.append !labelsStmts (traitExp rexp loc);
+              !labelsStmts
+
+            | BinOp(Lt, lexp, rexp, ty) ->
+              if !rorOption = true then
+                begin
+                  let newExp1 = Ast_const.Exp.mk(BinOp(Le, lexp, rexp, ty)) in
+                  let newExp2 = Ast_const.Exp.mk(BinOp(Gt, lexp, rexp, ty)) in
+                  let newExp3 = Ast_const.Exp.mk(BinOp(Ge, lexp, rexp, ty)) in
+                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
+                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
+                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
+                  let labelStmt1 = makeLabel labelExp1 loc "ROR" in
+                  let labelStmt2 = makeLabel labelExp2 loc "ROR" in
+                  let labelStmt3 = makeLabel labelExp3 loc "ROR" in
+                  labelsStmts := List.append !labelsStmts [labelStmt1; labelStmt2; labelStmt3];
+                end;
+              labelsStmts := List.append !labelsStmts (traitExp lexp loc);
+              labelsStmts := List.append !labelsStmts (traitExp rexp loc);
+              !labelsStmts
+
+            | BinOp(Gt, lexp, rexp, ty) ->
+              if !rorOption = true then
+                begin
+                  let newExp1 = Ast_const.Exp.mk(BinOp(Lt, lexp, rexp, ty)) in
+                  let newExp2 = Ast_const.Exp.mk(BinOp(Le, lexp, rexp, ty)) in
+                  let newExp3 = Ast_const.Exp.mk(BinOp(Ge, lexp, rexp, ty)) in
+                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
+                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
+                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
+                  let labelStmt1 = makeLabel labelExp1 loc "ROR" in
+                  let labelStmt2 = makeLabel labelExp2 loc "ROR" in
+                  let labelStmt3 = makeLabel labelExp3 loc "ROR" in
+                  labelsStmts := List.append !labelsStmts [labelStmt1; labelStmt2; labelStmt3];
+                end;
+              labelsStmts := List.append !labelsStmts (traitExp lexp loc);
+              labelsStmts := List.append !labelsStmts (traitExp rexp loc);
+              !labelsStmts
+
+            | BinOp(Le, lexp, rexp, ty) ->
+              if !rorOption = true then
+                begin
+                  let newExp1 = Ast_const.Exp.mk(BinOp(Lt, lexp, rexp, ty)) in
+                  let newExp2 = Ast_const.Exp.mk(BinOp(Gt, lexp, rexp, ty)) in
+                  let newExp3 = Ast_const.Exp.mk(BinOp(Ge, lexp, rexp, ty)) in
+                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
+                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
+                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
+                  let labelStmt1 = makeLabel labelExp1 loc "ROR" in
+                  let labelStmt2 = makeLabel labelExp2 loc "ROR" in
+                  let labelStmt3 = makeLabel labelExp3 loc "ROR" in
+                  labelsStmts := List.append !labelsStmts [labelStmt1; labelStmt2; labelStmt3];
+                end;
+              labelsStmts := List.append !labelsStmts (traitExp lexp loc);
+              labelsStmts := List.append !labelsStmts (traitExp rexp loc);
+              !labelsStmts
+
+            | BinOp(Ge, lexp, rexp, ty) ->
+              if !rorOption = true then
+                begin
+                  let newExp1 = Ast_const.Exp.mk(BinOp(Lt, lexp, rexp, ty)) in
+                  let newExp2 = Ast_const.Exp.mk(BinOp(Le, lexp, rexp, ty)) in
+                  let newExp3 = Ast_const.Exp.mk(BinOp(Gt, lexp, rexp, ty)) in
+                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
+                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
+                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
+                  let labelStmt1 = makeLabel labelExp1 loc "ROR" in
+                  let labelStmt2 = makeLabel labelExp2 loc "ROR" in
+                  let labelStmt3 = makeLabel labelExp3 loc "ROR" in
+                  labelsStmts := List.append !labelsStmts [labelStmt1; labelStmt2; labelStmt3];
+                end;
+              labelsStmts := List.append !labelsStmts (traitExp lexp loc);
+              labelsStmts := List.append !labelsStmts (traitExp rexp loc);
+              !labelsStmts
+
+            | BinOp(Eq, lexp, rexp, ty) ->
+              if !rorOption = true then
+                begin
+                  let newExp = Ast_const.Exp.mk(BinOp(Ne, lexp, rexp, ty)) in
+                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in  
+                  let labelStmt = makeLabel labelExp loc "ROR" in
+                  labelsStmts := List.append !labelsStmts [labelStmt];
+                end;
+              labelsStmts := List.append !labelsStmts (traitExp lexp loc);
+              labelsStmts := List.append !labelsStmts (traitExp rexp loc);
+              !labelsStmts
+
+            | BinOp(Ne, lexp, rexp, ty) ->
+              if !rorOption = true then
+                begin
+                  let newExp = Ast_const.Exp.mk(BinOp(Eq, lexp, rexp, ty)) in
+                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in  
+                  let labelStmt = makeLabel labelExp loc "ROR" in
+                  labelsStmts := List.append !labelsStmts [labelStmt];
+                end;
+              labelsStmts := List.append !labelsStmts (traitExp lexp loc);
+              labelsStmts := List.append !labelsStmts (traitExp rexp loc);
+              !labelsStmts
+
+            | BinOp(Shiftlt, lexp, rexp, ty) ->
+              if !aorOption = true then
+                begin
+                  let newExp = Ast_const.Exp.mk(BinOp(Shiftrt, lexp, rexp, ty)) in
+                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in  
+                  let labelStmt = makeLabel labelExp loc "AOR" in
+                  labelsStmts := List.append !labelsStmts [labelStmt];
+                end;
+              labelsStmts := List.append !labelsStmts (traitExp lexp loc);
+              labelsStmts := List.append !labelsStmts (traitExp rexp loc);
+              !labelsStmts
+
+            | BinOp(Shiftrt, lexp, rexp, ty) ->
+              if !aorOption = true then
+                begin
+                  let newExp = Ast_const.Exp.mk(BinOp(Shiftlt, lexp, rexp, ty)) in
+                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in  
+                  let labelStmt = makeLabel labelExp loc "AOR" in
+                  labelsStmts := List.append !labelsStmts [labelStmt];
+                end;
+              labelsStmts := List.append !labelsStmts (traitExp lexp loc);
+              labelsStmts := List.append !labelsStmts (traitExp rexp loc);
+              !labelsStmts
+
+
+            | BinOp(_op, lexp, rexp, _ty) ->
+              labelsStmts := List.append !labelsStmts (traitExp lexp loc);
+              labelsStmts := List.append !labelsStmts (traitExp rexp loc);
+              !labelsStmts
+
+            | UnOp(Neg, exp, ty) ->
+              if !aorOption = true then
+                begin
+                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, exp, e, ty)) in  
+                  let labelStmt = makeLabel labelExp loc "AOR" in
+                  labelsStmts := List.append !labelsStmts [labelStmt];
+                end;
+              labelsStmts := List.append !labelsStmts (traitExp exp loc);
+              !labelsStmts
+
+            | UnOp(_op, exp, _ty)->
+              traitExp exp loc
+
+            | Lval(_l) ->
+              if !absOption = true then
+                begin
+                  let zeroExp = Ast_const.Exp.mk (Const(CInt64(Integer.of_int(0),IInt,None))) in
+                  let labelExp = Ast_const.Exp.mk(BinOp(Lt, e, zeroExp, intType)) in
+                  let labelStmt = makeLabel labelExp loc "ABS" in
+                  labelsStmts := List.append !labelsStmts [labelStmt];
+                end;
+              !labelsStmts
+
+            | _ -> []
+          end
+        in
+        let traitStmt s e loc = 
+          let labelsList = traitExp e loc in
+          match labelsList with 
+          | [] -> s
+          | _ ->
+            let finalList = List.append  labelsList [s] in
+            let b2 = mkBlock finalList in
+            let i = mkStmt (Block(b2)) in	  
+            i
+        in
+        let genLabels s =
+          match s.skind with
+          | Instr(Set(_l, e, loc)) ->
+            traitStmt s e loc
+
+          | If(e, _l, _ll, loc) ->
+            traitStmt s e loc
+
+          | Return(e, loc) ->
+            begin match e with 
+              | Some exp ->
+                traitStmt s exp loc
+              | _ -> s 
+            end
+
+
+          | Switch(e, _l,_ll, loc) ->
+            traitStmt s e loc
+
+          | _ -> s
+        in  
+        ChangeDoChildrenPost (stmt, genLabels)
+    end
+
+    let apply mk_label ast =
+      Visitor.visitFramacFileSameGlobals
+        (new mutationVisitor mk_label :> Visitor.frama_c_inplace)
+        ast
+  end)
 

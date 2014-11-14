@@ -46,60 +46,12 @@ module Output = EmptyString (struct
     let arg_name = "file"
     let help = "set output file (default: add _labels before extension)"
   end)
-let () = Annotators.add_aliases ["-lannot-output"]
+let () = Output.add_aliases ["-lannot-output"]
 
-module AllBoolExps = False (struct
-    let option_name = "-lannot-allbool"
-    let help = "indicates that in addition to branching condition, \
-                all boolean expression should be taken into account \
-                (for CC, n-CC, MCC and DC coverage)"
+module Simplify = False (struct
+    let option_name = "-lannot-simplify"
+    let help = "enable the simplification of boolean expressions before annotations"
   end)
-
-module N = Int (struct
-    let option_name = "-lannot-n"
-    let arg_name = "N"
-    let help = "set the N parameter for N-wise Condition Coverage \
-                (0 means MCC and 1 means CC)"
-    let default = 2
-  end)
-
-module MaxWidth = Int (struct
-    let option_name = "-lannot-maxwidth"
-    let arg_name = "NUM"
-    let help = "set the maximum number of elements to partition in arrays \
-                and structures (default: 5)"
-    let default = 5
-  end)
-
-module MaxDepth = Int (struct
-    let option_name = "-lannot-maxdepth"
-    let arg_name = "NUM"
-    let help = "set the maximal depth to partition, i.e. the maximum number \
-                of pointer indirections and field accesses (default: 5)"
-    let default = 5
-  end)
-
-module AllFuns = False (struct
-    let option_name = "-lannot-allfuns"
-    let help = "if IPD is enabled, inputs for all functions should be treated \
-                (not only main)"
-  end)
-
-module GlobalsAsInput = False (struct
-    let option_name = "-lannot-globals"
-    let help = "global variables should be considered as input \
-                (disabled by default)"
-  end)
-
-let mutators = ["AOR"; "ROR"; "COR"; "ABS"]
-module Mutators = FilledStringSet (struct
-    let option_name = "-lannot-mutators"
-    let arg_name = "mutators"
-    let help = "select mutators for WM labelling (comma-separated list \
-                of mutators among "^string_list mutators^", default: all)"
-    let default = Datatype.String.Set.of_list mutators
-  end)
-let () = Mutators.set_possible_values mutators
 
 let () = Parameter_customize.argument_is_function_name ()
 module FunctionNames = StringSet (struct
@@ -117,7 +69,69 @@ module ListAnnotators = False (struct
     let help = "show list of criteria"
   end)
 
-module Simplify = False (struct
-    let option_name = "-lannot-simplify"
-    let help = "enable the simplification of boolean expressions before annotations"
+let crit_group = add_group "Criterion-specific options"
+
+module AllBoolExps = False (struct
+    let option_name = "-lannot-allbool"
+    let help = "indicates that in addition to branching condition, \
+                all boolean expression should be taken into account \
+                (for CC, n-CC, MCC, DC, GACC and GICC coverage)"
   end)
+
+let () = Parameter_customize.set_group crit_group
+module N = Int (struct
+    let option_name = "-lannot-n"
+    let arg_name = "N"
+    let help = "set the n parameter for n-CC (n-wise Condition Coverage) \
+                (0 means MCC and 1 means CC)"
+    let default = 2
+  end)
+
+
+let () = Parameter_customize.set_group crit_group
+let mutators = ["AOR"; "ROR"; "COR"; "ABS"]
+module Mutators = FilledStringSet (struct
+    let option_name = "-lannot-mutators"
+    let arg_name = "mutators"
+    let help = "select mutators for WM labelling (comma-separated list \
+                of mutators among "^string_list mutators^", default: all)"
+    let default = Datatype.String.Set.of_list mutators
+  end)
+
+let () = Mutators.set_possible_values mutators
+
+
+let ipd_group = add_group "Options for Input Domain Partionning (IPD)"
+
+let () = Parameter_customize.set_group ipd_group
+module MaxWidth = Int (struct
+    let option_name = "-lannot-maxwidth"
+    let arg_name = "NUM"
+    let help = "set the maximum number of elements to partition in arrays \
+                and structures (default: 5)"
+    let default = 5
+  end)
+
+let () = Parameter_customize.set_group ipd_group
+module MaxDepth = Int (struct
+    let option_name = "-lannot-maxdepth"
+    let arg_name = "NUM"
+    let help = "set the maximal depth to partition, i.e. the maximum number \
+                of pointer indirections and field accesses (default: 5)"
+    let default = 5
+  end)
+
+let () = Parameter_customize.set_group ipd_group
+module AllFuns = False (struct
+    let option_name = "-lannot-allfuns"
+    let help = "if IPD is enabled, inputs for all functions should be treated \
+                (not only main)"
+  end)
+
+let () = Parameter_customize.set_group ipd_group
+module GlobalsAsInput = False (struct
+    let option_name = "-lannot-globals"
+    let help = "global variables should be considered as input \
+                (disabled by default)"
+  end)
+

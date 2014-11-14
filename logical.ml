@@ -28,8 +28,8 @@ let pos atom = Exp.copy atom
 let neg atom = Exp.lnot (Exp.copy atom)
 
 (**
-  Generate labels for n-CC coverage from a Boolean expression.
-  And puts them all in a single block statement.
+   Generate labels for n-CC coverage from a Boolean expression.
+   And puts them all in a single block statement.
 *)
 let gen_labels_ncc mk_label n (bexpr : exp) : stmt =
   let loc = bexpr.eloc in
@@ -55,7 +55,7 @@ let gen_labels_ncc mk_label n (bexpr : exp) : stmt =
     (* Compute signed subsets *)
     let signed_subsets = sign_combine pos neg subset in
     (* Create labels for each signed subset (taken in rev. order)
-      and put them in rev. in front of acc (N.B. [rev rev l = l]) *)
+       and put them in rev. in front of acc (N.B. [rev rev l = l]) *)
     List.fold_left for_signed_subset acc signed_subsets
   in
   let stmts = List.rev (List.fold_left for_subset [] subsets) in
@@ -102,11 +102,11 @@ let gen_labels_gicc_for mk_label whole part =
   let false_inactive_true = Exp.binop LAnd false_inactive (pos whole) in
   let false_inactive_false = Exp.binop LAnd false_inactive (neg whole) in
   Stmt.block (List.map (fun e -> mk_label e loc) [
-    true_inactive_true;
-    true_inactive_false;
-    false_inactive_true;
-    false_inactive_false;
-  ])
+      true_inactive_true;
+      true_inactive_false;
+      false_inactive_true;
+      false_inactive_false;
+    ])
 
 (** Generate GICC labels for the given Boolean formula *)
 let gen_labels_gicc mk_label bexpr =
@@ -114,9 +114,9 @@ let gen_labels_gicc mk_label bexpr =
   Stmt.block (List.map (gen_labels_gicc_for mk_label bexpr) atoms)
 
 (**
- * Frama-C in-place visitor that injects labels at each condition/boolean
- * expression using some injection function
- *)
+   Frama-C in-place visitor that injects labels at each condition/boolean
+   expression using some injection function
+*)
 class visitor gen_labels all_boolean = object(self)
   inherit Visitor.frama_c_inplace
 
@@ -165,7 +165,7 @@ end
 
 (** Generic condition/boolean expression annotator *)
 let apply gen_labels all_boolean file =
-    Visitor.visitFramacFileSameGlobals (new visitor gen_labels all_boolean :> Visitor.frama_c_visitor) file
+  Visitor.visitFramacFileSameGlobals (new visitor gen_labels all_boolean :> Visitor.frama_c_visitor) file
 
 (** n-CC condition/boolean expression annotator *)
 let apply_ncc mk_label n all_boolean file =
@@ -173,67 +173,66 @@ let apply_ncc mk_label n all_boolean file =
   apply (gen_labels_ncc mk_label n) all_boolean file
 
 (**
- * Condition coverage annotator, special case of n-CC for n=1
- *)
+   Condition coverage annotator, special case of n-CC for n=1
+*)
 module CC = Annotators.Register (struct
-  let name = "CC"
-  let help = "Condition Coverage"
+    let name = "CC"
+    let help = "Condition Coverage"
 
-  let apply mk_label file =
-    apply_ncc mk_label 1 (Options.AllBoolExps.get ()) file
-end)
+    let apply mk_label file =
+      apply_ncc mk_label 1 (Options.AllBoolExps.get ()) file
+  end)
 
 (**
- * n-wise condition coverage annotator
- *)
+   n-wise condition coverage annotator
+*)
 module NCC = Annotators.Register (struct
-  let name = "NCC"
-  let help = "n-wise Condition Coverage"
+    let name = "NCC"
+    let help = "n-wise Condition Coverage"
 
-  let apply mk_label file =
-    apply_ncc mk_label (Options.N.get ()) (Options.AllBoolExps.get ()) file
-end)
+    let apply mk_label file =
+      apply_ncc mk_label (Options.N.get ()) (Options.AllBoolExps.get ()) file
+  end)
 
 (**
- * Multiple condition coverage annotator, special case of n-CC for n=infinite
- * (coded zero)
- *)
+   Multiple condition coverage annotator, special case of n-CC for n=infinite
+   (coded zero)
+*)
 module MCC = Annotators.Register (struct
-  let name = "MCC"
-  let help = "Multiple Condition Coverage"
+    let name = "MCC"
+    let help = "Multiple Condition Coverage"
 
-  let apply mk_label file =
-    apply_ncc mk_label 0 (Options.AllBoolExps.get ()) file
-end)
+    let apply mk_label file =
+      apply_ncc mk_label 0 (Options.AllBoolExps.get ()) file
+  end)
 
 (**
- * Decision Coverage annotator
- *)
+   Decision Coverage annotator
+*)
 module DC = Annotators.Register (struct
-  let name = "DC"
-  let help = "Decision Coverage"
-  let apply mk_label file =
-    apply (gen_labels_dc mk_label) (Options.AllBoolExps.get ()) file
-end)
+    let name = "DC"
+    let help = "Decision Coverage"
+    let apply mk_label file =
+      apply (gen_labels_dc mk_label) (Options.AllBoolExps.get ()) file
+  end)
 
 (**
- * General Active Clause Coverage annotator
- *)
+   General Active Clause Coverage annotator
+*)
 module GACC = Annotators.Register (struct
-  let name = "GACC"
-  let help = "General Active Clause Coverage (weakened MC/DC)"
-  let apply mk_label file = 
-    apply (gen_labels_gacc mk_label) (Options.AllBoolExps.get ()) file
-end)
+    let name = "GACC"
+    let help = "General Active Clause Coverage (weakened MC/DC)"
+    let apply mk_label file = 
+      apply (gen_labels_gacc mk_label) (Options.AllBoolExps.get ()) file
+  end)
 
 (**
-
-  General Inactive Clause Coverage annotator
+   General Inactive Clause Coverage annotator
 *)
 module GICC = Annotators.Register (struct
-  let name = "GICC"
-  let help = "General Inactive Clause Coverage"
-  let apply mk_label file = 
-    apply (gen_labels_gicc mk_label) (Options.AllBoolExps.get ()) file
+    let name = "GICC"
+    let help = "General Inactive Clause Coverage"
+    let apply mk_label file = 
+      apply (gen_labels_gicc mk_label) (Options.AllBoolExps.get ()) file
 
-end)
+  end)

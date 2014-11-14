@@ -1,6 +1,6 @@
 (**
- * Annotators for code-based logical coverage
- *)
+   Annotators for code-based logical coverage
+*)
 
 (** Condition coverage, special case of n-CC for n=1 *)
 module CC : Annotators.S
