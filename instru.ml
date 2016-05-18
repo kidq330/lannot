@@ -75,7 +75,7 @@ let makeLabel cond loc ltype =
 module CC = Annotators.Register (struct
     let name = "CC_OLD"
     let help = "Condition Coverage"
-
+    
     let rec genLabelPerExp mk_label exp loc =
       match exp.enode with
       | BinOp(LAnd, e1, e2, _) ->
@@ -86,36 +86,36 @@ module CC = Annotators.Register (struct
 
       | BinOp(Lt, e1, e2, t) ->
         let nonExp = Ast_const.Exp.mk(BinOp(Ge, e1, e2, t)) in
-        [mk_label exp loc; mk_label nonExp loc]
+        [mk_label exp [] loc; mk_label nonExp [] loc]
 
       | BinOp(Gt, e1, e2, t) ->
         let nonExp = Ast_const.Exp.mk(BinOp(Le, e1, e2, t)) in
-        [mk_label exp loc; mk_label nonExp loc]
+        [mk_label exp [] loc; mk_label nonExp [] loc]
 
       | BinOp(Le, e1, e2, t) ->
         let nonExp = Ast_const.Exp.mk(BinOp(Gt, e1, e2, t)) in
-        [mk_label exp loc; mk_label nonExp loc]
+        [mk_label exp [] loc; mk_label nonExp [] loc]
 
 
       | BinOp(Ge, e1, e2, t) ->
         let nonExp = Ast_const.Exp.mk(BinOp(Lt, e1, e2, t)) in
-        [mk_label exp loc; mk_label nonExp loc]
+        [mk_label exp [] loc; mk_label nonExp [] loc]
 
       | BinOp(Eq, e1, e2, t) ->
         let nonExp = Ast_const.Exp.mk(BinOp(Ne, e1, e2, t)) in
-        [mk_label exp loc; mk_label nonExp loc]
+        [mk_label exp [] loc; mk_label nonExp [] loc]
 
       | BinOp(Ne, e1, e2, t) ->
         let nonExp = Ast_const.Exp.mk(BinOp(Eq, e1, e2, t)) in
-        [mk_label exp loc; mk_label nonExp loc]
+        [mk_label exp [] loc; mk_label nonExp [] loc]
 
       | BinOp(_, _e1, _e2, _) ->
         let nonExp = Ast_const.Exp.mk(UnOp(LNot, exp, intType)) in
-        [mk_label exp loc; mk_label nonExp loc]
+        [mk_label exp [] loc; mk_label nonExp [] loc]
 
       | Lval(_lv) ->
         let nonExp = Ast_const.Exp.mk(UnOp(LNot, exp, intType)) in
-        [mk_label exp loc; mk_label nonExp loc]
+        [mk_label exp [] loc; mk_label nonExp [] loc]
 
       | UnOp(LNot, e1, _) ->
         genLabelPerExp mk_label e1 loc
@@ -184,6 +184,7 @@ module MCC = Annotators.Register (struct
 
     let name = "MCC_OLD"
     let help = "Multiple Condition Coverage"
+    
 
     let generateStatementFromConditionsList mk_label conds loc =
       let rec mergeConds condsList =
@@ -196,11 +197,11 @@ module MCC = Annotators.Register (struct
       in
       match conds with
       | [] ->
-        let stmt = mk_label (Cil.one Cil_datatype.Location.unknown) loc in
+        let stmt = mk_label (Cil.one Cil_datatype.Location.unknown) [] loc in
         stmt
       | _ ->
         let newCond = mergeConds conds in
-        let stmt = mk_label newCond loc in
+        let stmt = mk_label newCond [] loc in
         stmt
 
     let getNegativeCond exp =
@@ -328,7 +329,7 @@ module Partition = Annotators.Register (struct
 
     let name = "IDP_OLD"
     let help = "Input Domain Partition"
-
+    
     let makeLabelsFromInput mk_label myParam loc =
       match myParam.vtype with 
       | TInt _
@@ -338,17 +339,17 @@ module Partition = Annotators.Register (struct
         let exp1 = Ast_const.Exp.mk (BinOp(Lt, formalExp, zeroExp, intType)) in
         let exp2 = Ast_const.Exp.mk (BinOp(Gt, formalExp, zeroExp, intType)) in
         let exp3 = Ast_const.Exp.mk (BinOp(Eq, formalExp, zeroExp, intType)) in
-        let stmt1 = mk_label exp1 loc in
-        let stmt2 = mk_label exp2 loc in
-        let stmt3 = mk_label exp3 loc in
+        let stmt1 = mk_label exp1 [] loc in
+        let stmt2 = mk_label exp2 [] loc in
+        let stmt3 = mk_label exp3 [] loc in
         [stmt1; stmt2; stmt3]
       | TPtr _ ->
         let formalExp = Ast_const.Exp.mk (Lval (var myParam)) in
         let zeroExp = Ast_const.Exp.mk (Const(CInt64(Integer.of_int(0),IInt,None))) in
         let exp1 = Ast_const.Exp.mk(BinOp(Eq, formalExp, zeroExp, intType)) in
         let exp2 = Ast_const.Exp.mk(BinOp(Ne, formalExp, zeroExp, intType)) in
-        let stmt1 = mk_label exp1 loc in
-        let stmt2 = mk_label exp2 loc in
+        let stmt1 = mk_label exp1 [] loc in
+        let stmt2 = mk_label exp2 [] loc in
         [stmt1; stmt2]
       | _ ->  []
 
@@ -394,7 +395,7 @@ module WM = Annotators.RegisterWithExtraTags (struct
         if Annotators.shouldInstrument f.svar then DoChildren else SkipChildren
 
       method! vstmt_aux stmt =      	  
-        let makeLabel cond loc category = mk_label ~extra:[category] cond loc in
+        let makeLabel cond loc category = mk_label ~extra:[category] cond [] loc in
         let rec traitExp e loc = 
           let labelsStmts = ref [] in
           begin match e.enode with

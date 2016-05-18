@@ -37,14 +37,13 @@ module type ANNOTATOR = sig
       from a boolean condition and an "origin" location (e.g. the
       if-then-else condition's location in the case of a MCC label).
   *) 
-  val apply : (Cil_types.exp -> Cil_types.location -> Cil_types.stmt) -> Cil_types.file -> unit
+  val apply : (Cil_types.exp -> Cil_types.exp list -> Cil_types.location -> Cil_types.stmt) -> Cil_types.file -> unit
 end
 
 module type ANNOTATOR_WITH_EXTRA_TAGS = sig
   val name : string
   val help : string
-
-  val apply : (extra:string list -> Cil_types.exp -> Cil_types.location -> Cil_types.stmt) -> Cil_types.file -> unit
+  val apply : (extra:string list -> Cil_types.exp -> Cil_types.exp list -> Cil_types.location -> Cil_types.stmt) -> Cil_types.file -> unit
 end
 
 module type S = sig
@@ -63,10 +62,14 @@ module Register (A : ANNOTATOR) : S
 *)
 module RegisterWithExtraTags (A : ANNOTATOR_WITH_EXTRA_TAGS) : S
 
+val get_file_name : unit -> string
+
 val annotate_with : annotator -> ?id:(unit -> int) -> ?collect:(annotation -> unit) -> Cil_types.file -> unit
 
-val annotate : string list -> ?id:(unit->int) -> ?collect:(annotation -> unit) -> Cil_types.file -> unit
+val annotate : string -> string list -> ?id:(unit->int) -> ?collect:(annotation -> unit) -> Cil_types.file -> unit
 
 val shouldInstrument : Cil_types.varinfo -> bool
 
 val print_help : Format.formatter -> unit
+
+val getCurrentLabelId : unit -> int

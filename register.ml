@@ -50,12 +50,13 @@ let compute_outfile opt files =
   else
     opt;;
 
+
 let annotate_on_project ann_names =
   Kernel.LogicalOperators.on (); (* invalidate the Ast if any *)
 
   let annotations = ref [] in
   let collect ann = annotations := ann :: !annotations in
-  Annotators.annotate ~collect ann_names (Ast.get ());
+  Annotators.annotate (compute_outfile (Options.Output.get ()) (Kernel.Files.get ())) ~collect ann_names (Ast.get ());
   let annotations = !annotations in
 
   (* output modified c file *)

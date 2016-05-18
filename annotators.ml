@@ -23,6 +23,10 @@
 open Cil_types
 open Ast_const
 
+let filen = ref ""
+
+let get_file_name () = !filen
+
 
 type annotation =
   int * string * exp * location
@@ -30,18 +34,18 @@ type annotation =
 type annotator = {
   name:string;
   help: string;
-  apply: (unit -> int) -> (annotation -> unit) -> Cil_types.file -> unit
+  apply: (unit -> int) -> (annotation -> unit) -> Cil_types.file -> unit;
 }
 
 module type ANNOTATOR = sig
   val name : string
   val help : string
-  val apply : (Cil_types.exp -> Cil_types.location -> Cil_types.stmt) -> Cil_types.file -> unit
+  val apply : (Cil_types.exp -> Cil_types.exp list -> Cil_types.location -> Cil_types.stmt) -> Cil_types.file -> unit
 end
 module type ANNOTATOR_WITH_EXTRA_TAGS = sig
   val name : string
   val help : string
-  val apply : (extra:string list -> Cil_types.exp -> Cil_types.location -> Cil_types.stmt) -> Cil_types.file -> unit
+  val apply : (extra:string list -> Cil_types.exp -> Cil_types.exp list -> Cil_types.location -> Cil_types.stmt) -> Cil_types.file -> unit
 end
 
 module type S = sig
@@ -52,6 +56,8 @@ end
 let annotators = Hashtbl.create 10
 
 let nextId = ref 1
+
+let getCurrentLabelId () = !nextId - 1
 
 let next () =
   let id = !nextId in
@@ -64,7 +70,8 @@ let annotate_with annotator ?(id=next) ?(collect=nocollect) ast =
   Options.feedback "apply annotations for %s@." annotator.name;
   annotator.apply id collect ast
 
-let annotate names ?(id=next) ?(collect=nocollect) ast =
+let annotate filename names ?(id=next) ?(collect=nocollect) ast =
+  filen := filename;
   let f name =
     try
       annotate_with ~id ~collect (Hashtbl.find annotators name) ast
@@ -82,7 +89,7 @@ let print_help fmt =
 
 let label_function_name = "pc_label"
 
-let mk_label id collect tag cond loc =
+let mk_label id collect tag cond mvars loc =
   let id = id () in
   let cond =
     if Options.Simplify.get () then
@@ -93,8 +100,7 @@ let mk_label id collect tag cond loc =
   collect (id,tag,cond,loc);
   let tagExp = Exp.mk (Const (CStr tag)) in
   let idExp = Exp.integer id in
-  Utils.mk_call label_function_name [ cond; idExp; tagExp ]
-
+  Utils.mk_call label_function_name (List.concat [ [ cond; idExp; tagExp ] ; mvars])
 
 let mk_apply apply name id collect ast =
   apply (mk_label id collect name) ast

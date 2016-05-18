@@ -130,7 +130,7 @@ class inputDomainVisitor max_depth max_width all_funs globals mk_label = object 
       if Cil.isIntegerConstant exp then
         () (* ignore trivially true or false exp *)
       else
-        acc := mk_label exp loc :: !acc
+        acc := mk_label exp [] loc :: !acc
     in
     let gen_for_var var =
       partition_lval max_depth max_width emit var.vtype (fun () -> Lval.var var)
@@ -151,7 +151,7 @@ module Partition = Annotators.Register (struct
 
     let name = "IDP"
     let help = "Input Domain Partition"
-
+    
     let apply mk_label ast =
       let max_depth = Options.MaxDepth.get () in
       let max_width = Options.MaxWidth.get () in

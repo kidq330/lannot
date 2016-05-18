@@ -47,7 +47,7 @@ let gen_labels_ncc mk_label n (bexpr : exp) : stmt =
     (* Get conjunction as an expression*)
     let exp = Exp.join LAnd signed_subset in
     (* Create a label and put it in front of acc *)
-    mk_label exp loc :: acc
+    mk_label exp [] loc :: acc
   in
 
   (* For each subset of atoms, *)
@@ -64,7 +64,7 @@ let gen_labels_ncc mk_label n (bexpr : exp) : stmt =
 (** Generate DC labels for the given Boolean formula *)
 let gen_labels_dc mk_label bexpr =
   let loc = bexpr.eloc in
-  let labels = [mk_label (pos bexpr) loc; mk_label (neg bexpr) loc] in
+  let labels = [mk_label (pos bexpr) [] loc; mk_label (neg bexpr) [] loc] in
   Stmt.block labels;;
 
 (** Generate GACC labels for one particular active clause *)
@@ -79,12 +79,113 @@ let gen_labels_gacc_for mk_label whole part =
   let a_indep = Exp.binop LAnd (pos part) (Exp.copy indep) in
   let na_indep = Exp.binop LAnd (neg part) (Exp.copy indep) in
 
-  Stmt.block (List.map (fun e -> mk_label e loc) [a_indep; na_indep]);;
+  Stmt.block (List.map (fun e -> mk_label e [] loc) [a_indep; na_indep]);;
+
+let hlab_cacc = ref [| |];;
 
 (** Generate GACC labels for the given Boolean formula *)
 let gen_labels_gacc mk_label bexpr =
   let atoms = atomic_conditions bexpr in
   Stmt.block (List.map (gen_labels_gacc_for mk_label bexpr) atoms);;
+
+(** Generate CACC labels for one particular active clause *)
+let gen_labels_cacc_for mk_label whole part =
+  let loc = whole.eloc in
+  let w0 = Exp.replace whole part (Exp.one ()) in
+  let w1 = Exp.replace whole part (Exp.zero ()) in
+
+  (* rather than to test w0 != w1, do (w0 && !w1) || (!w0 && w1) *)
+  let indep = Exp.niff w0 w1 in
+
+  let a_indep = Exp.binop LAnd (pos part) (Exp.copy indep) in
+  let na_indep = Exp.binop LAnd (neg part) (Exp.copy indep) in
+
+  let l = mk_label a_indep [Exp.integer 1 ; Exp.mk (Const (CStr "pa")) ; whole] loc in
+  let idl = Annotators.getCurrentLabelId () in
+  let r = mk_label na_indep [Exp.integer 1 ; Exp.mk (Const (CStr "pb")) ; whole] loc in
+  let idr = Annotators.getCurrentLabelId () in
+
+  hlab_cacc := Array.append !hlab_cacc [| (idl,idr) |];
+
+  Stmt.block [ l ; r ];;
+
+(** Generate CACC labels for the given Boolean formula *)
+let gen_labels_cacc mk_label bexpr =
+  let atoms = atomic_conditions bexpr in
+  Stmt.block (List.map (gen_labels_cacc_for mk_label bexpr) atoms);;
+
+(** Generate CACC hyperlabels *)
+let array_to_string l r = String.concat "" [ l ; ",\n" ; r ]
+let couple_to_string c = String.concat "" [ "<l" ; (string_of_int (fst c)) ; ".l" ; (string_of_int (snd c)) ; "|;pa!=pb;>"]
+let store_hyperlabel_data out str =
+  let formatter = Format.formatter_of_out_channel out in
+  Format.fprintf formatter "%s" str
+let gen_hyperlabels_cacc = ref (fun () -> 
+  let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
+  Options.feedback "write hyperlabel data (to %s)" data_filename;
+  let out = open_out data_filename in
+  store_hyperlabel_data out  (Array.fold_right array_to_string (Array.map couple_to_string !hlab_cacc) "");
+  close_out out;
+  Options.feedback "finished")
+
+
+
+
+let hlab_racc = ref [| |];;
+
+let handle_list_l la a = List.concat [ la ; [  Exp.mk (Const (CStr ("cA" ^ (string_of_int ((List.length la) / 2 + 1))))) ; a ] ]
+let handle_list_r la a = List.concat [ la ; [  Exp.mk (Const (CStr ("cB" ^ (string_of_int ((List.length la) / 2 + 1))))) ; a ] ]
+
+(** Generate RACC labels for one particular active clause *)
+let gen_labels_racc_for mk_label whole atoms part =
+  let loc = whole.eloc in
+  let w0 = Exp.replace whole part (Exp.one ()) in
+  let w1 = Exp.replace whole part (Exp.zero ()) in
+
+  (* rather than to test w0 != w1, do (w0 && !w1) || (!w0 && w1) *)
+  let indep = Exp.niff w0 w1 in
+
+  let a_indep = Exp.binop LAnd (pos part) (Exp.copy indep) in
+  let na_indep = Exp.binop LAnd (neg part) (Exp.copy indep) in
+
+  let atoms_without_current = List.filter (fun a -> part != a) atoms in  
+  let l = mk_label a_indep (List.concat [[Exp.integer (List.length atoms_without_current)] ; List.fold_left handle_list_l [] atoms_without_current]) loc in
+  let idl = Annotators.getCurrentLabelId () in
+  let r = mk_label na_indep (List.concat [[Exp.integer (List.length atoms_without_current)] ; List.fold_left handle_list_r [] atoms_without_current]) loc in
+  let idr = Annotators.getCurrentLabelId () in
+
+  hlab_racc := Array.append !hlab_racc [| (idl,(idr,(List.length atoms_without_current))) |];
+
+  Stmt.block [ l ; r ];;
+
+(** Generate RACC labels for the given Boolean formula *)
+let gen_labels_racc mk_label bexpr =
+  let atoms = atomic_conditions bexpr in
+  Stmt.block (List.map (gen_labels_racc_for mk_label bexpr atoms) atoms);;
+
+(** Generate RACC hyperlabels *)
+let rec generate_equalities i = match i with  0 -> "1"
+			   		| 1 -> "cA1 == cB1"
+ 			  	        | _ -> (generate_equalities (i-1)) ^ " && " ^ "cA" ^ (string_of_int i)  ^ "== cB" ^ (string_of_int i)
+
+let array_to_string l r = String.concat "" [ l ; ",\n" ; r ]
+let couple_to_string c = String.concat "" [ "<l" ; (string_of_int (fst c)) ; ".l" ; (string_of_int (fst (snd c))) ; "|;" ; generate_equalities (snd (snd c)) ; ";>"]
+let store_hyperlabel_data out str =
+  let formatter = Format.formatter_of_out_channel out in
+  Format.fprintf formatter "%s" str
+let gen_hyperlabels_racc = ref (fun () -> 
+  let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
+  Options.feedback "write hyperlabel data (to %s)" data_filename;
+  let out = open_out data_filename in
+  store_hyperlabel_data out  (Array.fold_right array_to_string (Array.map couple_to_string !hlab_racc) "");
+  close_out out;
+  Options.feedback "finished")
+
+
+
+
+
+
 
 (** Generate GICC labels for the given Boolean formula *)
 let gen_labels_gicc_for mk_label whole part =
@@ -101,7 +202,7 @@ let gen_labels_gicc_for mk_label whole part =
   let true_inactive_false = Exp.binop LAnd true_inactive (neg whole) in
   let false_inactive_true = Exp.binop LAnd false_inactive (pos whole) in
   let false_inactive_false = Exp.binop LAnd false_inactive (neg whole) in
-  Stmt.block (List.map (fun e -> mk_label e loc) [
+  Stmt.block (List.map (fun e -> mk_label e [] loc) [
       true_inactive_true;
       true_inactive_false;
       false_inactive_true;
@@ -167,10 +268,12 @@ end
 let apply gen_labels all_boolean file =
   Visitor.visitFramacFileSameGlobals (new visitor gen_labels all_boolean :> Visitor.frama_c_visitor) file
 
+
 (** n-CC condition/boolean expression annotator *)
 let apply_ncc mk_label n all_boolean file =
   Options.debug2 "n-Condition Coverage config: n=%d, all booleans=%B" n all_boolean;
   apply (gen_labels_ncc mk_label n) all_boolean file
+
 
 (**
    Condition coverage annotator, special case of n-CC for n=1
@@ -178,7 +281,7 @@ let apply_ncc mk_label n all_boolean file =
 module CC = Annotators.Register (struct
     let name = "CC"
     let help = "Condition Coverage"
-
+    
     let apply mk_label file =
       apply_ncc mk_label 1 (Options.AllBoolExps.get ()) file
   end)
@@ -189,7 +292,7 @@ module CC = Annotators.Register (struct
 module NCC = Annotators.Register (struct
     let name = "NCC"
     let help = "n-wise Condition Coverage"
-
+    
     let apply mk_label file =
       apply_ncc mk_label (Options.N.get ()) (Options.AllBoolExps.get ()) file
   end)
@@ -201,7 +304,7 @@ module NCC = Annotators.Register (struct
 module MCC = Annotators.Register (struct
     let name = "MCC"
     let help = "Multiple Condition Coverage"
-
+    
     let apply mk_label file =
       apply_ncc mk_label 0 (Options.AllBoolExps.get ()) file
   end)
@@ -212,6 +315,7 @@ module MCC = Annotators.Register (struct
 module DC = Annotators.Register (struct
     let name = "DC"
     let help = "Decision Coverage"
+    
     let apply mk_label file =
       apply (gen_labels_dc mk_label) (Options.AllBoolExps.get ()) file
   end)
@@ -222,9 +326,36 @@ module DC = Annotators.Register (struct
 module GACC = Annotators.Register (struct
     let name = "GACC"
     let help = "General Active Clause Coverage (weakened MC/DC)"
+    
     let apply mk_label file = 
       apply (gen_labels_gacc mk_label) (Options.AllBoolExps.get ()) file
   end)
+
+
+(**
+   Correlated Active Clause Coverage annotator
+*)
+module CACC = Annotators.Register (struct
+    let name = "CACC"
+    let help = "Correlated Active Clause Coverage (masking MC/DC)"
+    let apply mk_label file = 
+      apply (gen_labels_cacc mk_label) (Options.AllBoolExps.get ()) file;
+      !gen_hyperlabels_cacc ()
+  end)
+
+
+(**
+   Restricted Active Clause Coverage annotator
+*)
+module RACC = Annotators.Register (struct
+    let name = "RACC"
+    let help = "Restricted Active Clause Coverage (masking MC/DC)"
+    let apply mk_label file = 
+      apply (gen_labels_racc mk_label) (Options.AllBoolExps.get ()) file;
+      !gen_hyperlabels_racc ()
+  end)
+
+
 
 (**
    General Inactive Clause Coverage annotator
@@ -234,5 +365,5 @@ module GICC = Annotators.Register (struct
     let help = "General Inactive Clause Coverage"
     let apply mk_label file = 
       apply (gen_labels_gicc mk_label) (Options.AllBoolExps.get ()) file
-
+    
   end)
