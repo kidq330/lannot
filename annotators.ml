@@ -87,7 +87,7 @@ let print_help fmt =
   let f ann = Format.fprintf fmt "%-*s @[%s@]@." width ann.name ann.help in
   List.iter f annotators
 
-let label_function_name = "pc_label"
+let label_function_name = ref "pc_label"
 
 let mk_label id collect tag cond mvars loc =
   let id = id () in
@@ -100,7 +100,7 @@ let mk_label id collect tag cond mvars loc =
   collect (id,tag,cond,loc);
   let tagExp = Exp.mk (Const (CStr tag)) in
   let idExp = Exp.integer id in
-  Utils.mk_call label_function_name (List.concat [ [ cond; idExp; tagExp ] ; mvars])
+  Utils.mk_call !label_function_name (List.concat [ [ cond; idExp; tagExp ] ; mvars])
 
 let mk_apply apply name id collect ast =
   apply (mk_label id collect name) ast

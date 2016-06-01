@@ -90,6 +90,7 @@ let gen_labels_gacc mk_label bexpr =
 
 (** Generate CACC labels for one particular active clause *)
 let gen_labels_cacc_for mk_label whole part =
+  Annotators.label_function_name := "pc_label_bindings";
   let loc = whole.eloc in
   let w0 = Exp.replace whole part (Exp.one ()) in
   let w1 = Exp.replace whole part (Exp.zero ()) in
@@ -106,7 +107,7 @@ let gen_labels_cacc_for mk_label whole part =
   let idr = Annotators.getCurrentLabelId () in
 
   hlab_cacc := Array.append !hlab_cacc [| (idl,idr) |];
-
+  Annotators.label_function_name := "pc_label";
   Stmt.block [ l ; r ];;
 
 (** Generate CACC labels for the given Boolean formula *)
@@ -138,6 +139,7 @@ let handle_list_r la a = List.concat [ la ; [  Exp.mk (Const (CStr ("cB" ^ (stri
 
 (** Generate RACC labels for one particular active clause *)
 let gen_labels_racc_for mk_label whole atoms part =
+  Annotators.label_function_name := "pc_label_bindings";
   let loc = whole.eloc in
   let w0 = Exp.replace whole part (Exp.one ()) in
   let w1 = Exp.replace whole part (Exp.zero ()) in
@@ -153,9 +155,9 @@ let gen_labels_racc_for mk_label whole atoms part =
   let idl = Annotators.getCurrentLabelId () in
   let r = mk_label na_indep (List.concat [[Exp.integer (List.length atoms_without_current)] ; List.fold_left handle_list_r [] atoms_without_current]) loc in
   let idr = Annotators.getCurrentLabelId () in
-
+  
   hlab_racc := Array.append !hlab_racc [| (idl,(idr,(List.length atoms_without_current))) |];
-
+  Annotators.label_function_name := "pc_label";
   Stmt.block [ l ; r ];;
 
 (** Generate RACC labels for the given Boolean formula *)
@@ -164,7 +166,7 @@ let gen_labels_racc mk_label bexpr =
   Stmt.block (List.map (gen_labels_racc_for mk_label bexpr atoms) atoms);;
 
 (** Generate RACC hyperlabels *)
-let rec generate_equalities i = match i with  0 -> "1"
+let rec generate_equalities i = match i with  0 -> " "
 			   		| 1 -> "cA1 == cB1"
  			  	        | _ -> (generate_equalities (i-1)) ^ " && " ^ "cA" ^ (string_of_int i)  ^ "== cB" ^ (string_of_int i)
 
