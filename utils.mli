@@ -31,8 +31,7 @@ val get_stmt_loc : stmt -> location
 val get_stmt_loc_int : stmt -> int
 val same_line : stmt -> stmt -> bool
 val mk_call :
-  ?loc:location ->
-  ?result:lval -> string -> exp list -> stmt
+  ?loc:location -> ?result:lval -> string -> exp list -> stmt
 
 val mkdir : string -> unit
 
