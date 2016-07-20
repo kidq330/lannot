@@ -103,7 +103,6 @@ let run () =
   | Dynamic.Unbound_value(s) -> Options.fatal "%s unbound" s
   | Dynamic.Incompatible_type(s) -> Options.fatal "%s incompatible" s
   | Failure s -> Options.fatal "unexpected failure: %s" s
-  | e -> Options.fatal "unexpected exception: %s" (Printexc.to_string e)
 
 let run () =
   if Options.ListAnnotators.get () then

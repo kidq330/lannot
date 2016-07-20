@@ -275,13 +275,15 @@ let remove_sublist_from_list l1 =
 
 type debug_level = Info | Waring | Error
 
+
+
 (** Prints a debug message to the standard output *)
 let debug_print (lvl : debug_level) (str : string) : unit =
   if !is_verbose_mode then
     match lvl with
     | Info -> Options.debug1 "BES: %s" str
     | Waring -> Options.warning "BES: %s" str
-    | Error -> Options.error "BES: %s" str
+    | Error -> ignore(Error); Options.error "BES: %s" str
   else
     ()
 
@@ -394,7 +396,7 @@ let find_prime_implicants (expr : dnf_expression) =
       let remove_merged grouped_expr =
         let z =
           fast_map
-            (fun x -> List.filter (fun (y, b) -> not !b) x)
+            (fun x -> List.filter (fun (_, b) -> not !b) x)
             grouped_expr
         in
         List.filter (function | [] -> false | _ -> true) z
@@ -457,12 +459,12 @@ let find_implications (expr : dnf_expression) (implicants : dnf_expression) =
 let find_essential_implications (implications, back_implications) =
   let (exprs, _) =
     back_implications
-    |> List.filter (fun (x, lx) -> (List.length lx) = 1)
+    |> List.filter (fun (_, lx) -> (List.length lx) = 1)
     |> List.split
   in
   let imps =
     List.filter
-      (fun (x, lx) -> List.exists (fun y -> List.mem y lx) exprs)
+      (fun (_, lx) -> List.exists (fun y -> List.mem y lx) exprs)
       implications
   in
   let (essential_implicants, covered_minterms) = List.split imps in
@@ -620,7 +622,7 @@ let simple_heuristic implications
       (fun (x, t) -> (x, remove_sublist_from_list covered_minterms t))
     (* Sort by the number of still covered miterms *)
     |> List.fast_sort
-      (fun (x1, t1) (x2, t2) -> (List.length t1) - (List.length t2))
+      (fun (_, t1) (_, t2) -> (List.length t1) - (List.length t2))
     (* Filter the non essential implications *)
     |> List.fold_left
       (fun a (x, t) -> if List.mem x essential_implicants then a else (x, t)::a)
@@ -782,7 +784,7 @@ let petricks_method implications
           (fun (x, y) -> (fast_flatten (List.map (fun z -> List.assoc z implications) x), y))
         (* Filter away all results (subsets) that do not cover all miterms *)
         |> List.filter
-          (fun (x, xl) -> (fun y -> List.for_all (fun z -> List.mem z x) not_covered_minterms) x)
+          (fun (x, _) -> (fun _ -> List.for_all (fun z -> List.mem z x) not_covered_minterms) x)
         |> List.map (fun (_, x) -> x)
         (* Sort by the number of literals *)
         |> List.fast_sort
@@ -799,7 +801,7 @@ let petricks_method implications
   let _ = debug_print Info "Choosing Results..." in
   match find_minimal_result 1 with
   | [] -> essential_implicants
-  | xs::xr -> fast_flatten (xs @ [essential_implicants])
+  | xs::_ -> fast_flatten (xs @ [essential_implicants])
 
 
 
@@ -810,7 +812,7 @@ let petricks_method implications
 let rec mini (expr : dnf_expression) =
   let rec merge_possible_miterms (ps : dnf_minterm) (pr : dnf_minterm list) =
     match pr with
-    | xs::xr ->
+    | _::xr ->
       if List.exists (fun y -> List.hd y = `Dontcare) pr then
         `Dontcare :: (merge_possible_miterms (List.tl ps) xr)
       else

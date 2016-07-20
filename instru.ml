@@ -72,6 +72,7 @@ let makeLabel cond loc ltype =
     Utils.mk_call "pc_label" [ cond; labelIdExp; labelTypeExp ]
 *)
 
+(*
 module CC = Annotators.Register (struct
     let name = "CC_OLD"
     let help = "Condition Coverage"
@@ -154,6 +155,7 @@ module CC = Annotators.Register (struct
         ast
 
   end)
+
 
 (* ******************************************************* *)
 (* ******************************************************* *)
@@ -380,6 +382,8 @@ module Partition = Annotators.Register (struct
         ast
 
   end)
+
+*)
 
 (*****************************************)
 

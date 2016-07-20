@@ -35,7 +35,9 @@ module Exp = struct
     Cil.new_exp ~loc (UnOp (Neg, e', newt))
 
   let binop ?(loc=unk_loc) op left right =
-    Cil.mkBinOp ~loc op left right
+    let l = if Cil.isPointerType (Cil.typeOf left) then Cil.new_exp ~loc (BinOp (Ne,left,(Cil.mkCast (Cil.zero ~loc) Cil.voidPtrType),Cil.intType)) else left in
+    let r = if Cil.isPointerType (Cil.typeOf right) then Cil.new_exp ~loc (BinOp (Ne,right,(Cil.mkCast (Cil.zero ~loc) Cil.voidPtrType),Cil.intType)) else right in
+    Cil.mkBinOp ~loc op l r
 
   let implies ?(loc=unk_loc) l r =
     let n_l = lnot ~loc l in

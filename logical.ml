@@ -327,7 +327,7 @@ module DC = Annotators.Register (struct
 *)
 module GACC = Annotators.Register (struct
     let name = "GACC"
-    let help = "General Active Clause Coverage (weakened MC/DC)"
+    let help = "General Active Clause Coverage (weakened MCDC)"
     
     let apply mk_label file = 
       apply (gen_labels_gacc mk_label) (Options.AllBoolExps.get ()) file
@@ -339,7 +339,7 @@ module GACC = Annotators.Register (struct
 *)
 module CACC = Annotators.Register (struct
     let name = "CACC"
-    let help = "Correlated Active Clause Coverage (masking MC/DC)"
+    let help = "Correlated Active Clause Coverage (masking MCDC)"
     let apply mk_label file = 
       apply (gen_labels_cacc mk_label) (Options.AllBoolExps.get ()) file;
       !gen_hyperlabels_cacc ()
@@ -351,7 +351,7 @@ module CACC = Annotators.Register (struct
 *)
 module RACC = Annotators.Register (struct
     let name = "RACC"
-    let help = "Restricted Active Clause Coverage (masking MC/DC)"
+    let help = "Restricted Active Clause Coverage (strong MCDC)"
     let apply mk_label file = 
       apply (gen_labels_racc mk_label) (Options.AllBoolExps.get ()) file;
       !gen_hyperlabels_racc ()
