@@ -105,3 +105,20 @@ module CallCov = Annotators.Register (struct
 			      Visitor.visitFramacFileSameGlobals (new visitor :> Visitor.frama_c_visitor) file;
 			      !gen_hyperlabels_callcov ()
   end)
+
+
+(** Nop Visitor **)
+class nopvisitor = object(_)
+  inherit Visitor.frama_c_inplace
+end
+
+
+(**
+   Call coverage annotator
+*)
+module Empty = Annotators.Register (struct
+    let name = "Empty"
+    let help = "Process file but add no label"   
+    let apply mk_label file = ignore mk_label; (* Avoid warning about mk_label unused *)
+			      Visitor.visitFramacFileSameGlobals (new nopvisitor :> Visitor.frama_c_visitor) file
+  end)

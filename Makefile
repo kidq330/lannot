@@ -28,5 +28,5 @@ PLUGIN_NAME	= LAnnotate
 PLUGIN_TESTS_DIRS:=bubblesort
 
 PLUGIN_CMO	= options utils ast_const bes simplify annotators instru \
-		  logical partition function register
+		  logical partition dataflow function register
 include $(FRAMAC_SHARE)/Makefile.dynamic
