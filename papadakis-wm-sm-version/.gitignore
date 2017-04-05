@@ -1,0 +1,10 @@
+*.cm[oaxit]
+*.cmx[as]
+*.cmti
+*.annot
+*.o
+*.a
+*~
+.*.swp
+.depend
+*_DEP

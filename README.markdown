@@ -57,6 +57,7 @@ Authors
 
 - Omar Chebaro
 - Mickaël Delahaye
+- Michaël Marcozzi
 
 Also many thanks to the rest of LTest's team:
 - Nikolai Kosmatov
@@ -67,7 +68,7 @@ License
 
 This file is part of Frama-C
 
-Copyright (C) 2013-2014
+Copyright (C) 2013-2016
   CEA (Commissariat à l'énergie atomique et aux énergies alternatives)
 
 You may redistribute it and/or modify it under the terms of the GNU
