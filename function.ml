@@ -106,6 +106,72 @@ module CallCov = Annotators.Register (struct
 			      !gen_hyperlabels_callcov ()
   end)
 
+let cplTyToNbr = Hashtbl.create 100
+let id_gen = ref 0
+let list_convert = ref []
+let oc = ref None
+let get_oc () = match !oc with | Some f -> f | None -> let f = (open_out "output.txt") in oc := Some f; f  
+
+(** Remove Cast Visitor **)
+class remcastvisitor = object(_)
+  inherit Visitor.frama_c_inplace
+  
+  val mutable current_func = Cil.emptyFunction ""
+
+  method! vfunc dec =
+    current_func <- dec;
+    Cil.DoChildren
+    
+    
+  
+  method! vexpr e = match e.enode
+		    with | CastE (_,_) -> let f res = match res.enode with | CastE (tt1,ce) ->
+		    			    let tt2 = Cil.typeOf ce in 
+		    			    (Printer.pp_typ (Format.str_formatter) tt2) ;
+		    			    let t2 = (Format.flush_str_formatter ()) in	    			    
+		    			    (Printer.pp_typ (Format.str_formatter) tt1) ;
+		    			    let t1 = (Format.flush_str_formatter ()) in
+		    			    let nb_fun_repl = if Hashtbl.mem cplTyToNbr (t2,t1) then (
+		    			    	Hashtbl.find cplTyToNbr (t2,t1)
+		    			    ) else (
+		    			    	incr id_gen;
+		    			    	let nb = !id_gen in
+		    			    	Hashtbl.add cplTyToNbr (t2,t1) !id_gen;
+		    			    	Printf.fprintf (get_oc ()) "%s\n" ("/*@assigns \\nothing;*/ "^t1^" convert_"^(string_of_int nb)^"("^t2^" input);");
+		    			    	nb
+		    			    ) in
+		    			    let convert_fun_name = "convert_"^(string_of_int nb_fun_repl) in
+		    			    let convert_result_info = (Cil.makeTempVar current_func tt1) in
+		    			    let convert_result = (Cil.var convert_result_info) in
+		    			    let convert_call = (Utils.mk_call ~result:convert_result convert_fun_name ([ce])) in
+		    			    list_convert := convert_call::!list_convert;
+		    			    (Cil.evar convert_result_info) 
+		    			    | _ -> failwith "Unexpected"
+		    			    in (Cil.DoChildrenPost f) 		    		
+		         | _ -> Cil.DoChildren
+   
+   method! vstmt_aux _ = let f res =
+   			    if not ((List.length !list_convert)=0) then (	
+   			    	let listr = List.rev (res::!list_convert) in
+   			    	list_convert := [];
+   			    	(Stmt.block listr)  			    
+   			    ) else res in (Cil.DoChildrenPost f)
+   			    
+  
+end
+
+
+(**
+   Remove cast annotator
+*)
+module CastRem = Annotators.Register (struct
+    let name = "CastRem"
+    let help = "Process file and replace cast by function calls"   
+    let apply mk_label file = ignore mk_label; (* Avoid warning about mk_label unused *)
+			      Visitor.visitFramacFileSameGlobals (new remcastvisitor :> Visitor.frama_c_visitor) file
+  end)
+
+
 
 (** Nop Visitor **)
 class nopvisitor = object(_)
