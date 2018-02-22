@@ -8,4 +8,9 @@
 .*.swp
 .depend
 *_DEP
+*.check_mli_exists
+.Makefile.plugin.generated
+/top/
+META.frama-c-*
+/tests/ptests_config
 .merlin

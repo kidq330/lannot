@@ -113,7 +113,7 @@ let mk_compute_extras apply name id collect ast =
   apply mk_label' ast
 
 let register_annotator ann =
-  Options.debug1 "register %s annotator" ann.name;
+  Options.debug "register %s annotator" ann.name;
   Hashtbl.replace annotators ann.name ann
 
 module Register (A : ANNOTATOR) = struct

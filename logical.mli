@@ -16,3 +16,12 @@ module DC : Annotators.S
 
 (** General Active Clause Coverage (weakened MC/DC) *)
 module GACC : Annotators.S
+
+(** Correlated Active Clause Coverage annotator *)
+module CACC : Annotators.S
+
+(** Restricted Active Clause Coverage annotator *)
+module RACC : Annotators.S
+
+(** General Inactive Clause Coverage annotator *)
+module GICC : Annotators.S

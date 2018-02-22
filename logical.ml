@@ -35,12 +35,12 @@ let gen_labels_ncc mk_label n (bexpr : exp) : stmt =
   let loc = bexpr.eloc in
   let atoms = atomic_conditions bexpr in
   let natoms = List.length atoms in
-  Options.debug3 "%d atoms in @[%a@]" natoms Printer.pp_exp bexpr;
+  Options.debug "%d atoms in @[%a@]" natoms Printer.pp_exp bexpr;
 
   (* Compute subsets of m atoms *)
   let n = if n <= 0 then natoms else min n natoms in
   let subsets = combine n atoms in
-  Options.debug2 "%d subsets of %d atoms" (List.length subsets) n;
+  Options.debug "%d subsets of %d atoms" (List.length subsets) n;
 
   (* For each signed subset of atoms, *)
   let for_signed_subset (acc : stmt list) (signed_subset : exp list) : stmt list =
@@ -273,7 +273,7 @@ let apply gen_labels all_boolean file =
 
 (** n-CC condition/boolean expression annotator *)
 let apply_ncc mk_label n all_boolean file =
-  Options.debug2 "n-Condition Coverage config: n=%d, all booleans=%B" n all_boolean;
+  Options.debug "n-Condition Coverage config: n=%d, all booleans=%B" n all_boolean;
   apply (gen_labels_ncc mk_label n) all_boolean file
 
 

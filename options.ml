@@ -33,7 +33,7 @@ let rec string_list l =
   | a :: b :: [] -> a^" and "^b
   | head :: tail -> head^", "^string_list tail
 
-module Annotators = StringSet (struct
+module Annotators = String_set (struct
     let option_name = "-lannot"
     let arg_name = "criteria"
     let help = "generate labels for each criterion (comma-separated \
@@ -41,7 +41,7 @@ module Annotators = StringSet (struct
   end)
 let () = Annotators.add_aliases ["-lannotate"]
 
-module Output = EmptyString (struct
+module Output = Empty_string (struct
     let option_name = "-lannot-o"
     let arg_name = "file"
     let help = "set output file (default: add _labels before extension)"
@@ -54,7 +54,7 @@ module Simplify = False (struct
   end)
 
 let () = Parameter_customize.argument_is_function_name ()
-module FunctionNames = StringSet (struct
+module FunctionNames = String_set (struct
     let arg_name = "funs"
     let option_name = "-lannot-functions"
     let help = "filter by function names (disabled by default)"
@@ -90,7 +90,7 @@ module N = Int (struct
 
 let () = Parameter_customize.set_group crit_group
 let mutators = ["AOR"; "ROR"; "COR"; "ABS"]
-module Mutators = FilledStringSet (struct
+module Mutators = Filled_string_set (struct
     let option_name = "-lannot-mutators"
     let arg_name = "mutators"
     let help = "select mutators for WM labelling (comma-separated list \
@@ -98,7 +98,8 @@ module Mutators = FilledStringSet (struct
     let default = Datatype.String.Set.of_list mutators
   end)
 
-let () = Mutators.set_possible_values mutators
+(* As_string : Does not work for multiple mutators at the same time *)
+(*let () = Mutators.set_possible_values mutators*)
 
 
 let ipd_group = add_group "Options for Input Domain Partionning (IPD)"

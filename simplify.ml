@@ -82,7 +82,7 @@ let dnf_and_dnf_minterm (n: int) a bminterm =
     | None -> acc
   in
   let res = List.rev (List.fold_left f [] a) in
-  Options.debug6 ~level:10 "@[%a@] . @[%a@] = @[%a@]"
+  Options.debug ~level:10 "@[%a@] . @[%a@] = @[%a@]"
     Bes.pp_dnf_expression a Bes.pp_dnf_minterm bminterm Bes.pp_dnf_expression res;
   res
 
@@ -119,7 +119,7 @@ let rec propagate_nots_aux ~neg (t : formula) : formula2 =
 
 let propagate_nots (formula : formula) : formula2 =
   let res = propagate_nots_aux false formula in
-  Options.debug4 ~level:debug_level "remove negations: @[%a@] -> @[%a@]"
+  Options.debug ~level:debug_level "remove negations: @[%a@] -> @[%a@]"
     pp_formula formula pp_formula res;
   res
 
@@ -129,14 +129,14 @@ let rec to_dnf_aux n t =
     let a = to_dnf_aux n a in
     let b = to_dnf_aux n b in
     let res = dnf_and n a b in
-    Options.debug6 ~level:(debug_level+1) "@[%a@] . @[%a@] = @[%a@]"
+    Options.debug ~level:(debug_level+1) "@[%a@] . @[%a@] = @[%a@]"
       Bes.pp_dnf_expression a Bes.pp_dnf_expression b Bes.pp_dnf_expression res;
     res
   | `TOr (a, b) ->
     let a = to_dnf_aux n a in
     let b = to_dnf_aux n b in
     let res = dnf_or n a b in
-    Options.debug6 ~level:(debug_level+1) "@[%a@] + @[%a@] = @[%a@]"
+    Options.debug ~level:(debug_level+1) "@[%a@] + @[%a@] = @[%a@]"
       Bes.pp_dnf_expression a Bes.pp_dnf_expression b Bes.pp_dnf_expression res;
     res
   | `TAtomPos id -> dnf_var n id `True
@@ -146,7 +146,7 @@ let rec to_dnf_aux n t =
 
 let to_dnf n (t : formula) =
   let res = to_dnf_aux n (propagate_nots t) in
-  Options.debug4 ~level:debug_level "convert to dnf: @[%a@] -> @[%a@]"
+  Options.debug ~level:debug_level "convert to dnf: @[%a@] -> @[%a@]"
     pp_formula t Bes.pp_dnf_expression res;
   res
 

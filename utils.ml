@@ -43,7 +43,7 @@ let extract_global_vars file =
   let f acc global =
     match global with
     | GVar (vi,_,_) -> if Cil.isFunctionType vi.vtype then acc else S.add vi acc
-    | GVarDecl (_,vi,_) -> if Cil.isFunctionType vi.vtype then acc else S.add vi acc
+    | GVarDecl (vi,_) -> if Cil.isFunctionType vi.vtype then acc else S.add vi acc
     | _ -> acc
   in
   let globals = Cil.foldGlobals file f S.empty in
@@ -90,7 +90,7 @@ let is_label instr =
    Used to detect boolean expression outside conditional statement
 *)
 let is_boolean e =
-  Options.debug2 ~level:3 "is boolean? @[%a@]@." Cil_printer.pp_exp e;
+  Options.debug ~level:3 "is boolean? @[%a@]@." Cil_printer.pp_exp e;
   match e.enode with
   (* C99 _Bool type *)
   | BinOp (_, _, _, TInt (IBool, _))
