@@ -73,10 +73,10 @@ let annotate_with annotator ?(id=next) ?(collect=nocollect) ast =
 let annotate filename names ?(id=next) ?(collect=nocollect) ast =
   filen := filename;
   let f name =
- (*   try *)
+    try 
       annotate_with ~id ~collect (Hashtbl.find annotators name) ast
- (*   with Not_found ->
-      Options.warning "unknown annotators `%s`" name;*)
+    with Not_found ->
+      Options.warning "unknown annotators `%s`" name;
   in
   List.iter f names
 
