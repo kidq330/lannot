@@ -1,0 +1,9 @@
+[kernel] Parsing tests/FCC/mandelbrot_d.c (with preprocessing)
+[lannot] start project default_labels
+[kernel] Parsing tests/FCC/mandelbrot_d.c (with preprocessing)
+[lannot] apply annotations for FCC
+[lannot] write hyperlabel data (to tests/FCC/result/mandelbrot_d_labels.hyperlabels)
+[lannot] finished
+[lannot] write modified C file (to tests/FCC/result/mandelbrot_d_labels.c)
+[lannot] write label data (to tests/FCC/result/mandelbrot_d_labels.labels)
+[lannot] finished

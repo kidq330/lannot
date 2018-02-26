@@ -1,10 +1,10 @@
-[kernel] Parsing tests/CC/TriTyp.c (with preprocessing)
+[kernel] Parsing tests/MCC/TriTyp.c (with preprocessing)
 [lannot] start project default_labels
-[kernel] Parsing tests/CC/TriTyp.c (with preprocessing)
-[lannot] apply annotations for CC
-[lannot] n-Condition Coverage config: n=1, all booleans=false
+[kernel] Parsing tests/MCC/TriTyp.c (with preprocessing)
+[lannot] apply annotations for MCC
+[lannot] n-Condition Coverage config: n=0, all booleans=false
 [lannot] 3 atoms in (Side1 <= 0 || Side2 <= 0) || Side3 <= 0
-[lannot] 3 subsets of 1 atoms
+[lannot] 1 subsets of 3 atoms
 [lannot] 1 atoms in Side1 == Side2
 [lannot] 1 subsets of 1 atoms
 [lannot] 1 atoms in Side1 == Side3
@@ -15,15 +15,15 @@
 [lannot] 1 atoms in triOut == 0
 [lannot] 1 subsets of 1 atoms
 [lannot] 3 atoms in (Side1 + Side2 <= Side3 || Side2 + Side3 <= Side1) || Side1 + Side3 <= Side2
-[lannot] 3 subsets of 1 atoms
+[lannot] 1 subsets of 3 atoms
 [lannot] 1 atoms in triOut > 3
 [lannot] 1 subsets of 1 atoms
 [lannot] 2 atoms in triOut == 1 && Side1 + Side2 > Side3
-[lannot] 2 subsets of 1 atoms
+[lannot] 1 subsets of 2 atoms
 [lannot] 2 atoms in triOut == 2 && Side1 + Side3 > Side2
-[lannot] 2 subsets of 1 atoms
+[lannot] 1 subsets of 2 atoms
 [lannot] 2 atoms in triOut == 3 && Side2 + Side3 > Side1
-[lannot] 2 subsets of 1 atoms
-[lannot] write modified C file (to tests/CC/result/TriTyp_labels.c)
-[lannot] write label data (to tests/CC/result/TriTyp_labels.labels)
+[lannot] 1 subsets of 2 atoms
+[lannot] write modified C file (to tests/MCC/result/TriTyp_labels.c)
+[lannot] write label data (to tests/MCC/result/TriTyp_labels.labels)
 [lannot] finished
