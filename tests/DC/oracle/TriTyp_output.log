@@ -1,0 +1,7 @@
+[kernel] Parsing tests/DC/TriTyp.c (with preprocessing)
+[lannot] start project default_labels
+[kernel] Parsing tests/DC/TriTyp.c (with preprocessing)
+[lannot] apply annotations for DC
+[lannot] write modified C file (to tests/DC/result/TriTyp_labels.c)
+[lannot] write label data (to tests/DC/result/TriTyp_labels.labels)
+[lannot] finished

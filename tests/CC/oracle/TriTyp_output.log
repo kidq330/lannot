@@ -1,6 +1,6 @@
-[kernel] Parsing tests/CC/TriTyp_CC.c (with preprocessing)
+[kernel] Parsing tests/CC/TriTyp.c (with preprocessing)
 [lannot] start project default_labels
-[kernel] Parsing tests/CC/TriTyp_CC.c (with preprocessing)
+[kernel] Parsing tests/CC/TriTyp.c (with preprocessing)
 [lannot] apply annotations for CC
 [lannot] n-Condition Coverage config: n=1, all booleans=false
 [lannot] 3 atoms in (Side1 <= 0 || Side2 <= 0) || Side3 <= 0
@@ -24,6 +24,6 @@
 [lannot] 2 subsets of 1 atoms
 [lannot] 2 atoms in triOut == 3 && Side2 + Side3 > Side1
 [lannot] 2 subsets of 1 atoms
-[lannot] write modified C file (to tests/CC/result/TriTyp_CC_labels.c)
-[lannot] write label data (to tests/CC/result/TriTyp_CC_labels.labels)
+[lannot] write modified C file (to tests/CC/result/TriTyp_labels.c)
+[lannot] write label data (to tests/CC/result/TriTyp_labels.labels)
 [lannot] finished

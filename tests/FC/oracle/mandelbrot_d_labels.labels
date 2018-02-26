@@ -1,0 +1,10 @@
+# id, status, tags, origin, current, verdict emitter
+9,unknown,FC,/home/tmartin/Documents/Labels/lannotate/tests/FC/mandelbrot_d.c:83,,lannot
+8,unknown,FC,/home/tmartin/Documents/Labels/lannotate/tests/FC/mandelbrot_d.c:50,,lannot
+7,unknown,FC,/home/tmartin/Documents/Labels/lannotate/tests/FC/mandelbrot_d.c:46,,lannot
+6,unknown,FC,/home/tmartin/Documents/Labels/lannotate/tests/FC/mandelbrot_d.c:35,,lannot
+5,unknown,FC,/home/tmartin/Documents/Labels/lannotate/tests/FC/mandelbrot_d.c:31,,lannot
+4,unknown,FC,/home/tmartin/Documents/Labels/lannotate/tests/FC/mandelbrot_d.c:26,,lannot
+3,unknown,FC,/home/tmartin/Documents/Labels/lannotate/tests/FC/mandelbrot_d.c:21,,lannot
+2,unknown,FC,/home/tmartin/Documents/Labels/lannotate/tests/FC/mandelbrot_d.c:18,,lannot
+1,unknown,FC,/home/tmartin/Documents/Labels/lannotate/tests/FC/mandelbrot_d.c:15,,lannot
