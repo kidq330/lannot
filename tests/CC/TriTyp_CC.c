@@ -1,5 +1,5 @@
 /* run.config
-   EXECNOW: LOG @PTEST_NAME@_labels.c LOG @PTEST_NAME@_output.log LOG @PTEST_NAME@_labels.labels  @frama-c@ -lannot=CC @PTEST_DIR@/@PTEST_NAME@.c -lannot-debug 3 -lannot-o ./tests/triTyp/result/@PTEST_NAME@_labels.c > @PTEST_DIR@/result/@PTEST_NAME@_output.log
+   EXECNOW: LOG @PTEST_NAME@_labels.c LOG @PTEST_NAME@_output.log LOG @PTEST_NAME@_labels.labels  @frama-c@ -lannot=CC @PTEST_DIR@/@PTEST_NAME@.c -lannot-debug 3 -lannot-o @PTEST_DIR@/result/@PTEST_NAME@_labels.c > @PTEST_DIR@/result/@PTEST_NAME@_output.log
  */
 
 
