@@ -1,3 +1,8 @@
+/* run.config
+   EXECNOW: LOG @PTEST_NAME@_labels.c LOG @PTEST_NAME@_output.log LOG @PTEST_NAME@_labels.labels  @frama-c@ -lannot=DC @PTEST_DIR@/@PTEST_NAME@.c -lannot-debug 3 -lannot-o ./tests/triTyp/result/@PTEST_NAME@_labels.c > @PTEST_DIR@/result/@PTEST_NAME@_output.log
+ */
+
+
 int triang (int Side1, int Side2, int Side3){      // function under test
    int triOut;
 
