@@ -33,7 +33,7 @@ let store_label_data out annotations =
     let verdict = if Cil.isZero cond then "uncoverable" else "unknown" in
     Format.fprintf formatter "%d,%s,%s,%s:%d,,lannot@." id verdict tags origin_file origin_line
   in
-  List.iter print_one annotations;
+  List.iter print_one (List.rev annotations);
   Format.pp_print_flush formatter ()
 
 let compute_outfile opt files =
