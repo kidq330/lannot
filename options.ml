@@ -53,7 +53,10 @@ module Simplify = False (struct
     let help = "enable the simplification of boolean expressions before annotations"
   end)
 
-let () = Parameter_customize.argument_is_function_name ()
+
+(* Solution temporaire *)
+let () = Parameter_customize.no_category ()
+(*let () = Parameter_customize.argument_is_function_name ()*)
 module FunctionNames = String_set (struct
     let arg_name = "funs"
     let option_name = "-lannot-functions"
