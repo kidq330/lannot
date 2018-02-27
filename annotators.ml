@@ -132,8 +132,11 @@ end
 let shouldInstrument fun_varinfo =
   let names = Options.FunctionNames.get () in
   (* TODO filter builtin functions *)
-  if Datatype.String.Set.is_empty names then
+  if  Cil_datatype.Kf.Set.is_empty names then
     true
-  else
-    Datatype.String.Set.mem fun_varinfo.vname names
-
+  else begin
+    let f (kf : Cil_datatype.Kf.Set.elt ) =
+      Cil_datatype.Kf.varname kf = "kf_" ^ fun_varinfo.vname
+    in
+    Cil_datatype.Kf.Set.exists f names
+  end
