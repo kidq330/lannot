@@ -92,6 +92,7 @@ module N = Int (struct
 
 
 let () = Parameter_customize.set_group crit_group
+let () = Parameter_customize.no_category ()
 let mutators = ["AOR"; "ROR"; "COR"; "ABS"]
 module Mutators = Filled_string_set (struct
     let option_name = "-lannot-mutators"
