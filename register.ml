@@ -91,22 +91,8 @@ let setupMutatorOptions () =
     else if mutname = "ABS" then Instru.absOption := true
     else if mutname = "ROR" then Instru.rorOption := true
   in
-  (* Old *)
-  (* Options.Mutators.iter f *)
+  Options.Mutators.iter f
   
-  (* Solution temporaire *)
-  (* Options.Mutators.get renvoie uniquement la liste des mutators par defaut sans prendre en compte les mutators
-     passé à l'option. Le seul moyen que j'ai trouvé pour l'instant est de récupérer Mutators sous forme de string,
-     créer une liste de mutators en splittant ce string a chaque ',' , et si cette liste est supérieur au nombre
-     de mutators par defaut, alors je supprime ceux par defaut.
-
- *)
-  let mutators = String.split_on_char ',' (Options.Mutators.As_string.get ()) in
-  let size = Datatype.String.Set.cardinal (Options.Mutators.get ()) in
-  if List.length mutators > size then
-    List.iteri (fun i e -> if i >= size then f e) mutators
-  else
-    List.iter (fun e -> f e ) mutators
 
 (* ENTRY POINT *)
 let run () =

@@ -200,9 +200,9 @@ Others
     frama-c -lannot=WM file.c
 
 This command creates an annoted file with labels corresponding to every
-available mutators. One can select more precisely mutators, like so:
+available mutators. One can select more precisely mutators by removing some of them, like so:
 
-    frama-c -lannot=WM -lannot-mutators=AOR,COR file.c
+    frama-c -lannot=WM -lannot-mutators=-AOR,-COR file.c
 
 Available mutators are ABS, AOR, COR and ROR.
 

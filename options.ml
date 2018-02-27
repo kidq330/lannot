@@ -92,7 +92,6 @@ module N = Int (struct
 
 
 let () = Parameter_customize.set_group crit_group
-let () = Parameter_customize.no_category ()
 let mutators = ["AOR"; "ROR"; "COR"; "ABS"]
 module Mutators = Filled_string_set (struct
     let option_name = "-lannot-mutators"
@@ -101,9 +100,6 @@ module Mutators = Filled_string_set (struct
                 of mutators among "^string_list mutators^", default: all)"
     let default = Datatype.String.Set.of_list mutators
   end)
-
-(* As_string : Does not work for multiple mutators at the same time *)
-(*let () = Mutators.set_possible_values mutators*)
 
 
 let ipd_group = add_group "Options for Input Domain Partionning (IPD)"
