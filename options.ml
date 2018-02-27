@@ -86,7 +86,6 @@ module N = Int (struct
     let default = 2
   end)
 
-
 let () = Parameter_customize.set_group crit_group
 let mutators = ["AOR"; "ROR"; "COR"; "ABS"]
 module Mutators = Filled_string_set (struct
@@ -96,7 +95,6 @@ module Mutators = Filled_string_set (struct
                 of mutators among "^string_list mutators^", default: all)"
     let default = Datatype.String.Set.of_list mutators
   end)
-
 
 let ipd_group = add_group "Options for Input Domain Partionning (IPD)"
 
