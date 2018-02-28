@@ -18,15 +18,15 @@ call) are also considered.
 The following example:
 
 ```c
-if (a && || c) ...
+if (a && b || c) ...
 ```
 
 becomes:
 
 ```c
-pc_label(a, 1, "DC");
-pc_label(a, 2, "DC");
-if (a && || c) ...
+pc_label((a && b) || c,2,"DC");
+pc_label(! ((a && b) || c),1,"DC");
+if (a && b || c) ...
 ```
 
 Note that the second parameter of `pc_label` may vary, it's a unique identifier
@@ -65,10 +65,10 @@ if (a <= b && c >= b) {
 becomes:
 
 ```c
-pc_label(! (a <= b) && ! (c >= b),1,"MCC");
-pc_label(! (a <= b) && c >= b,2,"MCC");
-pc_label(a <= b && ! (c >= b),3,"MCC");
-pc_label(a <= b && c >= b,4,"MCC");
+pc_label(a <= b && c >= b,1,"MCC");
+pc_label(a <= b && ! (c >= b),2,"MCC");
+pc_label(! (a <= b) && c >= b,3,"MCC");
+pc_label(! (a <= b) && ! (c >= b),4,"MCC");
 if (a <= b && c >= b) {
 ```
 
@@ -116,7 +116,7 @@ See [Ammann & Offut, p109].
 The following branch:
 
 ```c
-if (a && || c) ...
+if (a && b || c) ...
 ```
 
 becomes:
@@ -128,7 +128,7 @@ pc_label(b && ((! (a || c) && c) || ((a || c) && ! c)),3,"GACC");
 pc_label(! b && ((! (a || c) && c) || ((a || c) && ! c)),4,"GACC");
 pc_label(c && ! (a && b),5,"GACC");
 pc_label(! c && ! (a && b),6,"GACC");
-if (a && || c) ...
+if (a && b || c) ...
 ```
 
 Each label includes two parts:
@@ -150,13 +150,12 @@ See [Ammann & Offut, p112].
 The following branch:
 
 ```c
-if (a && || c) ...
+if (a && b || c) ...
 ```
 
 becomes:
 
 ```c
-int __retres;
 pc_label((a && ((! (b || c) || (b || c)) && (! (b || c) || (b || c)))) &&
   ((a && b) || c),1,"GICC");
 pc_label((a && ((! (b || c) || (b || c)) && (! (b || c) || (b || c)))) &&
@@ -177,7 +176,7 @@ pc_label(c && ((a && b) || c),9,"GICC");
 pc_label(c && ! ((a && b) || c),10,"GICC");
 pc_label(! c && ((a && b) || c),11,"GICC");
 pc_label(! c && ! ((a && b) || c),12,"GICC");
-if (a && || c) ...
+if (a && b || c) ...
 ```
 
 Each label includes two parts:
@@ -206,6 +205,29 @@ available mutators. One can select more precisely mutators by removing some of t
 
 Available mutators are ABS, AOR, COR and ROR.
 
+The following example (with ABS, AOR and ROR):
+
+```c
+int main(int a, int b){
+  return a + b;
+}
+```
+
+will be instrumented as follows:
+
+```c
+int main(int a, int b) {
+  int __retres;
+  pc_label(a * b != a + b,1,"WM AOR");
+  pc_label(a / b != a + b,2,"WM AOR");
+  pc_label(a - b != a + b,3,"WM AOR");
+  pc_label(a < 0,4,"WM ABS");
+  pc_label(b < 0,5,"WM ABS");
+  __retres = a + b;
+  pc_label(__retres < 0,6,"WM ABS");
+  return __retres;
+}
+```
 
 ### IDP (Input Domain Partition)
 
@@ -230,7 +252,36 @@ will be instrumented as follows:
 
 ```c
 void f() {
-  pc_label(TRUE,1,"F");
+  pc_label(TRUE,1,"FC");
   ...
 }
 ```
+
+### FCC (Function Call Coverage)
+
+The following example:
+
+```c
+void f() {
+  ...
+}
+
+void main(){
+  f();
+}
+
+```
+
+will be instrumented as follows:
+
+```c
+int f() {
+  ...
+}
+
+void main() {
+  pc_label(TRUE,1,"FCC");
+  f();
+}
+```
+

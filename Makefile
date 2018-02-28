@@ -25,7 +25,7 @@ FRAMAC_LIBDIR	:=$(shell frama-c.byte -print-libpath)
 PLUGIN_NAME	= LAnnotate
 
 
-PLUGIN_TESTS_DIRS:= CACC CC DC FC FCC MCC misc
+PLUGIN_TESTS_DIRS:= options criteria
 
 PLUGIN_CMO	= options utils ast_const bes simplify annotators instru \
 		  logical partition dataflow function register

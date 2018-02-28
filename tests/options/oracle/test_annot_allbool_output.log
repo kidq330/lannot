@@ -1,0 +1,11 @@
+[kernel] Parsing tests/options/test_annot_allbool.c (with preprocessing)
+[lannot] Enabling ABS mutator
+[lannot] Enabling AOR mutator
+[lannot] Enabling COR mutator
+[lannot] Enabling ROR mutator
+[lannot] start project default_labels
+[kernel] Parsing tests/options/test_annot_allbool.c (with preprocessing)
+[lannot] apply annotations for DC
+[lannot] write modified C file (to tests/options/result/test_annot_allbool_labels.c)
+[lannot] write label data (to tests/options/result/test_annot_allbool_labels.labels)
+[lannot] finished

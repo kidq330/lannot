@@ -1,0 +1,11 @@
+[kernel] Parsing tests/criteria/test_FC.c (with preprocessing)
+[lannot] Enabling ABS mutator
+[lannot] Enabling AOR mutator
+[lannot] Enabling COR mutator
+[lannot] Enabling ROR mutator
+[lannot] start project default_labels
+[kernel] Parsing tests/criteria/test_FC.c (with preprocessing)
+[lannot] apply annotations for FC
+[lannot] write modified C file (to tests/criteria/result/test_FC_labels.c)
+[lannot] write label data (to tests/criteria/result/test_FC_labels.labels)
+[lannot] finished
