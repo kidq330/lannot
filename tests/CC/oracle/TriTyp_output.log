@@ -1,4 +1,8 @@
 [kernel] Parsing tests/CC/TriTyp.c (with preprocessing)
+[lannot] Enabling ABS mutator
+[lannot] Enabling AOR mutator
+[lannot] Enabling COR mutator
+[lannot] Enabling ROR mutator
 [lannot] start project default_labels
 [kernel] Parsing tests/CC/TriTyp.c (with preprocessing)
 [lannot] apply annotations for CC
