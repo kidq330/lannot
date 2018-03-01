@@ -20,13 +20,13 @@
 #                                                                        #
 ##########################################################################
 
-FRAMAC_SHARE	:=$(shell frama-c.byte -print-path)
-FRAMAC_LIBDIR	:=$(shell frama-c.byte -print-libpath)
-PLUGIN_NAME	= LAnnotate
+FRAMAC_SHARE    :=$(shell frama-c.byte -print-path)
+FRAMAC_LIBDIR   :=$(shell frama-c.byte -print-libpath)
+PLUGIN_NAME      = LAnnotate
 
 
 PLUGIN_TESTS_DIRS:= options criteria
 
-PLUGIN_CMO	= options utils ast_const bes simplify annotators instru \
-		  logical partition dataflow function register
+PLUGIN_CMO = options utils ast_const bes simplify annotators instru \
+             logical partition dataflow function register
 include $(FRAMAC_SHARE)/Makefile.dynamic

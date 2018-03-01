@@ -38,31 +38,31 @@ let print_project prj filename =
   let _ = Format.set_formatter_out_channel Pervasives.stdout in
     filename
 
-let prepareLabelsBuffer labelsList myBuffer = 
+let prepareLabelsBuffer labelsList myBuffer =
   Buffer.add_string myBuffer "<labels>\n";
 
   let rec printLabels labels =
     match labels with
-      |	(fileName,lineNb, id, cond, ltype)::rest ->
-	  let myBuf = Buffer.create 128 in
-	  let fmt = Format.formatter_of_buffer myBuf in
-	    Printer.pp_exp fmt cond;
-	    Format.pp_print_flush fmt ();
-	    Buffer.add_string myBuffer ("<label>\n");
-	    Buffer.add_string myBuffer ("<id>" ^ (string_of_int id)  ^ "</id>\n");
-	    Buffer.add_string myBuffer ("<cond>" ^ (Buffer.contents myBuf) ^ "</cond>\n");
-	    Buffer.add_string myBuffer ("<file>" ^ fileName  ^ "</file>\n");
-	    Buffer.add_string myBuffer ("<line>" ^ (string_of_int lineNb)  ^ "</line>\n");
-	    Buffer.add_string myBuffer ("<type>" ^ ltype  ^ "</type>\n");
-	  Buffer.add_string myBuffer ("</label>\n");
-	  printLabels rest 
+      | (fileName,lineNb, id, cond, ltype)::rest ->
+          let myBuf = Buffer.create 128 in
+          let fmt = Format.formatter_of_buffer myBuf in
+            Printer.pp_exp fmt cond;
+            Format.pp_print_flush fmt ();
+            Buffer.add_string myBuffer ("<label>\n");
+            Buffer.add_string myBuffer ("<id>" ^ (string_of_int id)  ^ "</id>\n");
+            Buffer.add_string myBuffer ("<cond>" ^ (Buffer.contents myBuf) ^ "</cond>\n");
+            Buffer.add_string myBuffer ("<file>" ^ fileName  ^ "</file>\n");
+            Buffer.add_string myBuffer ("<line>" ^ (string_of_int lineNb)  ^ "</line>\n");
+            Buffer.add_string myBuffer ("<type>" ^ ltype  ^ "</type>\n");
+          Buffer.add_string myBuffer ("</label>\n");
+          printLabels rest
       | [] -> ()
-  in 
+  in
     printLabels (List.rev !labelsList);
     Buffer.add_string myBuffer "</labels>\n"
 *)
 (*
-let makeLabel cond loc ltype = 
+let makeLabel cond loc ltype =
   let labelTypeExp = Ast_const.Exp.mk (Const(CStr(ltype))) in
   let labelIdExp = Ast_const.Exp.mk (Const(CInt64(Integer.of_int(!nextLabelId),IInt,None))) in
   let lineNumber = (fst loc).pos_lnum in
@@ -76,7 +76,7 @@ let makeLabel cond loc ltype =
 module CC = Annotators.Register (struct
     let name = "CC_OLD"
     let help = "Condition Coverage"
-    
+
     let rec genLabelPerExp mk_label exp loc =
       match exp.enode with
       | BinOp(LAnd, e1, e2, _) ->
@@ -186,7 +186,7 @@ module MCC = Annotators.Register (struct
 
     let name = "MCC_OLD"
     let help = "Multiple Condition Coverage"
-    
+
 
     let generateStatementFromConditionsList mk_label conds loc =
       let rec mergeConds condsList =
@@ -319,10 +319,10 @@ module MCC = Annotators.Register (struct
 (*****************************************)
 
 
-(***  let loc = Cil_datatype.Location.unknown in  
+(***  let loc = Cil_datatype.Location.unknown in
       Locations.loc_of_varinfo y
 *)
-let getLocFromFunction f = 
+let getLocFromFunction f =
   match f.sbody.bstmts with
   | a::_ -> Cil_datatype.Stmt.loc a
   | [] -> Cil_datatype.Location.unknown
@@ -331,9 +331,9 @@ module Partition = Annotators.Register (struct
 
     let name = "IDP_OLD"
     let help = "Input Domain Partition"
-    
+
     let makeLabelsFromInput mk_label myParam loc =
-      match myParam.vtype with 
+      match myParam.vtype with
       | TInt _
       | TFloat _ ->
         let formalExp = Ast_const.Exp.mk (Lval (var myParam)) in
@@ -362,12 +362,12 @@ module Partition = Annotators.Register (struct
         if Annotators.shouldInstrument f.svar then
           begin
             let loc = getLocFromFunction f in
-            let rec labelsFromFormals formals = 
-              match formals with 
+            let rec labelsFromFormals formals =
+              match formals with
               | [] -> []
-              | a :: tail -> 
+              | a :: tail ->
                 List.append (makeLabelsFromInput mk_label a loc) (labelsFromFormals tail)
-            in 
+            in
             let oldBody = mkStmt (Block(f.sbody)) in
             let newStmts = List.append (labelsFromFormals f.sformals) [oldBody] in
             let newBody = mkBlock newStmts in
@@ -398,9 +398,9 @@ module WM = Annotators.RegisterWithExtraTags (struct
       method! vfunc f =
         if Annotators.shouldInstrument f.svar then DoChildren else SkipChildren
 
-      method! vstmt_aux stmt =      	  
+      method! vstmt_aux stmt =
         let makeLabel cond loc category = mk_label ~extra:[category] cond [] loc in
-        let rec traitExp e loc = 
+        let rec traitExp e loc =
           let labelsStmts = ref [] in
           begin match e.enode with
             | BinOp(LAnd, lexp, rexp, ty) ->
@@ -408,7 +408,7 @@ module WM = Annotators.RegisterWithExtraTags (struct
                 begin
                   let newEnode = BinOp(LOr, lexp, rexp, ty) in
                   let newExp = {e with enode = newEnode} in
-                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in 
+                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in
                   let labelStmt = makeLabel labelExp loc "COR" in
                   labelsStmts := List.append !labelsStmts [labelStmt];
                 end;
@@ -422,7 +422,7 @@ module WM = Annotators.RegisterWithExtraTags (struct
                 begin
                   let newEnode = BinOp(LAnd, lexp, rexp, ty) in
                   let newExp = {e with enode = newEnode} in
-                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in 
+                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in
                   let labelStmt = makeLabel labelExp loc "COR" in
                   labelsStmts := List.append !labelsStmts [labelStmt];
                 end;
@@ -436,9 +436,9 @@ module WM = Annotators.RegisterWithExtraTags (struct
                   let newExp1 = Ast_const.Exp.mk(BinOp(Mult, lexp, rexp, ty)) in
                   let newExp2 = Ast_const.Exp.mk(BinOp(PlusA, lexp, rexp, ty)) in
                   let newExp3 = Ast_const.Exp.mk(BinOp(MinusA, lexp, rexp, ty)) in
-                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
-                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
-                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
+                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in
+                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in
+                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in
                   let labelStmt1 = makeLabel labelExp1 loc "AOR" in
                   let labelStmt2 = makeLabel labelExp2 loc "AOR" in
                   let labelStmt3 = makeLabel labelExp3 loc "AOR" in
@@ -454,9 +454,9 @@ module WM = Annotators.RegisterWithExtraTags (struct
                   let newExp1 = Ast_const.Exp.mk(BinOp(Div, lexp, rexp, ty)) in
                   let newExp2 = Ast_const.Exp.mk(BinOp(PlusA, lexp, rexp, ty)) in
                   let newExp3 = Ast_const.Exp.mk(BinOp(MinusA, lexp, rexp, ty)) in
-                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
-                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
-                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
+                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in
+                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in
+                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in
                   let labelStmt1 = makeLabel labelExp1 loc "AOR" in
                   let labelStmt2 = makeLabel labelExp2 loc "AOR" in
                   let labelStmt3 = makeLabel labelExp3 loc "AOR" in
@@ -472,9 +472,9 @@ module WM = Annotators.RegisterWithExtraTags (struct
                   let newExp1 = Ast_const.Exp.mk(BinOp(Mult, lexp, rexp, ty)) in
                   let newExp2 = Ast_const.Exp.mk(BinOp(Div, lexp, rexp, ty)) in
                   let newExp3 = Ast_const.Exp.mk(BinOp(MinusA, lexp, rexp, ty)) in
-                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
-                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
-                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
+                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in
+                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in
+                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in
                   let labelStmt1 = makeLabel labelExp1 loc "AOR" in
                   let labelStmt2 = makeLabel labelExp2 loc "AOR" in
                   let labelStmt3 = makeLabel labelExp3 loc "AOR" in
@@ -490,9 +490,9 @@ module WM = Annotators.RegisterWithExtraTags (struct
                   let newExp1 = Ast_const.Exp.mk(BinOp(Mult, lexp, rexp, ty)) in
                   let newExp2 = Ast_const.Exp.mk(BinOp(Div, lexp, rexp, ty)) in
                   let newExp3 = Ast_const.Exp.mk(BinOp(PlusA, lexp, rexp, ty)) in
-                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
-                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
-                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
+                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in
+                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in
+                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in
                   let labelStmt1 = makeLabel labelExp1 loc "AOR" in
                   let labelStmt2 = makeLabel labelExp2 loc "AOR" in
                   let labelStmt3 = makeLabel labelExp3 loc "AOR" in
@@ -508,9 +508,9 @@ module WM = Annotators.RegisterWithExtraTags (struct
                   let newExp1 = Ast_const.Exp.mk(BinOp(Le, lexp, rexp, ty)) in
                   let newExp2 = Ast_const.Exp.mk(BinOp(Gt, lexp, rexp, ty)) in
                   let newExp3 = Ast_const.Exp.mk(BinOp(Ge, lexp, rexp, ty)) in
-                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
-                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
-                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
+                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in
+                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in
+                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in
                   let labelStmt1 = makeLabel labelExp1 loc "ROR" in
                   let labelStmt2 = makeLabel labelExp2 loc "ROR" in
                   let labelStmt3 = makeLabel labelExp3 loc "ROR" in
@@ -526,9 +526,9 @@ module WM = Annotators.RegisterWithExtraTags (struct
                   let newExp1 = Ast_const.Exp.mk(BinOp(Lt, lexp, rexp, ty)) in
                   let newExp2 = Ast_const.Exp.mk(BinOp(Le, lexp, rexp, ty)) in
                   let newExp3 = Ast_const.Exp.mk(BinOp(Ge, lexp, rexp, ty)) in
-                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
-                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
-                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
+                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in
+                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in
+                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in
                   let labelStmt1 = makeLabel labelExp1 loc "ROR" in
                   let labelStmt2 = makeLabel labelExp2 loc "ROR" in
                   let labelStmt3 = makeLabel labelExp3 loc "ROR" in
@@ -544,9 +544,9 @@ module WM = Annotators.RegisterWithExtraTags (struct
                   let newExp1 = Ast_const.Exp.mk(BinOp(Lt, lexp, rexp, ty)) in
                   let newExp2 = Ast_const.Exp.mk(BinOp(Gt, lexp, rexp, ty)) in
                   let newExp3 = Ast_const.Exp.mk(BinOp(Ge, lexp, rexp, ty)) in
-                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
-                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
-                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
+                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in
+                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in
+                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in
                   let labelStmt1 = makeLabel labelExp1 loc "ROR" in
                   let labelStmt2 = makeLabel labelExp2 loc "ROR" in
                   let labelStmt3 = makeLabel labelExp3 loc "ROR" in
@@ -562,9 +562,9 @@ module WM = Annotators.RegisterWithExtraTags (struct
                   let newExp1 = Ast_const.Exp.mk(BinOp(Lt, lexp, rexp, ty)) in
                   let newExp2 = Ast_const.Exp.mk(BinOp(Le, lexp, rexp, ty)) in
                   let newExp3 = Ast_const.Exp.mk(BinOp(Gt, lexp, rexp, ty)) in
-                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in 
-                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in 
-                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in 
+                  let labelExp1 = Ast_const.Exp.mk(BinOp(Ne, newExp1, e, ty)) in
+                  let labelExp2 = Ast_const.Exp.mk(BinOp(Ne, newExp2, e, ty)) in
+                  let labelExp3 = Ast_const.Exp.mk(BinOp(Ne, newExp3, e, ty)) in
                   let labelStmt1 = makeLabel labelExp1 loc "ROR" in
                   let labelStmt2 = makeLabel labelExp2 loc "ROR" in
                   let labelStmt3 = makeLabel labelExp3 loc "ROR" in
@@ -578,7 +578,7 @@ module WM = Annotators.RegisterWithExtraTags (struct
               if !rorOption = true then
                 begin
                   let newExp = Ast_const.Exp.mk(BinOp(Ne, lexp, rexp, ty)) in
-                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in  
+                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in
                   let labelStmt = makeLabel labelExp loc "ROR" in
                   labelsStmts := List.append !labelsStmts [labelStmt];
                 end;
@@ -590,7 +590,7 @@ module WM = Annotators.RegisterWithExtraTags (struct
               if !rorOption = true then
                 begin
                   let newExp = Ast_const.Exp.mk(BinOp(Eq, lexp, rexp, ty)) in
-                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in  
+                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in
                   let labelStmt = makeLabel labelExp loc "ROR" in
                   labelsStmts := List.append !labelsStmts [labelStmt];
                 end;
@@ -602,7 +602,7 @@ module WM = Annotators.RegisterWithExtraTags (struct
               if !aorOption = true then
                 begin
                   let newExp = Ast_const.Exp.mk(BinOp(Shiftrt, lexp, rexp, ty)) in
-                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in  
+                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in
                   let labelStmt = makeLabel labelExp loc "AOR" in
                   labelsStmts := List.append !labelsStmts [labelStmt];
                 end;
@@ -614,7 +614,7 @@ module WM = Annotators.RegisterWithExtraTags (struct
               if !aorOption = true then
                 begin
                   let newExp = Ast_const.Exp.mk(BinOp(Shiftlt, lexp, rexp, ty)) in
-                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in  
+                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in
                   let labelStmt = makeLabel labelExp loc "AOR" in
                   labelsStmts := List.append !labelsStmts [labelStmt];
                 end;
@@ -631,7 +631,7 @@ module WM = Annotators.RegisterWithExtraTags (struct
             | UnOp(Neg, exp, ty) ->
               if !aorOption = true then
                 begin
-                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, exp, e, ty)) in  
+                  let labelExp = Ast_const.Exp.mk(BinOp(Ne, exp, e, ty)) in
                   let labelStmt = makeLabel labelExp loc "AOR" in
                   labelsStmts := List.append !labelsStmts [labelStmt];
                 end;
@@ -654,14 +654,14 @@ module WM = Annotators.RegisterWithExtraTags (struct
             | _ -> []
           end
         in
-        let traitStmt s e loc = 
+        let traitStmt s e loc =
           let labelsList = traitExp e loc in
-          match labelsList with 
+          match labelsList with
           | [] -> s
           | _ ->
             let finalList = List.append  labelsList [s] in
             let b2 = mkBlock finalList in
-            let i = mkStmt (Block(b2)) in	  
+            let i = mkStmt (Block(b2)) in
             i
         in
         let genLabels s =
@@ -673,10 +673,10 @@ module WM = Annotators.RegisterWithExtraTags (struct
             traitStmt s e loc
 
           | Return(e, loc) ->
-            begin match e with 
+            begin match e with
               | Some exp ->
                 traitStmt s exp loc
-              | _ -> s 
+              | _ -> s
             end
 
 
@@ -684,7 +684,7 @@ module WM = Annotators.RegisterWithExtraTags (struct
             traitStmt s e loc
 
           | _ -> s
-        in  
+        in
         ChangeDoChildrenPost (stmt, genLabels)
     end
 
@@ -693,4 +693,3 @@ module WM = Annotators.RegisterWithExtraTags (struct
         (new mutationVisitor mk_label :> Visitor.frama_c_inplace)
         ast
   end)
-

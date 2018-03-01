@@ -121,7 +121,7 @@ let couple_to_string c = String.concat "" [ "<l" ; (string_of_int (fst c)) ; ".l
 let store_hyperlabel_data out str =
   let formatter = Format.formatter_of_out_channel out in
   Format.fprintf formatter "%s" str
-let gen_hyperlabels_cacc = ref (fun () -> 
+let gen_hyperlabels_cacc = ref (fun () ->
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
   let out = open_out data_filename in
@@ -150,12 +150,12 @@ let gen_labels_racc_for mk_label whole atoms part =
   let a_indep = Exp.binop LAnd (pos part) (Exp.copy indep) in
   let na_indep = Exp.binop LAnd (neg part) (Exp.copy indep) in
 
-  let atoms_without_current = List.filter (fun a -> part != a) atoms in  
+  let atoms_without_current = List.filter (fun a -> part != a) atoms in
   let l = mk_label a_indep (List.concat [[Exp.integer (List.length atoms_without_current)] ; List.fold_left handle_list_l [] atoms_without_current]) loc in
   let idl = Annotators.getCurrentLabelId () in
   let r = mk_label na_indep (List.concat [[Exp.integer (List.length atoms_without_current)] ; List.fold_left handle_list_r [] atoms_without_current]) loc in
   let idr = Annotators.getCurrentLabelId () in
-  
+
   hlab_racc := Array.append !hlab_racc [| (idl,(idr,(List.length atoms_without_current))) |];
   Annotators.label_function_name := "pc_label";
   Stmt.block [ l ; r ];;
@@ -166,16 +166,21 @@ let gen_labels_racc mk_label bexpr =
   Stmt.block (List.map (gen_labels_racc_for mk_label bexpr atoms) atoms);;
 
 (** Generate RACC hyperlabels *)
-let rec generate_equalities i = match i with  0 -> " "
-			   		| 1 -> "cA1 == cB1"
- 			  	        | _ -> (generate_equalities (i-1)) ^ " && " ^ "cA" ^ (string_of_int i)  ^ "== cB" ^ (string_of_int i)
+let rec generate_equalities i =
+  match i with
+  | 0 -> " "
+  | 1 -> "cA1 == cB1"
+  | _ -> (generate_equalities (i-1)) ^ " && " ^ "cA" ^ (string_of_int i)  ^ "== cB" ^ (string_of_int i)
 
 let array_to_string l r = String.concat "" [ l ; ",\n" ; r ]
+
 let couple_to_string c = String.concat "" [ "<l" ; (string_of_int (fst c)) ; ".l" ; (string_of_int (fst (snd c))) ; "|;" ; generate_equalities (snd (snd c)) ; ";>"]
+
 let store_hyperlabel_data out str =
   let formatter = Format.formatter_of_out_channel out in
   Format.fprintf formatter "%s" str
-let gen_hyperlabels_racc = ref (fun () -> 
+
+let gen_hyperlabels_racc = ref (fun () ->
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
   let out = open_out data_filename in

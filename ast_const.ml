@@ -35,9 +35,23 @@ module Exp = struct
     Cil.new_exp ~loc (UnOp (Neg, e', newt))
 
   let binop ?(loc=unk_loc) op left right =
-    (* QUICK FIX: Avoid Frama-C failure when a pointer should be converted into a boolean like in "if(pointer)": seems that this function suppose left and right are integers but can in fact be pointers as well. "if(pointer)" is translated into "if(pointer==(void *) 0)"*)
-    let l = if Cil.isPointerType (Cil.typeOf left) then Cil.new_exp ~loc (BinOp (Ne,left,(Cil.mkCast (Cil.zero ~loc) Cil.voidPtrType),Cil.intType)) else left in
-    let r = if Cil.isPointerType (Cil.typeOf right) then Cil.new_exp ~loc (BinOp (Ne,right,(Cil.mkCast (Cil.zero ~loc) Cil.voidPtrType),Cil.intType)) else right in
+    (* QUICK FIX: Avoid Frama-C failure when a pointer should be
+       converted into a boolean like in "if(pointer)": seems that this
+       function suppose left and right are integers but can in fact be
+       pointers as well. "if(pointer)" is translated into
+       "if(pointer==(void 0)"*)
+    let l =
+      if Cil.isPointerType (Cil.typeOf left) then
+        Cil.new_exp ~loc (BinOp (Ne,left,(Cil.mkCast (Cil.zero ~loc) Cil.voidPtrType),Cil.intType))
+      else
+        left
+    in
+    let r =
+      if Cil.isPointerType (Cil.typeOf right) then
+        Cil.new_exp ~loc (BinOp (Ne,right,(Cil.mkCast (Cil.zero ~loc) Cil.voidPtrType),Cil.intType))
+      else
+        right
+    in
     (* END QUICK FIX *)
     Cil.mkBinOp ~loc op l r
 

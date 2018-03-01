@@ -36,7 +36,7 @@ module type ANNOTATOR = sig
       This function is provided by Annotators, it makes a label statement
       from a boolean condition and an "origin" location (e.g. the
       if-then-else condition's location in the case of a MCC label).
-  *) 
+  *)
   val apply : (Cil_types.exp -> Cil_types.exp list -> Cil_types.location -> Cil_types.stmt) -> Cil_types.file -> unit
 end
 

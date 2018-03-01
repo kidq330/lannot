@@ -93,7 +93,7 @@ let setupMutatorOptions () =
     else Options.debug ~level:1 "Unknown mutators %s : Ignored" mutname;
   in
   Options.Mutators.iter f
-  
+
 
 (* ENTRY POINT *)
 let run () =
@@ -119,4 +119,3 @@ let run () =
 
 let () =
   Db.Main.extend run
-

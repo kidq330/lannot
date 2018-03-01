@@ -129,4 +129,3 @@ module GlobalsAsInput = False (struct
     let help = "global variables should be considered as input \
                 (disabled by default)"
   end)
-

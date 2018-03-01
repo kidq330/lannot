@@ -151,7 +151,7 @@ module Partition = Annotators.Register (struct
 
     let name = "IDP"
     let help = "Input Domain Partition"
-    
+
     let apply mk_label ast =
       let max_depth = Options.MaxDepth.get () in
       let max_width = Options.MaxWidth.get () in
@@ -164,4 +164,3 @@ module Partition = Annotators.Register (struct
         ast
 
   end)
-
