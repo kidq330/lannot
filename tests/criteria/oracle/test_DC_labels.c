@@ -9,8 +9,8 @@
 int main(int a, int b, int c)
  {
    int __retres;
-   pc_label((a && b) || c,2,"DC");
-   pc_label(! ((a && b) || c),1,"DC");
+   pc_label((a && b) || c,1,"DC");
+   pc_label(! ((a && b) || c),2,"DC");
    if ((a && b) || c) {
      __retres = 0;
      goto return_label;

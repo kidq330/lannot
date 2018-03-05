@@ -9,8 +9,8 @@
 int or(int a, int b)
  {
    int __retres;
-   pc_label((a || b) != 0,2,"DC");
-   pc_label(! ((a || b) != 0),1,"DC");
+   pc_label((a || b) != 0,1,"DC");
+   pc_label(! ((a || b) != 0),2,"DC");
    __retres = (a || b) != 0;
    return __retres;
  }
@@ -18,8 +18,8 @@ int or(int a, int b)
 int and(int a, int b)
 {
   int __retres;
-  pc_label((a || b) != 0,4,"DC");
-  pc_label(! ((a || b) != 0),3,"DC");
+  pc_label((a || b) != 0,3,"DC");
+  pc_label(! ((a || b) != 0),4,"DC");
   __retres = (a || b) != 0;
   return __retres;
 }
@@ -30,12 +30,12 @@ int main(int a, int b, int c)
   int tmp_0;
   int d = 0;
   tmp = or(a,b);
-  pc_label(tmp,6,"DC");
-  pc_label(! tmp,5,"DC");
+  pc_label(tmp,5,"DC");
+  pc_label(! tmp,6,"DC");
   if (tmp) d = 1;
   tmp_0 = and(b,c);
-  pc_label(tmp_0,8,"DC");
-  pc_label(! tmp_0,7,"DC");
+  pc_label(tmp_0,7,"DC");
+  pc_label(! tmp_0,8,"DC");
   if (tmp_0) d ++;
   return d;
 }

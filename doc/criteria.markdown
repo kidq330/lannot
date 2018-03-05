@@ -231,12 +231,13 @@ int main(int a, int b) {
 
 ### IDP (Input Domain Partition)
 
-TODO
+DONE?
 
   - `-lannot-maxwidth width`
   - `-lannot-maxheight height`
   - `-lannot-allfuns`
   - `-lannot-globals`
+
 
 ### FC (Function Coverage)
 

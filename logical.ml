@@ -64,7 +64,9 @@ let gen_labels_ncc mk_label n (bexpr : exp) : stmt =
 (** Generate DC labels for the given Boolean formula *)
 let gen_labels_dc mk_label bexpr =
   let loc = bexpr.eloc in
-  let labels = [mk_label (pos bexpr) [] loc; mk_label (neg bexpr) [] loc] in
+  let l1 = mk_label (pos bexpr) [] loc in
+  let l2 = mk_label (neg bexpr) [] loc in
+  let labels = [l1;l2] in
   Stmt.block labels;;
 
 (** Generate GACC labels for one particular active clause *)
