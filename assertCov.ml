@@ -5,37 +5,66 @@ let unk_loc = Cil_datatype.Location.unknown
 
 let neg atom = Exp.lnot (Exp.copy atom)
 
+let predicate_to_exp = Dynamic.get ~plugin:"E_ACSL" "predicate_to_exp"
+    (Datatype.func2
+       Kernel_function.ty Cil_datatype.Predicate.ty Cil_datatype.Exp.ty)
+
 let rec mk_expr pred =
   match pred.pred_content with
   | Pfalse -> Options.debug "False"; Exp.zero ()
   | Ptrue  -> Options.debug "True"; Exp.one ()
-  | Pand (p1,p2) -> Options.debug "And"; Exp.binop LAnd (mk_expr p1) (mk_expr p2)
-  | Por (p1,p2)  -> Options.debug "Or"; Exp.binop LOr (mk_expr p1) (mk_expr p2)
-  | Pxor (p1,p2) -> Options.debug "Xor"; Exp.binop BOr (mk_expr p1) (mk_expr p2)
-  | Pnot p -> Options.debug "Not"; Exp.lnot (mk_expr p)
-  | Prel (r,t1,t2) -> Options.debug "Rel";
+  | Papp _ -> Options.feedback "todo" ;Exp.zero ()
+  | Pseparated _ -> Options.feedback "todo" ;Exp.zero ()
+  | Prel (r,t1,t2) ->
     let op = match r with
-      | Rlt -> Lt
-      | Rgt -> Gt
-      | Rle -> Le
-      | Rge -> Ge
-      | Req -> Eq
-      | Rneq -> Ne
+      | Rlt -> Options.debug "Rel Rlt"; Lt
+      | Rgt -> Options.debug "Rel Rgt";Gt
+      | Rle -> Options.debug "Rel Rle";Le
+      | Rge -> Options.debug "Rel Rge";Ge
+      | Req -> Options.debug "Rel Req";Eq
+      | Rneq -> Options.debug "Rel Rneq";Ne
     in
     Exp.binop op (!Db.Properties.Interp.term_to_exp ~result:None t1) (!Db.Properties.Interp.term_to_exp ~result:None t2)
-  | _ -> Options.feedback "todo" ;Exp.zero ()
+  | Pand (p1,p2) -> Options.debug "And"; Exp.binop LAnd (mk_expr p1) (mk_expr p2)
+  | Por (p1,p2)  -> Options.debug "Or"; Exp.binop BOr (mk_expr p1) (mk_expr p2)
+  | Pxor (p1,p2) ->
+    Options.debug "Xor";
+    let e1 =  (mk_expr p1) in
+    let e2 =  (mk_expr p2) in
+    Exp.binop  LAnd (Exp.binop LOr e1 e2) (Exp.lnot (Exp.binop LAnd e1 e2))
+  | Pimplies (p1,p2) ->
+    Options.feedback "Implies" ;
+    let e1 =  (mk_expr p1) in
+    let e2 =  (mk_expr p2) in
+    Exp.binop  LOr (Exp.lnot e1) e2
+  | Piff _ -> Options.feedback "todo" ;Exp.zero ()
+  | Pnot p -> Options.debug "Not"; Exp.lnot (mk_expr p)
+  | Pif _ -> Options.feedback "todo" ;Exp.zero ()
+  | Plet _ -> Options.feedback "todo" ;Exp.zero ()
+  | Pforall _ -> Options.feedback "todo" ;Exp.zero ()
+  | Pexists _ -> Options.feedback "todo" ;Exp.zero ()
+  | Pat _ -> Options.feedback "todo" ;Exp.zero ()
+  | Pvalid_read _ -> Options.feedback "todo" ;Exp.zero ()
+  | Pvalid _ -> Options.feedback "todo" ;Exp.zero ()
+  | Pvalid_function _ -> Options.feedback "todo" ;Exp.zero ()
+  | Pinitialized _ -> Options.feedback "todo" ;Exp.zero ()
+  | Pdangling _ -> Options.feedback "todo" ;Exp.zero ()
+  | Pallocable _ -> Options.feedback "todo" ;Exp.zero ()
+  | Pfreeable _ -> Options.feedback "todo" ;Exp.zero ()
+  | Pfresh _ -> Options.feedback "todo" ;Exp.zero ()
+  | Psubtype _ -> Options.feedback "todo" ;Exp.zero ()
 
 
 
-let gen_labels_assert mk_label (pred:Cil_types.predicate) =
+let gen_labels_assert mk_label kf (pred:Cil_types.predicate) =
   let loc = pred.pred_loc in
-  let exp = neg (mk_expr pred) in
+  let exp = neg (predicate_to_exp kf pred) in
   let l1 = mk_label exp [] loc in
   Stmt.block [l1]
 
 
 (** Assert coverage **)
-class visitorAssert mk_label = object(_)
+class visitorAssert mk_label = object(self)
   inherit Visitor.frama_c_inplace
 
   val mutable labellist = []
@@ -52,9 +81,20 @@ class visitorAssert mk_label = object(_)
   method! vcode_annot annot =
     begin match annot.annot_content with
       | AAssert (_, p) ->
-        let exp = gen_labels_assert mk_label p in
-        labellist <- labellist @ [exp];
-        Cil.DoChildren
+
+        begin match self#current_kf with
+          | None -> Cil.DoChildren
+          | Some kf ->
+            begin match kf.fundec with
+              | Definition  (func,_) ->
+                Options.feedback "KF : %s" func.svar.vname
+              | Declaration (_,f,_,_) ->
+                Options.feedback "KF : %s" f.vname
+            end;
+            let exp = gen_labels_assert mk_label kf p in
+            labellist <- labellist @ [exp];
+            Cil.DoChildren
+        end
       | _ ->
         Cil.DoChildren
     end
