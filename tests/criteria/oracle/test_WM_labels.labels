@@ -1,0 +1,7 @@
+# id, status, tag, origin_loc, current_loc, emitter, exec_time
+1,unknown,WM AOR,/lannotate/tests/criteria/test_WM.c:7,,lannot,0.
+2,unknown,WM AOR,/lannotate/tests/criteria/test_WM.c:7,,lannot,0.
+3,unknown,WM AOR,/lannotate/tests/criteria/test_WM.c:7,,lannot,0.
+4,unknown,WM ABS,/lannotate/tests/criteria/test_WM.c:7,,lannot,0.
+5,unknown,WM ABS,/lannotate/tests/criteria/test_WM.c:7,,lannot,0.
+6,unknown,WM ABS,/lannotate/tests/criteria/test_WM.c:7,,lannot,0.

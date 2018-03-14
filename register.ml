@@ -19,19 +19,33 @@
 (*  details (enclosed in the file LICENSE).                               *)
 (*                                                                        *)
 (**************************************************************************)
+let to_relative path =
+  let dir = "lannotate" in
+  let dirsep = Filename.dir_sep in
+  let ls = String.split_on_char dirsep.[0] path in
+  let rec reconstruct ls =
+    match ls with
+    | [] -> ""
+    | s :: t ->
+      if String.equal dir s then
+        String.concat dirsep (""::s::t)
+      else
+        reconstruct t
+  in
+  reconstruct ls
 
 let store_label_data out annotations =
   (* TODO do that in its own module, ultimately shared with the other LTest-tools *)
   (* TODO (later) do something better than csv *)
   let formatter = Format.formatter_of_out_channel out in
-  Format.fprintf formatter "# id, status, tags, origin, current, verdict emitter@.";
+  Format.fprintf formatter "# id, status, tag, origin_loc, current_loc, emitter, exec_time@.";
   let print_one (id, tags, cond, origin_loc) =
-    let origin_file = (fst origin_loc).Lexing.pos_fname in
+    let origin_file = to_relative ((fst origin_loc).Lexing.pos_fname) in
     let origin_line = (fst origin_loc).Lexing.pos_lnum in
     (* let us note obviously uncoverable labels as uncoverable
        (should only work when -lannot-simplify is on) *)
     let verdict = if Cil.isZero cond then "uncoverable" else "unknown" in
-    Format.fprintf formatter "%d,%s,%s,%s:%d,,lannot@." id verdict tags origin_file origin_line
+    Format.fprintf formatter "%d,%s,%s,%s:%d,,lannot,0.@." id verdict tags origin_file origin_line
   in
   List.iter print_one (List.rev annotations);
   Format.pp_print_flush formatter ()
