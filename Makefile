@@ -27,6 +27,6 @@ PLUGIN_NAME      = LAnnotate
 
 PLUGIN_TESTS_DIRS:= options criteria
 
-PLUGIN_CMO = options utils ast_const bes simplify annotators instru \
-             logical partition dataflow function assertCov register
+PLUGIN_CMO = options utils ast_const bes simplify annotators wm \
+             logical partition dataflow function assertion register
 include $(FRAMAC_SHARE)/Makefile.dynamic

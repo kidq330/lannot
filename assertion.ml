@@ -36,7 +36,7 @@ let rec mk_expr pred =
     Options.feedback "Implies" ;
     let e1 =  (mk_expr p1) in
     let e2 =  (mk_expr p2) in
-    Exp.binop  LOr (Exp.lnot e1) e2
+    Exp.implies e1 e2
   | Piff _ -> Options.feedback "todo" ;Exp.zero ()
   | Pnot p -> Options.debug "Not"; Exp.lnot (mk_expr p)
   | Pif _ -> Options.feedback "todo" ;Exp.zero ()
@@ -56,11 +56,11 @@ let rec mk_expr pred =
 
 
 
-let gen_labels_assert mk_label kf (pred:Cil_types.predicate) =
+let gen_labels_assert mk_label _ (pred:Cil_types.predicate) =
   let loc = pred.pred_loc in
-  let exp = neg (predicate_to_exp kf pred) in
+  let exp = neg (mk_expr pred) in
   let l1 = mk_label exp [] loc in
-  Stmt.block [l1]
+  l1
 
 
 (** Assert coverage **)

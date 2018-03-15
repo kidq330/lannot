@@ -25,12 +25,14 @@ contains the simplification passes (or pass for now).
 Implemented: use Bes to simplify the purely Boolean part of expression, works
 pretty well, but its mainly minimizes the DNF. Does not seem optimal for DSE?
 
-### `Instru`
-used to contain almost everything. But now only the WM annotator is in there.
-Still a lot of legacy code to be remove.
-And one day to be remove.
+### `Wm`
+implements the Weak mutation annotator: WM
 
-TODO cleanup and rename
+### `Function`
+implements the Function annotators: FC, FCC
+
+### `Assertion`
+implements the Assertion annotators: ASSERT
 
 ### `Utils`
 some utilities but lots of legacy code.
