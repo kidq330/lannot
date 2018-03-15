@@ -90,7 +90,7 @@ let dnf_and (n: int) a b =
   let f acc minterm =
     dnf_or n (dnf_and_dnf_minterm n a minterm) acc
   in
-  List.fold_left f [] b;;
+  List.fold_left f [] b
 
 let dnf_var (n: int) v value : [> `True |`False |`Dontcare] list list =
   assert (v >= 0 && v < n);
@@ -223,7 +223,7 @@ module Exp = Make (struct
         if ExpH.mem h e then
           (n, l, `TAtom (ExpH.find h e))
         else
-          (ExpH.add h e n; (n+1, e :: l, `TAtom n));;
+          (ExpH.add h e n; (n+1, e :: l, `TAtom n))
 
     let convert ?info e =
       let h, n, l = match info with
