@@ -62,14 +62,16 @@ let get_seq_id varId def use = cantor_pairing varId (cantor_pairing def use)
 let labelUses = ref []
 let labelDefs = ref []
 let labelStops = ref []
-
+let idList = ref []
 
 let handle_param v =
   if Hashtbl.mem nBVarUses v.vid then begin
     let i = (Hashtbl.find currentDef v.vid) in begin
       for j = (Hashtbl.find currentUse v.vid) to (Hashtbl.find nBVarUses v.vid) do (* OPTIM : only labels for previous defs/next uses *)
         let oneExp = (Cil.integer Cil_datatype.Location.unknown 1) in
-        let idExp = (Cil.integer Cil_datatype.Location.unknown (get_seq_id v.vid i j)) in
+        let id = get_seq_id v.vid i j in
+        idList := id :: !idList;
+        let idExp = (Cil.integer Cil_datatype.Location.unknown id) in
         let twoExp = (Cil.integer Cil_datatype.Location.unknown 1) in
         let twoExptwo = (Cil.integer Cil_datatype.Location.unknown 2) in
         let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int  v.vid))) in
@@ -121,7 +123,9 @@ class visitorTwo = object(_)
         let i = (Hashtbl.find currentDef v.vid) in begin
           for j = (Hashtbl.find currentUse v.vid) to (Hashtbl.find nBVarUses v.vid) do
             let oneExp = (Cil.integer Cil_datatype.Location.unknown 1) in
-            let idExp = (Cil.integer Cil_datatype.Location.unknown (get_seq_id v.vid i j)) in
+            let id = get_seq_id v.vid i j in
+            idList := id :: !idList;
+            let idExp = (Cil.integer Cil_datatype.Location.unknown id) in
             let twoExp = (Cil.integer Cil_datatype.Location.unknown 1) in
             let twoExptwo = (Cil.integer Cil_datatype.Location.unknown 2) in
             let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int  v.vid))) in
@@ -157,7 +161,9 @@ class visitorTwo = object(_)
         begin
           for i = 1 to (Hashtbl.find currentDef v.vid) - 1 (* (Hashtbl.find nBVarDefs v.vid) *) do
             let oneExp = (Cil.integer Cil_datatype.Location.unknown 1) in
-            let idExp = (Cil.integer Cil_datatype.Location.unknown (get_seq_id v.vid i j)) in
+            let id = get_seq_id v.vid i j in
+            idList := id :: !idList;
+            let idExp = (Cil.integer Cil_datatype.Location.unknown id) in
             let twoExp = (Cil.integer Cil_datatype.Location.unknown 2) in
             let twoExptwo = (Cil.integer Cil_datatype.Location.unknown 2) in
             let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int  v.vid))) in
@@ -177,9 +183,11 @@ let listLabels = ref []
 let nbLabels = ref 0
 
 let get_list_labels i id =
-  listLabels := []; (* A OPTIMISER : NE METTRE QUE LES COUPLES QUI EXITENT VRAIMENT *)
+  listLabels := [];
   for j = 1 to (Hashtbl.find nBVarUses id) do
-    listLabels := (get_seq_id id i j) :: !listLabels
+    let lid = get_seq_id id i j in
+    if List.exists (fun lblId -> Options.feedback "%d = %d" lblId lid; lid = lblId) !idList then
+      listLabels := lid :: !listLabels;
   done;
   nbLabels:= !nbLabels + (List.length !listLabels);
   !listLabels

@@ -92,7 +92,9 @@ module Mutators = Filled_string_set (struct
     let option_name = "-lannot-mutators"
     let arg_name = "mutators"
     let help = "select mutators for WM labelling (comma-separated list \
-                of mutators among "^string_list mutators^", default: all)"
+                of mutators among "^string_list mutators^", default: all)." ^
+               "Mutators prefixed with '-' are removed from the list"
+
     let default = Datatype.String.Set.of_list mutators
   end)
 

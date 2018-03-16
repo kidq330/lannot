@@ -73,7 +73,7 @@ let gen_hyperlabels_callcov = ref (fun () ->
 
 
 (** Call Coverage Visitor **)
-class visitor mk_label = object(_)
+class visitor = object(_)
   inherit Visitor.frama_c_inplace
 
   val mutable current_func = ""
@@ -94,8 +94,12 @@ class visitor mk_label = object(_)
                incr label_id;
                Hashtbl.add disjunctions (current_func,v.vname) !label_id;
                hyperlabels := (HL.add (current_func,v.vname) !hyperlabels);
-               let label = mk_label (Exp.one ()) [] v.vdecl in
-               Cil.ChangeTo (Stmt.block [ label ; stmt])
+               let oneExp = (Cil.integer Cil_datatype.Location.unknown 1) in
+               let idExp = (Cil.integer Cil_datatype.Location.unknown !label_id) in
+               let ccExp = (Cil.mkString Cil_datatype.Location.unknown "FCC") in
+               let newStmt = (Utils.mk_call "pc_label" ([oneExp;idExp;ccExp])) in
+               Cil.ChangeTo (Stmt.block [ newStmt ; stmt])
+
              | _ -> Cil.DoChildren
             )
           | _ -> Cil.DoChildren)
@@ -111,7 +115,8 @@ module CallCov = Annotators.Register (struct
     let name = "FCC"
     let help = "Function Call Coverage"
     let apply mk_label file =
-      Visitor.visitFramacFileSameGlobals (new visitor mk_label :> Visitor.frama_c_visitor) file;
+      ignore mk_label;
+      Visitor.visitFramacFileSameGlobals (new visitor :> Visitor.frama_c_visitor) file;
       !gen_hyperlabels_callcov ()
   end)
 

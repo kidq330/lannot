@@ -8,7 +8,7 @@ let neg atom = Exp.lnot (Exp.copy atom)
 let predicate_to_exp = Dynamic.get ~plugin:"E_ACSL" "predicate_to_exp"
     (Datatype.func2
        Kernel_function.ty Cil_datatype.Predicate.ty Cil_datatype.Exp.ty)
-    _
+    
 let rec mk_expr pred =
   match pred.pred_content with
   | Pfalse -> Options.debug "False"; Exp.zero ()
@@ -37,7 +37,11 @@ let rec mk_expr pred =
     let e1 =  (mk_expr p1) in
     let e2 =  (mk_expr p2) in
     Exp.implies e1 e2
-  | Piff (p1,p2) -> Options.feedback "Iff" ; Exp.iff p1 p2
+  | Piff (p1,p2) ->
+    Options.feedback "Iff" ;
+    let e1 =  (mk_expr p1) in
+    let e2 =  (mk_expr p2) in
+    Exp.iff e1 e2
   | Pnot p -> Options.debug "Not"; Exp.lnot (mk_expr p)
   | Pif (t,p1,p2) ->
     Options.feedback "If" ;
