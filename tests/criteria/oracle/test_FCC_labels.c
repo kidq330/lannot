@@ -6,18 +6,38 @@
 #define pc_label_bindings(...) do{}while(0)
 #endif
 
-int f(void)
+int f(int x)
  {
    int __retres;
-   __retres = 0;
+   __retres = x + 1;
    return __retres;
  }
 
-void main(void)
+int g(int x)
 {
+  int tmp;
   pc_label(1,1,"FCC");
-  f();
-  return;
+  tmp = f(x + 1);
+  return tmp;
+}
+
+int main(void)
+{
+  int __retres;
+  int tmp_1;
+  pc_label(1,2,"FCC");
+  int a = f(12);
+  pc_label(1,3,"FCC");
+  tmp_1 = g(40);
+  if (tmp_1) {
+    int tmp_0;
+    pc_label(1,4,"FCC");
+    tmp_0 = g(41);
+    __retres = tmp_0;
+    goto return_label;
+  }
+  __retres = a;
+  return_label: return __retres;
 }
 
 

@@ -3,10 +3,17 @@
  */
 
 
-int f(){
-	return 0;
+int f(int x){
+	return x+1;
 }
 
-void main(){
-	f();
+int g(int x){
+	return f(x+1);
+}
+
+int main(){
+	int a = f(12);
+	if (g(40))
+	  return g(41);
+	return a;
 }
