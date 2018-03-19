@@ -22,7 +22,6 @@
 
 open Cil_types
 open Ast_const
-open Utils
 
 include Annotators.Register (struct
 
@@ -71,6 +70,15 @@ let gen_hyperlabels_callcov = ref (fun () ->
   close_out out;
   Options.feedback "finished")
 
+let mk_call v func =
+  incr label_id;
+  Hashtbl.add disjunctions (func,v.vname) !label_id;
+  hyperlabels := (HL.add (func,v.vname) !hyperlabels);
+  let oneExp = (Cil.integer Cil_datatype.Location.unknown 1) in
+  let idExp = (Cil.integer Cil_datatype.Location.unknown !label_id) in
+  let ccExp = (Cil.mkString Cil_datatype.Location.unknown "FCC") in
+  let newStmt = (Utils.mk_call "pc_label" ([oneExp;idExp;ccExp])) in
+  newStmt
 
 (** Call Coverage Visitor **)
 class visitor = object(_)
@@ -83,30 +91,29 @@ class visitor = object(_)
     Cil.DoChildren
 
   method! vstmt_aux stmt =
-    match stmt.skind with
-    | Instr i when not (is_label i) ->
-      (match i with
-       | Call (_,func,_,_) ->
-         (match func.enode with
-          | Lval (h,_) ->
-            (match h with
-             | Var v ->
-               incr label_id;
-               Hashtbl.add disjunctions (current_func,v.vname) !label_id;
-               hyperlabels := (HL.add (current_func,v.vname) !hyperlabels);
-               let oneExp = (Cil.integer Cil_datatype.Location.unknown 1) in
-               let idExp = (Cil.integer Cil_datatype.Location.unknown !label_id) in
-               let ccExp = (Cil.mkString Cil_datatype.Location.unknown "FCC") in
-               let newStmt = (Utils.mk_call "pc_label" ([oneExp;idExp;ccExp])) in
-               Cil.ChangeTo (Stmt.block [ newStmt ; stmt])
+    begin match stmt.skind with
+      | Instr i when not (Utils.is_label i) ->
+        begin match i with
+          | Call (_,func,_,_) ->
+            begin match func.enode with
+              | Lval (h,_) ->
+                (match h with
+                 | Var v ->
+                   let newStmt = mk_call v current_func in
+                   Cil.ChangeTo (Stmt.block [ newStmt ; stmt])
+                 | _ -> Cil.DoChildren
+                )
+              | _ -> Cil.DoChildren
+            end
+          | Local_init (_,ConsInit(v, _,_),_) ->
+            let newStmt = mk_call v current_func in
+            Cil.ChangeTo (Stmt.block [ newStmt ; stmt])
+          | _ -> Cil.DoChildren
+        end
+      | _ -> Cil.DoChildren
+    end
 
-             | _ -> Cil.DoChildren
-            )
-          | _ -> Cil.DoChildren)
-       | _ -> Cil.DoChildren)
-    | _ -> Cil.DoChildren
 end
-
 
 (**
    Call coverage annotator
@@ -273,8 +280,7 @@ end
 module CastRem = Annotators.Register (struct
     let name = "CastRem"
     let help = "Process file and replace casts by external function calls (useful for WP reasoning)"
-    let apply mk_label file =
-      ignore mk_label; (* Avoid warning about mk_label unused *)
+    let apply _ file =
       Visitor.visitFramacFileSameGlobals (new remcastvisitor :> Visitor.frama_c_visitor) file
   end)
 
@@ -292,7 +298,6 @@ end
 module Empty = Annotators.Register (struct
     let name = "Empty"
     let help = "Process file but add no label"
-    let apply mk_label file =
-      ignore mk_label; (* Avoid warning about mk_label unused *)
+    let apply _ file =
       Visitor.visitFramacFileSameGlobals (new nopvisitor :> Visitor.frama_c_visitor) file
   end)

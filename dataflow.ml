@@ -224,6 +224,7 @@ let alreadyDone = ref false
 *)
 
 let visite file =
+  (* Si l'utilisateur utilise les 2 critères, on ne fait quand même qu'une passe *)
   if not !alreadyDone then begin
     Visitor.visitFramacFileSameGlobals (new visitor :> Visitor.frama_c_visitor) file;
     Visitor.visitFramacFileSameGlobals (new visitorTwo :> Visitor.frama_c_visitor) file;
@@ -233,8 +234,7 @@ let visite file =
 module AllDefs = Annotators.Register (struct
     let name = "alldefs"
     let help = "All-Definitions Coverage"
-    let apply mk_label file =
-      ignore mk_label; (* Avoid warning about mk_label unused *)
+    let apply _ file =
       visite file;
       symb := "+";
       gen_hyperlabels ()
@@ -247,8 +247,7 @@ module AllDefs = Annotators.Register (struct
 module AllUses = Annotators.Register (struct
     let name = "alluses"
     let help = "All-Uses Coverage"
-    let apply mk_label file =
-      ignore mk_label; (* Avoid warning about mk_label unused *)
+    let apply _ file =
       visite file;
       symb := ".";
       gen_hyperlabels ()
