@@ -84,8 +84,6 @@ let handle_param v =
     end
   end
 
-
-
 (** All-defs Visitor Add Labels **)
 class visitorTwo = object(_)
   inherit Visitor.frama_c_inplace
@@ -209,14 +207,15 @@ let compute_hl id =
   end
   else ""
 
-let gen_hyperlabels = ref (fun () ->
+let gen_hyperlabels  () =
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
-  let out = open_out data_filename in
-  output_string out (Hashtbl.fold (fun id nb str -> ignore nb; temp := ""; (compute_hl id) ^ str) nBVarUses "");
+  let data = (Hashtbl.fold (fun id nb str -> ignore nb; temp := ""; (compute_hl id) ^ str) nBVarUses "") in
+  let out = open_out_gen [Open_creat; Open_text; Open_append] 0o640 data_filename in
+  output_string out data;
   close_out out;
   Options.feedback "Total number of labels = %d" (!nbLabels*2);
-  Options.feedback "finished")
+  Options.feedback "finished"
 
 let alreadyDone = ref false
 
@@ -238,7 +237,7 @@ module AllDefs = Annotators.Register (struct
       ignore mk_label; (* Avoid warning about mk_label unused *)
       visite file;
       symb := "+";
-      !gen_hyperlabels ()
+      gen_hyperlabels ()
   end)
 
 
@@ -252,5 +251,5 @@ module AllUses = Annotators.Register (struct
       ignore mk_label; (* Avoid warning about mk_label unused *)
       visite file;
       symb := ".";
-      !gen_hyperlabels ()
+      gen_hyperlabels ()
   end)

@@ -59,7 +59,7 @@ let gen_labels_ncc mk_label n (bexpr : exp) : stmt =
     List.fold_left for_signed_subset acc signed_subsets
   in
   let stmts = List.rev (List.fold_left for_subset [] subsets) in
-  Stmt.block stmts;;
+  Stmt.block stmts
 
 (** Generate DC labels for the given Boolean formula *)
 let gen_labels_dc mk_label bexpr =
@@ -67,7 +67,7 @@ let gen_labels_dc mk_label bexpr =
   let l1 = mk_label (pos bexpr) [] loc in
   let l2 = mk_label (neg bexpr) [] loc in
   let labels = [l1;l2] in
-  Stmt.block labels;;
+  Stmt.block labels
 
 (** Generate GACC labels for one particular active clause *)
 let gen_labels_gacc_for mk_label whole part =
@@ -81,14 +81,14 @@ let gen_labels_gacc_for mk_label whole part =
   let a_indep = Exp.binop LAnd (pos part) (Exp.copy indep) in
   let na_indep = Exp.binop LAnd (neg part) (Exp.copy indep) in
 
-  Stmt.block (List.map (fun e -> mk_label e [] loc) [a_indep; na_indep]);;
+  Stmt.block (List.map (fun e -> mk_label e [] loc) [a_indep; na_indep])
 
-let hlab_cacc = ref [| |];;
+let hlab_cacc = ref [| |]
 
 (** Generate GACC labels for the given Boolean formula *)
 let gen_labels_gacc mk_label bexpr =
   let atoms = atomic_conditions bexpr in
-  Stmt.block (List.map (gen_labels_gacc_for mk_label bexpr) atoms);;
+  Stmt.block (List.map (gen_labels_gacc_for mk_label bexpr) atoms)
 
 (** Generate CACC labels for one particular active clause *)
 let gen_labels_cacc_for mk_label whole part =
@@ -110,12 +110,12 @@ let gen_labels_cacc_for mk_label whole part =
 
   hlab_cacc := Array.append !hlab_cacc [| (idl,idr) |];
   Annotators.label_function_name := "pc_label";
-  Stmt.block [ l ; r ];;
+  Stmt.block [ l ; r ]
 
 (** Generate CACC labels for the given Boolean formula *)
 let gen_labels_cacc mk_label bexpr =
   let atoms = atomic_conditions bexpr in
-  Stmt.block (List.map (gen_labels_cacc_for mk_label bexpr) atoms);;
+  Stmt.block (List.map (gen_labels_cacc_for mk_label bexpr) atoms)
 
 (** Generate CACC hyperlabels *)
 let array_to_string l r = String.concat "" [ l ; ",\n" ; r ]
@@ -126,7 +126,7 @@ let store_hyperlabel_data out str =
 let gen_hyperlabels_cacc = ref (fun () ->
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
-  let out = open_out data_filename in
+  let out = open_out_gen [Open_creat; Open_text; Open_append] 0o640 data_filename in
   store_hyperlabel_data out  (Array.fold_right array_to_string (Array.map couple_to_string !hlab_cacc) "");
   close_out out;
   Options.feedback "finished")
@@ -134,7 +134,7 @@ let gen_hyperlabels_cacc = ref (fun () ->
 
 
 
-let hlab_racc = ref [| |];;
+let hlab_racc = ref [| |]
 
 let handle_list_l la a = List.concat [ la ; [  Exp.mk (Const (CStr ("cA" ^ (string_of_int ((List.length la) / 2 + 1))))) ; a ] ]
 let handle_list_r la a = List.concat [ la ; [  Exp.mk (Const (CStr ("cB" ^ (string_of_int ((List.length la) / 2 + 1))))) ; a ] ]
@@ -160,12 +160,12 @@ let gen_labels_racc_for mk_label whole atoms part =
 
   hlab_racc := Array.append !hlab_racc [| (idl,(idr,(List.length atoms_without_current))) |];
   Annotators.label_function_name := "pc_label";
-  Stmt.block [ l ; r ];;
+  Stmt.block [ l ; r ]
 
 (** Generate RACC labels for the given Boolean formula *)
 let gen_labels_racc mk_label bexpr =
   let atoms = atomic_conditions bexpr in
-  Stmt.block (List.map (gen_labels_racc_for mk_label bexpr atoms) atoms);;
+  Stmt.block (List.map (gen_labels_racc_for mk_label bexpr atoms) atoms)
 
 (** Generate RACC hyperlabels *)
 let rec generate_equalities i =
@@ -185,7 +185,7 @@ let store_hyperlabel_data out str =
 let gen_hyperlabels_racc = ref (fun () ->
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
-  let out = open_out data_filename in
+  let out = open_out_gen [Open_creat; Open_text; Open_append] 0o640 data_filename in
   store_hyperlabel_data out  (Array.fold_right array_to_string (Array.map couple_to_string !hlab_racc) "");
   close_out out;
   Options.feedback "finished")

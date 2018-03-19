@@ -5,10 +5,10 @@ let unk_loc = Cil_datatype.Location.unknown
 
 let neg atom = Exp.lnot (Exp.copy atom)
 
-let predicate_to_exp = Dynamic.get ~plugin:"E_ACSL" "predicate_to_exp"
+(*let predicate_to_exp = Dynamic.get ~plugin:"E_ACSL" "predicate_to_exp"
     (Datatype.func2
-       Kernel_function.ty Cil_datatype.Predicate.ty Cil_datatype.Exp.ty)
-    
+       Kernel_function.ty Cil_datatype.Predicate.ty Cil_datatype.Exp.ty)*)
+
 let rec mk_expr pred =
   match pred.pred_content with
   | Pfalse -> Options.debug "False"; Exp.zero ()

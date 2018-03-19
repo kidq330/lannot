@@ -62,11 +62,18 @@ let compute_outfile opt files =
       let suffix = String.sub base len_prefix ((String.length base)-len_prefix) in
       prefix ^ "_labels" ^ suffix
   else
-    opt;;
+    opt
 
 
 let annotate_on_project ann_names =
   Kernel.LogicalOperators.on (); (* invalidate the Ast if any *)
+
+  let filename = compute_outfile (Options.Output.get ()) (Kernel.Files.get ()) in
+
+  (* Remove .hyperlabels file if exists *)
+  let hl_data_filename = (Filename.chop_extension filename) ^ ".hyperlabels" in
+  if Sys.file_exists hl_data_filename then
+    Sys.remove hl_data_filename;
 
   let annotations = ref [] in
   let collect ann = annotations := ann :: !annotations in
@@ -74,7 +81,6 @@ let annotate_on_project ann_names =
   let annotations = !annotations in
 
   (* output modified c file *)
-  let filename = compute_outfile (Options.Output.get ()) (Kernel.Files.get ()) in
   Options.feedback "write modified C file (to %s)" filename;
   let out = open_out filename in
   let formatter = Format.formatter_of_out_channel out in
