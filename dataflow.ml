@@ -29,7 +29,9 @@ class visitor = object(_)
     end
 
   (* Def-Var *)
-  method! vstmt_aux stmt = match stmt.skind with
+  method! vstmt_aux stmt =
+    match stmt.skind with
+    | Instr i when Utils.is_label i -> Cil.SkipChildren (* Ignorer les labels *)
     | Instr (Set ((Var v,_),_,_))  | Instr (Call (Some (Var v,_),_,_,_))  ->
       Cil.DoChildrenPost (fun f ->
           if not (v.vname = "__retres") && not ((String.sub v.vname 0 (min 3 (String.length v.vname))) = "tmp") then begin
@@ -40,7 +42,6 @@ class visitor = object(_)
           end; f
         )
     | _ -> Cil.DoChildren
-
 
   (* Use *)
   method! vexpr expr =
@@ -104,6 +105,7 @@ class visitorTwo = object(_)
   (* Def-Var *)
   method! vstmt_aux stmt =
     match stmt.skind with
+    | Instr i when Utils.is_label i -> Cil.SkipChildren (* ignorer les labels *)
     | Instr (Set ((Var v,_),_,_)) | Instr (Call (Some (Var v,_),_,_,_)) ->
       labelStops := [];
       if not (v.vname = "__retres") && Hashtbl.mem nBVarUses v.vid
@@ -186,7 +188,7 @@ let get_list_labels i id =
   listLabels := [];
   for j = 1 to (Hashtbl.find nBVarUses id) do
     let lid = get_seq_id id i j in
-    if List.exists (fun lblId -> Options.feedback "%d = %d" lblId lid; lid = lblId) !idList then
+    if List.exists (fun lblId -> lid = lblId) !idList then
       listLabels := lid :: !listLabels;
   done;
   nbLabels:= !nbLabels + (List.length !listLabels);
@@ -216,16 +218,25 @@ let gen_hyperlabels = ref (fun () ->
   Options.feedback "Total number of labels = %d" (!nbLabels*2);
   Options.feedback "finished")
 
+let alreadyDone = ref false
+
 (**
    All-defs annotator
 *)
+
+let visite file =
+  if not !alreadyDone then begin
+    Visitor.visitFramacFileSameGlobals (new visitor :> Visitor.frama_c_visitor) file;
+    Visitor.visitFramacFileSameGlobals (new visitorTwo :> Visitor.frama_c_visitor) file;
+    alreadyDone := true
+  end
+
 module AllDefs = Annotators.Register (struct
     let name = "alldefs"
     let help = "All-Definitions Coverage"
     let apply mk_label file =
       ignore mk_label; (* Avoid warning about mk_label unused *)
-      Visitor.visitFramacFileSameGlobals (new visitor :> Visitor.frama_c_visitor) file;
-      Visitor.visitFramacFileSameGlobals (new visitorTwo :> Visitor.frama_c_visitor) file;
+      visite file;
       symb := "+";
       !gen_hyperlabels ()
   end)
@@ -239,8 +250,7 @@ module AllUses = Annotators.Register (struct
     let help = "All-Uses Coverage"
     let apply mk_label file =
       ignore mk_label; (* Avoid warning about mk_label unused *)
-      Visitor.visitFramacFileSameGlobals (new visitor :> Visitor.frama_c_visitor) file;
-      Visitor.visitFramacFileSameGlobals (new visitorTwo :> Visitor.frama_c_visitor) file;
+      visite file;
       symb := ".";
       !gen_hyperlabels ()
   end)

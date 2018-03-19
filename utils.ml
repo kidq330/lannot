@@ -80,8 +80,9 @@ let mkdir x =
 (** Indicates whether an instruction is a label. *)
 let is_label instr =
   match instr with
-  | Call (_, {enode=Lval (Var {vname=name}, NoOffset)}, _, _) when name = "pc_label"->
-    true
+  | Call (_, {enode=Lval (Var {vname=name}, NoOffset)}, _, _) ->
+    let regexp = Str.regexp_string "pc_label" in
+    Str.string_match regexp name 0
   | _ -> false
 
 
