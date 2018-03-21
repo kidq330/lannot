@@ -136,7 +136,7 @@ let shouldInstrument fun_varinfo =
     true
   else begin
     let f (kf : Cil_datatype.Kf.Set.elt ) =
-      Cil_datatype.Kf.varname kf = "kf_" ^ fun_varinfo.vname
+      (Cil_datatype.Kf.vi kf).vname =  fun_varinfo.vname
     in
     Cil_datatype.Kf.Set.exists f names
   end

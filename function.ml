@@ -94,17 +94,7 @@ class visitor = object(_)
     begin match stmt.skind with
       | Instr i when not (Utils.is_label i) ->
         begin match i with
-          | Call (_,func,_,_) ->
-            begin match func.enode with
-              | Lval (h,_) ->
-                (match h with
-                 | Var v ->
-                   let newStmt = mk_call v current_func in
-                   Cil.ChangeTo (Stmt.block [ newStmt ; stmt])
-                 | _ -> Cil.DoChildren
-                )
-              | _ -> Cil.DoChildren
-            end
+          | Call (_,{eid = _;enode = Lval(Var v,_);eloc = _},_,_)
           | Local_init (_,ConsInit(v, _,_),_) ->
             let newStmt = mk_call v current_func in
             Cil.ChangeTo (Stmt.block [ newStmt ; stmt])

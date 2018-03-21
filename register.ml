@@ -67,7 +67,6 @@ let compute_outfile opt files =
 
 let annotate_on_project ann_names =
   Kernel.LogicalOperators.on (); (* invalidate the Ast if any *)
-
   let filename = compute_outfile (Options.Output.get ()) (Kernel.Files.get ()) in
 
   (* Remove .hyperlabels file if exists *)
