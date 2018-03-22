@@ -104,7 +104,7 @@ let annotate ann_names =
 
 let setupMutatorOptions () =
   let f mutname =
-    Options.debug ~level:2 "Enabling %s mutator" mutname;
+    Options.debug ~level:1 "Enabling %s mutator" mutname;
     if mutname = "AOR" then Wm.aorOption := true
     else if mutname = "COR" then Wm.corOption := true
     else if mutname = "ABS" then Wm.absOption := true

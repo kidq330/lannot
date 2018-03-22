@@ -24,9 +24,14 @@ FRAMAC_SHARE    :=$(shell frama-c.byte -print-path)
 FRAMAC_LIBDIR   :=$(shell frama-c.byte -print-libpath)
 PLUGIN_NAME      = LAnnotate
 
+PLUGIN_BFLAGS += -warn-error -a
+PLUGIN_OFLAGS += -warn-error -a
 
 PLUGIN_TESTS_DIRS:= options criteria
 
 PLUGIN_CMO = options utils ast_const bes simplify annotators wm \
              logical partition dataflow function assertion register
 include $(FRAMAC_SHARE)/Makefile.dynamic
+
+a:
+	sudo make uninstall && make clean && make && sudo make install
