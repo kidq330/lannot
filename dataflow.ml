@@ -8,7 +8,6 @@ let currentDef = Hashtbl.create 100
 let currentUse = Hashtbl.create 100
 
 
-(** Première passe : On compte le nombre de Set/Use pour chaque variable **)
 (** All-defs Visitor Count **)
 class visitor = object(_)
   inherit Visitor.frama_c_inplace
@@ -150,7 +149,6 @@ class visitorTwo = object(_)
       ignore(Cil.visitCilExpr (new visitorTwo :> Cil.cilVisitor) ex);
       (let lu = !labelUses in labelUses := [];
        let nb = (Cil.visitCilBlock (new visitorTwo :> Cil.cilVisitor) b) in
-       (*let nstmtl = List.map (fun stmt -> Cil.visitCilStmt (new visitorTwo :> Cil.cilVisitor) stmt) stmtl in*)
        let newSt = (Cil.mkBlock (lu @ [Cil.mkStmt (Switch (ex,nb,stmtl,lo))])) in stmt.skind <- (Block newSt);
        Cil.ChangeTo stmt)
     | _ -> Cil.DoChildrenPost (fun stmt -> let res = (Stmt.block (!labelUses @ [stmt])) in labelUses := []; res)
@@ -217,7 +215,7 @@ let gen_hyperlabels () =
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
   let data = (Hashtbl.fold (fun id _ str -> temp := ""; (compute_hl id) ^ str) nBVarUses "") in
-  let out = open_out_gen [Open_creat; Open_text; Open_append] 0o640 data_filename in
+  let out = open_out data_filename in
   output_string out data;
   close_out out;
   Options.feedback "Total number of labels = %d" (!nbLabels*2);
@@ -230,12 +228,8 @@ let alreadyDone = ref false
 *)
 
 let visite file =
-  (* Si l'utilisateur utilise les 2 critères, on ne fait quand même qu'une passe *)
-  if not !alreadyDone then begin
-    Visitor.visitFramacFileSameGlobals (new visitor :> Visitor.frama_c_visitor) file;
-    Visitor.visitFramacFileSameGlobals (new visitorTwo :> Visitor.frama_c_visitor) file;
-    alreadyDone := true
-  end
+  Visitor.visitFramacFileSameGlobals (new visitor :> Visitor.frama_c_visitor) file;
+  Visitor.visitFramacFileSameGlobals (new visitorTwo :> Visitor.frama_c_visitor) file
 
 module AllDefs = Annotators.Register (struct
     let name = "alldefs"

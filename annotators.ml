@@ -66,17 +66,36 @@ let next () =
 
 let nocollect _ = ()
 
+let gen_hyper = ["FCC";"alluses";"alldefs";"RACC";"CACC"]
+
+let is_compatible name previousAnn =
+  if List.exists (fun a -> String.equal a name) gen_hyper then begin
+    try
+      let s = List.find (fun a -> List.exists (fun a2 -> String.equal a a2) gen_hyper) previousAnn in
+      Some(s)
+    with Not_found -> None
+  end
+  else
+    None
+
 let annotate_with annotator ?(id=next) ?(collect=nocollect) ast =
   Options.feedback "apply annotations for %s@." annotator.name;
   annotator.apply id collect ast
 
 let annotate filename names ?(id=next) ?(collect=nocollect) ast =
   filen := filename;
+  let previousAnn = ref [] in
   let f name =
-    try
-      annotate_with ~id ~collect (Hashtbl.find annotators name) ast
-    with Not_found ->
-      Options.warning "unknown annotators `%s`" name;
+    match is_compatible name !previousAnn with
+    | None ->
+      begin try begin
+        annotate_with ~id ~collect (Hashtbl.find annotators name) ast;
+        previousAnn := name :: !previousAnn
+      end
+      with Not_found ->
+        Options.warning "unknown annotators `%s`" name end
+    | Some s ->
+      Options.warning "Annotator '%s' ignored due to imcompatibility with a previous annotator %s" name s;
   in
   List.iter f names
 
