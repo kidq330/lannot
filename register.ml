@@ -19,20 +19,6 @@
 (*  details (enclosed in the file LICENSE).                               *)
 (*                                                                        *)
 (**************************************************************************)
-let to_relative path =
-  let dir = "lannotate" in
-  let dirsep = Filename.dir_sep in
-  let ls = String.split_on_char dirsep.[0] path in
-  let rec reconstruct ls =
-    match ls with
-    | [] -> ""
-    | s :: t ->
-      if String.equal dir s then
-        String.concat dirsep (""::s::t)
-      else
-        reconstruct t
-  in
-  reconstruct ls
 
 let store_label_data out annotations =
   (* TODO do that in its own module, ultimately shared with the other LTest-tools *)
@@ -40,7 +26,7 @@ let store_label_data out annotations =
   let formatter = Format.formatter_of_out_channel out in
   Format.fprintf formatter "# id, status, tag, origin_loc, current_loc, emitter, exec_time@.";
   let print_one (id, tags, cond, origin_loc) =
-    let origin_file = to_relative ((fst origin_loc).Lexing.pos_fname) in
+    let origin_file = ((fst origin_loc).Lexing.pos_fname) in
     let origin_line = (fst origin_loc).Lexing.pos_lnum in
     (* let us note obviously uncoverable labels as uncoverable
        (should only work when -lannot-simplify is on) *)
@@ -77,23 +63,25 @@ let annotate_on_project ann_names =
   let annotations = ref [] in
   let collect ann = annotations := ann :: !annotations in
   Annotators.annotate (compute_outfile (Options.Output.get ()) (Kernel.Files.get ())) ann_names ~collect (Ast.get ());
+
+
   let annotations = !annotations in
-
-  (* output modified c file *)
-  Options.feedback "write modified C file (to %s)" filename;
-  let out = open_out filename in
-  let formatter = Format.formatter_of_out_channel out in
-  Utils.Printer.pp_file formatter (Ast.get ());
-  Format.pp_print_flush formatter ();
-  close_out out;
-
-  (* output label data *)
-  let data_filename = (Filename.chop_extension filename) ^ ".labels" in
-  Options.feedback "write label data (to %s)" data_filename;
-  let out = open_out data_filename in
-  store_label_data out annotations;
-  close_out out;
-  Options.feedback "finished"
+  if not !Annotators.assertDone then begin
+    (* output modified c file *)
+    Options.feedback "write modified C file (to %s)" filename;
+    let out = open_out filename in
+    let formatter = Format.formatter_of_out_channel out in
+    Utils.Printer.pp_file formatter (Ast.get ());
+    Format.pp_print_flush formatter ();
+    close_out out;
+    (* output label data *)
+    let data_filename = (Filename.chop_extension filename) ^ ".labels" in
+    Options.feedback "write label data (to %s)" data_filename;
+    let out = open_out data_filename in
+    store_label_data out annotations;
+    close_out out;
+    Options.feedback "finished"
+  end
 
 let annotate ann_names =
   let base_project = Project.current () in
@@ -130,6 +118,11 @@ let run () =
   if Options.ListAnnotators.get () then
     begin
       Annotators.print_help Format.std_formatter;
+      exit 0;
+    end
+  else if Options.ListAnnotatorsIncomp.get () then
+    begin
+      Annotators.print_help_incomp Format.std_formatter;
       exit 0;
     end
   else if not (Options.Annotators.is_empty ()) then

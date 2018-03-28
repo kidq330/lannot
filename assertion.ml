@@ -110,6 +110,7 @@ end
 module AssertCov = Annotators.Register (struct
     let name = "ASSERT"
     let help = "Assert Coverage"
-    let apply mk_label file =
-      Visitor.visitFramacFileSameGlobals (new visitorAssert mk_label :> Visitor.frama_c_visitor) file
+    let apply _mk_label _file =
+      let ext  = Dynamic.get ~plugin:"stady" "run_stady_labels" (Datatype.func Datatype.unit Datatype.unit) in
+      ext ()
   end)

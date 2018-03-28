@@ -68,6 +68,15 @@ module ListAnnotators = False (struct
     let help = "show list of criteria"
   end)
 
+let () = Parameter_customize.set_group help
+let () = Parameter_customize.do_not_journalize ()
+let () = Parameter_customize.do_not_projectify ()
+let () = Parameter_customize.do_not_save ()
+module ListAnnotatorsIncomp = False (struct
+    let option_name = "-lannot-incomp-list"
+    let help = "show list of criteria incompatibility"
+  end)
+
 let crit_group = add_group "Criterion-specific options"
 
 module AllBoolExps = False (struct

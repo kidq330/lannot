@@ -25,6 +25,8 @@ type annotation =
 
 type annotator
 
+val assertDone : bool ref
+
 (** Module type of annotators *)
 module type ANNOTATOR = sig
   val name : string
@@ -71,6 +73,8 @@ val annotate : string -> string list -> ?id:(unit->int) -> ?collect:(annotation 
 val shouldInstrument : Cil_types.varinfo -> bool
 
 val print_help : Format.formatter -> unit
+
+val print_help_incomp : Format.formatter -> unit
 
 val getCurrentLabelId : unit -> int
 

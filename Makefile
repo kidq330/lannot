@@ -27,6 +27,8 @@ PLUGIN_NAME      = LAnnotate
 PLUGIN_BFLAGS += -warn-error -a
 PLUGIN_OFLAGS += -warn-error -a
 
+PLUGIN_DEPENDENCIES += Stady
+
 PLUGIN_TESTS_DIRS:= options criteria
 
 PLUGIN_CMO = options utils ast_const bes simplify annotators wm \

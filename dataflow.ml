@@ -7,7 +7,6 @@ let nBVarUses = Hashtbl.create 100
 let currentDef = Hashtbl.create 100
 let currentUse = Hashtbl.create 100
 
-
 (** All-defs Visitor Count **)
 class visitor = object(_)
   inherit Visitor.frama_c_inplace
@@ -80,7 +79,8 @@ let handle_param v =
         let twoExptwo = (Cil.integer Cil_datatype.Location.unknown 2) in
         let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int  v.vid))) in
         let zeroExp = (Cil.integer Cil_datatype.Location.unknown 0) in
-        let newStmt = (Utils.mk_call "pc_label_sequence" ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])) in
+        let prefix = if Options.Debug.get () != 0 then "set_" else "" in
+        let newStmt = (Utils.mk_call (prefix^"pc_label_sequence") ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])) in
         labelDefs := newStmt :: !labelDefs;
       done;
       (Hashtbl.replace currentDef v.vid (i + 1))
@@ -131,7 +131,8 @@ class visitorTwo = object(_)
             let twoExptwo = (Cil.integer Cil_datatype.Location.unknown 2) in
             let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int  v.vid))) in
             let zeroExp = (Cil.integer Cil_datatype.Location.unknown 0) in
-            let newStmt = (Utils.mk_call "pc_label_sequence" ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])) in
+            let prefix = if Options.Debug.get () != 0 then "set_" else "" in
+            let newStmt = (Utils.mk_call (prefix^"pc_label_sequence") ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])) in
             labelDefs := newStmt :: !labelDefs
           done;
           (Hashtbl.replace currentDef v.vid (i + 1))
@@ -170,7 +171,8 @@ class visitorTwo = object(_)
             let twoExptwo = (Cil.integer Cil_datatype.Location.unknown 2) in
             let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int  v.vid))) in
             let zeroExp = (Cil.integer Cil_datatype.Location.unknown 0) in
-            let newStmt = (Utils.mk_call "pc_label_sequence" ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])) in
+            let prefix = if Options.Debug.get () != 0 then "use_" else "" in
+            let newStmt = (Utils.mk_call (prefix^"pc_label_sequence") ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])) in
             labelUses := newStmt :: !labelUses
           done;
           (Hashtbl.replace currentUse v.vid (j + 1))
