@@ -88,7 +88,7 @@ let handle_param v =
   end
 
 (** All-defs Visitor Add Labels **)
-class visitorTwo = object(_)
+class visitorTwo = object(self)
   inherit Visitor.frama_c_inplace
 
   (* Def-Param *)
@@ -105,6 +105,13 @@ class visitorTwo = object(_)
 
   (* Def-Var *)
   method! vstmt_aux stmt =
+    let lbl = List.exists (fun l ->
+        match l with
+        | Case _ -> true
+        | Default _ -> true
+        | _ -> false
+      ) stmt.labels
+    in
     match stmt.skind with
     | Instr i when Utils.is_label i -> Cil.SkipChildren (* ignorer les labels *)
     | Instr (Set ((Var v,_),_,_))
@@ -138,18 +145,22 @@ class visitorTwo = object(_)
           (Hashtbl.replace currentDef v.vid (i + 1))
         end;
       end;
-      Cil.DoChildrenPost (fun stmt -> let res = (Stmt.block (!labelUses @ !labelStops @ [stmt] @ !labelDefs)) in labelUses := []; res)
+      (* Dans le cas d'un case (de switch par exemple) on veut que les uses et stops soient après le label, mais avant le skind*)
+      if not lbl then
+        Cil.DoChildrenPost (fun stmt -> let res = (Stmt.block (!labelUses @ !labelStops @ [stmt] @ !labelDefs)) in labelUses := []; res)
+      else
+        Cil.DoChildrenPost (fun stmt -> let res = Stmt.block ({stmt with skind = Block (Cil.mkBlock (!labelUses @ !labelStops @ [Cil.mkStmt stmt.skind]))} :: !labelDefs) in labelUses := []; res)
     | If (ex,th,el,lo) ->
-      ignore(Cil.visitCilExpr (new visitorTwo :> Cil.cilVisitor) ex);
+      ignore(Cil.visitCilExpr (self :> Cil.cilVisitor) ex);
       (let lu = !labelUses in labelUses := [];
-       let thenb = (Cil.visitCilBlock (new visitorTwo :> Cil.cilVisitor) th) in
-       let elseb = (Cil.visitCilBlock (new visitorTwo :> Cil.cilVisitor) el) in
+       let thenb = (Cil.visitCilBlock (self :> Cil.cilVisitor) th) in
+       let elseb = (Cil.visitCilBlock (self :> Cil.cilVisitor) el) in
        let newSt = (Cil.mkBlock (lu @ [Cil.mkStmt (If (ex,thenb,elseb,lo))])) in stmt.skind <- (Block newSt);
        Cil.ChangeTo stmt)
     | Switch (ex, b, stmtl, lo) ->
-      ignore(Cil.visitCilExpr (new visitorTwo :> Cil.cilVisitor) ex);
+      ignore(Cil.visitCilExpr (self :> Cil.cilVisitor) ex);
       (let lu = !labelUses in labelUses := [];
-       let nb = (Cil.visitCilBlock (new visitorTwo :> Cil.cilVisitor) b) in
+       let nb = (Cil.visitCilBlock (self :> Cil.cilVisitor) b) in
        let newSt = (Cil.mkBlock (lu @ [Cil.mkStmt (Switch (ex,nb,stmtl,lo))])) in stmt.skind <- (Block newSt);
        Cil.ChangeTo stmt)
     | _ -> Cil.DoChildrenPost (fun stmt -> let res = (Stmt.block (!labelUses @ [stmt])) in labelUses := []; res)
@@ -222,8 +233,6 @@ let gen_hyperlabels () =
   close_out out;
   Options.feedback "Total number of labels = %d" (!nbLabels*2);
   Options.feedback "finished"
-
-let alreadyDone = ref false
 
 (**
    All-defs annotator

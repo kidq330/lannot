@@ -104,12 +104,13 @@ let annotate filename names ?(id=next) ?(collect=nocollect) ast =
   let f name =
     match is_compatible name !previousAnn with
     | None ->
-      begin try begin
-        annotate_with ~id ~collect (Hashtbl.find annotators name) ast;
-        previousAnn := name :: !previousAnn
+      begin
+        try
+          annotate_with ~id ~collect (Hashtbl.find annotators name) ast;
+          previousAnn := name :: !previousAnn
+        with Not_found ->
+          Options.warning "unknown annotators `%s`" name
       end
-      with Not_found ->
-        Options.warning "unknown annotators `%s`" name end
     | Some s ->
       Options.warning "Annotator '%s' ignored due to imcompatibility with a previous annotator %s" name s;
   in

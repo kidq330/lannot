@@ -33,6 +33,10 @@ implements the Function annotators: FC, FCC
 
 ### `Assertion`
 implements the Assertion annotators: ASSERT
+NB : Only works if StaDy is installed
+
+### `Dataflow`
+implements the dataflow criterias : all-defs & all-uses
 
 ### `Utils`
 some utilities but lots of legacy code.

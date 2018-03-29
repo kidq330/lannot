@@ -205,7 +205,7 @@ available mutators. One can select more precisely mutators by removing some of t
 
 Available mutators are ABS, AOR, COR and ROR.
 
-The following example (with ABS, AOR and ROR):
+The following example (with ABS and AOR):
 
 ```c
 int main(int a, int b){

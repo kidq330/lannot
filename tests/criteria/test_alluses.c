@@ -6,7 +6,7 @@ int f(){
 	return 0;
 }
 
-int main(int c){
+int maintest(int c){
 	int a = 1;
 	int b = 2;
 	
