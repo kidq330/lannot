@@ -116,45 +116,55 @@ class visitorTwo = object(self)
     | Instr (Set ((Var v,_),_,_))
     | Instr (Call (Some (Var v,_),_,_,_))
     | Instr (Local_init (v,_,_)) ->
-      let processSet v =
-        labelStops := [];
-        if not (v.vname = "__retres") && Hashtbl.mem nBVarUses v.vid
-           && not ((String.sub v.vname 0 (min 3 (String.length v.vname))) = "tmp") then begin
-          let oneExp = (Cil.integer Cil_datatype.Location.unknown 0) in
-          let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int  v.vid))) in
-          let newStmt = (Utils.mk_call "pc_label_sequence_condition" ([oneExp;ccExp])) in
-          labelStops := newStmt :: !labelStops
+      (*Beta : Je parcours les exp avant de faire le set, pour éviter les bugs dans les cas ou la variable est Set avec son ancienne valeur, Ex :
+        a++;
+        a = f(a);
+        ...
+      *)
+      begin
+        match stmt.skind with
+        | Instr (Set (_,e,_))
+        | Instr (Local_init (_,AssignInit(SingleInit(e)),_)) ->
+          ignore(Cil.visitCilExpr (self :> Cil.cilVisitor) e)
+        | Instr (Call (_,_,el,_))
+        | Instr (Local_init (_,ConsInit(_,el,_),_)) ->
+          List.iter (fun e -> ignore(Cil.visitCilExpr (self :> Cil.cilVisitor) e)) el
+        | _ -> assert false
+      end;
+      labelStops := [];
+      if not (v.vname = "__retres") && Hashtbl.mem nBVarUses v.vid
+         && not ((String.sub v.vname 0 (min 3 (String.length v.vname))) = "tmp") then begin
+        let oneExp = (Cil.integer Cil_datatype.Location.unknown 0) in
+        let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int  v.vid))) in
+        let newStmt = (Utils.mk_call "pc_label_sequence_condition" ([oneExp;ccExp])) in
+        labelStops := newStmt :: !labelStops
+      end;
+      labelDefs := [];
+      if not (v.vname = "__retres") && Hashtbl.mem nBVarUses v.vid
+         && not ((String.sub v.vname 0 (min 3 (String.length v.vname))) = "tmp") then begin
+        let i = (Hashtbl.find currentDef v.vid) in begin
+          for j = (Hashtbl.find currentUse v.vid) to (Hashtbl.find nBVarUses v.vid) do
+            let id = get_seq_id v.vid i j in
+            let oneExp = (Cil.integer Cil_datatype.Location.unknown 1) in
+            idList := id :: !idList;
+            let idExp = (Cil.integer Cil_datatype.Location.unknown id) in
+            let twoExp = (Cil.integer Cil_datatype.Location.unknown 1) in
+            let twoExptwo = (Cil.integer Cil_datatype.Location.unknown 2) in
+            let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int  v.vid))) in
+            let zeroExp = (Cil.integer Cil_datatype.Location.unknown 0) in
+            let newStmt = (Utils.mk_call "pc_label_sequence" ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])) in
+            labelDefs := newStmt :: !labelDefs
+          done;
+          (Hashtbl.replace currentDef v.vid (i + 1))
         end;
-        labelDefs := [];
-        if not (v.vname = "__retres") && Hashtbl.mem nBVarUses v.vid
-           && not ((String.sub v.vname 0 (min 3 (String.length v.vname))) = "tmp") then begin
-          let i = (Hashtbl.find currentDef v.vid) in begin
-            for j = (Hashtbl.find currentUse v.vid) to (Hashtbl.find nBVarUses v.vid) do
-              let id = get_seq_id v.vid i j in
-              let oneExp = (Cil.integer Cil_datatype.Location.unknown 1) in
-              idList := id :: !idList;
-              let idExp = (Cil.integer Cil_datatype.Location.unknown id) in
-              let twoExp = (Cil.integer Cil_datatype.Location.unknown 1) in
-              let twoExptwo = (Cil.integer Cil_datatype.Location.unknown 2) in
-              let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int  v.vid))) in
-              let zeroExp = (Cil.integer Cil_datatype.Location.unknown 0) in
-              let newStmt = (Utils.mk_call "pc_label_sequence" ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])) in
-              labelDefs := newStmt :: !labelDefs
-            done;
-            (Hashtbl.replace currentDef v.vid (i + 1))
-          end;
-        end;
-      in
-      Cil.DoChildrenPost (fun stmt ->
-          processSet v;
-          let res =
-            if not lbl then
-              Stmt.block (!labelUses @ !labelStops @ [stmt] @ !labelDefs)
-            else
-              Stmt.block ({stmt with skind = Block (Cil.mkBlock (!labelUses @ !labelStops @ [Cil.mkStmt stmt.skind]))} :: !labelDefs)
-          in
-          labelUses := []; res
-        )
+      end;
+      (* Dans le cas d'un case (de switch par exemple) on veut que les uses et stops soient après le label, mais avant le skind*)
+      let lu = !labelUses in
+      labelUses := [];
+      if not lbl then
+        Cil.ChangeTo (Stmt.block (lu @ !labelStops @ [stmt] @ !labelDefs))
+      else
+        Cil.ChangeTo (Stmt.block ({stmt with skind = Block (Cil.mkBlock (!labelUses @ !labelStops @ [Cil.mkStmt stmt.skind]))} :: !labelDefs))
     | If (ex,th,el,lo) ->
       ignore(Cil.visitCilExpr (self :> Cil.cilVisitor) ex);
       (let lu = !labelUses in labelUses := [];
