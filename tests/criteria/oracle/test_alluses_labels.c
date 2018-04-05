@@ -64,13 +64,11 @@ int maintest(int c)
       a = 3;
       pc_label_sequence(1,3434,1,2,"51",0);
       pc_label_sequence(1,2798,1,2,"51",0);
-      pc_label_sequence(1,3602,2,2,"52",0);
       pc_label_sequence(1,3028,2,2,"52",0);
       pc_label_sequence(1,2575,2,2,"52",0);
       pc_label_sequence_condition(0,"52");
       b = b;
       pc_label_sequence(1,4412,1,2,"52",0);
-      pc_label_sequence(1,3602,1,2,"52",0);
     }
     else {
       pc_label_sequence(1,2798,2,2,"51",0);

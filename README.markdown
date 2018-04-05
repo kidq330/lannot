@@ -58,7 +58,7 @@ Authors
 - Omar Chebaro
 - Mickaël Delahaye
 - Michaël Marcozzi
-
+- Thibault Martin
 Also many thanks to the rest of LTest's team:
 - Nikolai Kosmatov
 - Sébastien Bardin

@@ -65,8 +65,8 @@ let annotate_on_project ann_names =
   Annotators.annotate (compute_outfile (Options.Output.get ()) (Kernel.Files.get ())) ann_names ~collect (Ast.get ());
 
 
-  let annotations = !annotations in
   if not !Annotators.assertDone then begin
+    let annotations = !annotations in
     (* output modified c file *)
     Options.feedback "write modified C file (to %s)" filename;
     let out = open_out filename in

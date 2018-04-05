@@ -1,0 +1,7 @@
+[kernel] Parsing tests/criteria/test_ASSERT.c (with preprocessing)
+[lannot] start project default_labels
+[kernel] Parsing tests/criteria/test_ASSERT.c (with preprocessing)
+[lannot] apply annotations for ASSERT
+[stady] write label data (to tests/criteria/test_ASSERT_labels.labels)
+[stady] write modified C file (to tests/criteria/test_ASSERT_labels.c)
+[stady] finished
