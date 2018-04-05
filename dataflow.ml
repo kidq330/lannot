@@ -104,18 +104,15 @@ class visitorTwo = object(self)
 
   (* Def-Var *)
   method! vstmt_aux stmt =
-    let lbl = List.exists (fun l ->
-        match l with
-        | Case _ -> true
-        | Default _ -> true
-        | _ -> false
-      ) stmt.labels
-    in
+    (* Si un stmt possède 1 ou plusieurs labels (labels C), les labels (labels Ltest) qui correspondent au stmt seront insérés entre le/labels labels C et le stmt *)
+    let lbl = List.length stmt.labels != 0 in
     match stmt.skind with
     | Instr i when Utils.is_label i -> Cil.SkipChildren (* ignorer les labels *)
     | Instr (Set ((Var v,_),_,_))
     | Instr (Call (Some (Var v,_),_,_,_))
     | Instr (Local_init (v,_,_)) ->
+      (* Les labels pour le set sont fait en post pour éviter les erreurs de labels dans les statements ou la variable qui
+         est set estégalement use (i++ par exemple) *)
       let processSet v =
         labelStops := [];
         if not (v.vname = "__retres") && Hashtbl.mem nBVarUses v.vid

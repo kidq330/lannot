@@ -10,12 +10,12 @@ int maintest(int c){
 	int a = 1;
 	int b = 2;
 	
-	if (a){
+	test : if (a){
 		if(b){
 			b = 3;
 		}
 		else{
-			a = f();
+			test2 : a = f();
 		}
 	}
 	else{
@@ -25,16 +25,18 @@ int maintest(int c){
 			b = b;	
 		}
 		else{
-			b = a;		
+			test3 : b = a;		
 		}
 	}
 	
-	switch(c){
+	test4 : switch(c){
    
-     case 1 :
-     	return a + b;
+     case 1 : case 14 :
+     	test5 : return a + b;
      case 12 : 
+     case 13 :
      	return c;
+     
      default :
      	return ( c ? 0 : c);
    
