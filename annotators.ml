@@ -72,22 +72,25 @@ let incomp = Hashtbl.create 10
 
 let () =
   Hashtbl.add incomp "ASSERT" ["ALL"];
-  Hashtbl.add incomp "FCC" ["CACC";"RACC";"ASSERT"];
-  Hashtbl.add incomp "RACC" ["FCC";"ASSERT"];
-  Hashtbl.add incomp "CACC" ["FCC";"ASSERT"];
-  Hashtbl.add incomp "alldefs" ["alluses";"ASSERT"];
-  Hashtbl.add incomp "alluses" ["alldefs";"ASSERT"]
+  Hashtbl.add incomp "alldefs" ["alluses"];
+  Hashtbl.add incomp "alluses" ["alldefs"]
 
 let is_compatible name previousAnn =
-  if previousAnn != [] && Hashtbl.mem incomp name then begin
-    try
-      let l = Hashtbl.find incomp name in
-      if String.equal (List.nth l 0) "ALL" then
-        Some("ALL")
-      else
-        let s = List.find (fun a -> List.exists (fun a2 -> String.equal a a2) l) previousAnn in
-        Some(s)
-    with Not_found -> None
+  if previousAnn != [] then begin
+    if List.exists (fun s -> String.equal s "ASSERT") previousAnn then
+      Some("ASSERT")
+    else if Hashtbl.mem incomp name then begin
+      try
+        let l = Hashtbl.find incomp name in
+        if String.equal (List.nth l 0) "ALL" then
+          Some("ALL")
+        else
+          let s = List.find (fun a -> List.exists (fun a2 -> String.equal a a2) l) previousAnn in
+          Some(s)
+      with Not_found -> None
+    end
+    else
+      None
   end
   else
     None

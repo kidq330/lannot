@@ -79,3 +79,5 @@ val print_help_incomp : Format.formatter -> unit
 val getCurrentLabelId : unit -> int
 
 val label_function_name : string ref
+
+val next : unit -> int

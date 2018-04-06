@@ -70,12 +70,13 @@ let gen_hyperlabels_callcov = ref (fun () ->
   close_out out;
   Options.feedback "finished")
 
+
 let mk_call v func =
-  incr label_id;
-  Hashtbl.add disjunctions (func,v.vname) !label_id;
+  let id = Annotators.next () in
+  Hashtbl.add disjunctions (func,v.vname) id;
   hyperlabels := (HL.add (func,v.vname) !hyperlabels);
   let oneExp = (Cil.integer Cil_datatype.Location.unknown 1) in
-  let idExp = (Cil.integer Cil_datatype.Location.unknown !label_id) in
+  let idExp = (Cil.integer Cil_datatype.Location.unknown id) in
   let ccExp = (Cil.mkString Cil_datatype.Location.unknown "FCC") in
   let newStmt = (Utils.mk_call "pc_label" ([oneExp;idExp;ccExp])) in
   newStmt
