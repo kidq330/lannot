@@ -104,7 +104,6 @@ class visitorTwo = object(self)
 
   (* Def-Var *)
   method! vstmt_aux stmt =
-    (* Si un stmt possède 1 ou plusieurs labels (labels C), les labels (labels Ltest) qui correspondent au stmt seront insérés entre le/labels labels C et le stmt *)
     let lbl = List.length stmt.labels != 0 in
     match stmt.skind with
     | Instr i when Utils.is_label i -> Cil.SkipChildren (* ignorer les labels *)
@@ -145,6 +144,7 @@ class visitorTwo = object(self)
       Cil.DoChildrenPost (fun stmt ->
           processSet v;
           let res =
+            (* Si un stmt possède 1 ou plusieurs labels (labels C), les labels (labels Ltest) qui correspondent au stmt seront insérés entre le/labels labels C et le stmt *)
             if not lbl then
               Stmt.block (!labelUses @ !labelStops @ [stmt] @ !labelDefs)
             else
@@ -229,7 +229,7 @@ let gen_hyperlabels () =
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
   let data = (Hashtbl.fold (fun id _ str -> temp := ""; (compute_hl id) ^ str) nBVarUses "") in
-  let out = open_out data_filename in
+  let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
   output_string out data;
   close_out out;
   Options.feedback "Total number of labels = %d" (!nbLabels*2);
@@ -238,7 +238,6 @@ let gen_hyperlabels () =
 (**
    All-defs annotator
 *)
-
 let visite file =
   Visitor.visitFramacFileSameGlobals (new visitor :> Visitor.frama_c_visitor) file;
   Visitor.visitFramacFileSameGlobals (new visitorTwo :> Visitor.frama_c_visitor) file

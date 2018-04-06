@@ -70,18 +70,18 @@ let nocollect _ = ()
 
 let incomp = Hashtbl.create 10
 
-let () = Hashtbl.add incomp "FCC" ["alluses";"alldefs";"CACC";"RACC";"ASSERT"];
-         Hashtbl.add incomp "RACC" ["alluses";"alldefs";"CACC";"FCC";"ASSERT"];
-         Hashtbl.add incomp "CACC" ["alluses";"alldefs";"FCC";"RACC";"ASSERT"];
-         Hashtbl.add incomp "alldefs" ["alluses";"CACC";"FCC";"RACC";"ASSERT"];
-         Hashtbl.add incomp "alluses" ["alldefs";"CACC";"FCC";"RACC";"ASSERT"];
-         Hashtbl.add incomp "ASSERT" ["ALL"]
+let () =
+  Hashtbl.add incomp "ASSERT" ["ALL"];
+  Hashtbl.add incomp "FCC" ["CACC";"RACC";"ASSERT"];
+  Hashtbl.add incomp "RACC" ["FCC";"ASSERT"];
+  Hashtbl.add incomp "CACC" ["FCC";"ASSERT"];
+  Hashtbl.add incomp "alldefs" ["alluses";"ASSERT"];
+  Hashtbl.add incomp "alluses" ["alldefs";"ASSERT"]
 
 let is_compatible name previousAnn =
-  if Hashtbl.mem incomp name then begin
+  if previousAnn != [] && Hashtbl.mem incomp name then begin
     try
       let l = Hashtbl.find incomp name in
-      if l = [] || previousAnn = [] then raise Not_found;
       if String.equal (List.nth l 0) "ALL" then
         Some("ALL")
       else

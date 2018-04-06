@@ -56,9 +56,9 @@ let annotate_on_project ann_names =
   let filename = compute_outfile (Options.Output.get ()) (Kernel.Files.get ()) in
 
   (* Remove .hyperlabels file if exists *)
-  (*let hl_data_filename = (Filename.chop_extension filename) ^ ".hyperlabels" in
+  let hl_data_filename = (Filename.chop_extension filename) ^ ".hyperlabels" in
   if Sys.file_exists hl_data_filename then
-    Sys.remove hl_data_filename;*)
+    Sys.remove hl_data_filename;
 
   let annotations = ref [] in
   let collect ann = annotations := ann :: !annotations in

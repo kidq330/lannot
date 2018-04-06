@@ -126,7 +126,7 @@ let store_hyperlabel_data out str =
 let gen_hyperlabels_cacc = ref (fun () ->
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
-  let out = open_out data_filename in
+  let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
   store_hyperlabel_data out  (Array.fold_right array_to_string (Array.map couple_to_string !hlab_cacc) "");
   close_out out;
   Options.feedback "finished")
@@ -185,7 +185,7 @@ let store_hyperlabel_data out str =
 let gen_hyperlabels_racc = ref (fun () ->
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
-  let out = open_out data_filename in
+  let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
   store_hyperlabel_data out  (Array.fold_right array_to_string (Array.map couple_to_string !hlab_racc) "");
   close_out out;
   Options.feedback "finished")
@@ -222,6 +222,38 @@ let gen_labels_gicc_for mk_label whole part =
 let gen_labels_gicc mk_label bexpr =
   let atoms = atomic_conditions bexpr in
   Stmt.block (List.map (gen_labels_gicc_for mk_label bexpr) atoms)
+
+class visitExp = object(self)
+  inherit Visitor.frama_c_inplace
+  val mutable bexprs = []
+  method get_exprs () = bexprs
+
+  method! vexpr expr =
+    match expr.enode with
+    | BinOp ((Lt|Le), e1, e2, _) ->
+      ignore (Visitor.visitFramacExpr (self :> Visitor.frama_c_visitor) e1);
+      ignore (Visitor.visitFramacExpr (self :> Visitor.frama_c_visitor) e2);
+      bexprs <- (Exp.binop MinusA e2 e1) :: bexprs;
+      Cil.SkipChildren
+    | BinOp ((Gt|Ge), e1, e2, _) ->
+      ignore (Visitor.visitFramacExpr (self :> Visitor.frama_c_visitor) e1);
+      ignore (Visitor.visitFramacExpr (self :> Visitor.frama_c_visitor) e2);
+      bexprs <- (Exp.binop MinusA e1 e2) :: bexprs;
+      Cil.SkipChildren
+    | BinOp ((LAnd|LOr), e1, e2, _) ->
+      ignore (Visitor.visitFramacExpr (self :> Visitor.frama_c_visitor) e1);
+      ignore (Visitor.visitFramacExpr (self :> Visitor.frama_c_visitor) e2);
+      Cil.SkipChildren
+    | _ -> Cil.SkipChildren
+end
+
+(** Generate Limit labels for the given Boolean formula *)
+let gen_labels_limit mk_label bexpr =
+  let loc = bexpr.eloc in
+  Options.warning "Limit criteria : TODO";
+  let ve = new visitExp in
+  ignore (Visitor.visitFramacExpr (ve :> Visitor.frama_c_visitor) bexpr);
+  Stmt.block (List.map (fun e -> mk_label e [] loc) (ve#get_exprs()))
 
 (**
    Frama-C in-place visitor that injects labels at each condition/boolean
@@ -290,7 +322,7 @@ let apply_ncc mk_label n all_boolean file =
 module CC = Annotators.Register (struct
     let name = "CC"
     let help = "Condition Coverage"
-    
+
     let apply mk_label file =
       apply_ncc mk_label 1 (Options.AllBoolExps.get ()) file
   end)
@@ -301,7 +333,7 @@ module CC = Annotators.Register (struct
 module NCC = Annotators.Register (struct
     let name = "NCC"
     let help = "n-wise Condition Coverage"
-    
+
     let apply mk_label file =
       apply_ncc mk_label (Options.N.get ()) (Options.AllBoolExps.get ()) file
   end)
@@ -313,7 +345,7 @@ module NCC = Annotators.Register (struct
 module MCC = Annotators.Register (struct
     let name = "MCC"
     let help = "Multiple Condition Coverage"
-    
+
     let apply mk_label file =
       apply_ncc mk_label 0 (Options.AllBoolExps.get ()) file
   end)
@@ -324,7 +356,7 @@ module MCC = Annotators.Register (struct
 module DC = Annotators.Register (struct
     let name = "DC"
     let help = "Decision Coverage"
-    
+
     let apply mk_label file =
       apply (gen_labels_dc mk_label) (Options.AllBoolExps.get ()) file
   end)
@@ -335,8 +367,8 @@ module DC = Annotators.Register (struct
 module GACC = Annotators.Register (struct
     let name = "GACC"
     let help = "General Active Clause Coverage (weakened MCDC)"
-    
-    let apply mk_label file = 
+
+    let apply mk_label file =
       apply (gen_labels_gacc mk_label) (Options.AllBoolExps.get ()) file
   end)
 
@@ -347,7 +379,7 @@ module GACC = Annotators.Register (struct
 module CACC = Annotators.Register (struct
     let name = "CACC"
     let help = "Correlated Active Clause Coverage (masking MCDC)"
-    let apply mk_label file = 
+    let apply mk_label file =
       apply (gen_labels_cacc mk_label) (Options.AllBoolExps.get ()) file;
       !gen_hyperlabels_cacc ()
   end)
@@ -359,7 +391,7 @@ module CACC = Annotators.Register (struct
 module RACC = Annotators.Register (struct
     let name = "RACC"
     let help = "Restricted Active Clause Coverage (strong MCDC)"
-    let apply mk_label file = 
+    let apply mk_label file =
       apply (gen_labels_racc mk_label) (Options.AllBoolExps.get ()) file;
       !gen_hyperlabels_racc ()
   end)
@@ -372,7 +404,19 @@ module RACC = Annotators.Register (struct
 module GICC = Annotators.Register (struct
     let name = "GICC"
     let help = "General Inactive Clause Coverage"
-    let apply mk_label file = 
+    let apply mk_label file =
       apply (gen_labels_gicc mk_label) (Options.AllBoolExps.get ()) file
-    
+
   end)
+
+(*
+(**
+   General 
+*)
+module Limit = Annotators.Register (struct
+    let name = "LIMIT"
+    let help = "Limit Coverage"
+    let apply mk_label file =
+      apply (gen_labels_limit mk_label) (Options.AllBoolExps.get ()) file
+
+  end)*)
