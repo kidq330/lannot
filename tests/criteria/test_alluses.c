@@ -30,16 +30,15 @@ int maintest(int c){
 	}
 	
 	test4 : switch(c){
-   
-     case 1 : case 14 :
-     	test5 : return a + b;
-     case 12 : 
-     case 13 :
-     	return c;
+		case 1 : case 14 :
+     		test5 : return a + b;
+     	case 12 : 
+     	case 13 :
+     		return c;
      
-     default :
-     	return ( c ? 0 : c);
-   
+     	default :
+     		return ( c ? 0 : c);
    }
    return 0;
 }
+

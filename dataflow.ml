@@ -144,7 +144,9 @@ class visitorTwo = object(self)
       Cil.DoChildrenPost (fun stmt ->
           processSet v;
           let res =
-            (* Si un stmt possède 1 ou plusieurs labels (labels C), les labels (labels Ltest) qui correspondent au stmt seront insérés entre le/labels labels C et le stmt *)
+            (* Si un stmt possède 1 ou plusieurs labels (labels C),
+               les labels (labels Ltest) qui correspondent au stmt
+               seront insérés entre le/les labels labels C et le stmt *)
             if not lbl then
               Stmt.block (!labelUses @ !labelStops @ [stmt] @ !labelDefs)
             else
@@ -165,7 +167,19 @@ class visitorTwo = object(self)
        let nb = (Cil.visitCilBlock (self :> Cil.cilVisitor) b) in
        let newSt = (Cil.mkBlock (lu @ [Cil.mkStmt (Switch (ex,nb,stmtl,lo))])) in stmt.skind <- (Block newSt);
        Cil.ChangeTo stmt)
-    | _ -> Cil.DoChildrenPost (fun stmt -> let res = (Stmt.block (!labelUses @ [stmt])) in labelUses := []; res)
+    | _ ->
+      Cil.DoChildrenPost (fun stmt ->
+          let res =
+            (* Si un stmt possède 1 ou plusieurs labels (labels C),
+               les labels (labels Ltest) qui correspondent au stmt
+               seront insérés entre le/les labels labels C et le stmt *)
+            if not lbl then
+              Stmt.block (!labelUses @ [stmt])
+            else
+              {stmt with skind = Block (Cil.mkBlock (!labelUses @ [Cil.mkStmt stmt.skind]))}
+          in
+          labelUses := []; res
+      )
 
 
   (* Use *)
