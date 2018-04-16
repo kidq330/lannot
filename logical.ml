@@ -120,9 +120,11 @@ let gen_labels_cacc mk_label bexpr =
 (** Generate CACC hyperlabels *)
 let array_to_string l r = String.concat "" [ l ; ",\n" ; r ]
 let couple_to_string c = String.concat "" [ "<l" ; (string_of_int (fst c)) ; ".l" ; (string_of_int (snd c)) ; "|;pa!=pb;>"]
+
 let store_hyperlabel_data out str =
   let formatter = Format.formatter_of_out_channel out in
   Format.fprintf formatter "%s" str
+
 let gen_hyperlabels_cacc = ref (fun () ->
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
@@ -178,10 +180,6 @@ let array_to_string l r = String.concat "" [ l ; ",\n" ; r ]
 
 let couple_to_string c = String.concat "" [ "<l" ; (string_of_int (fst c)) ; ".l" ; (string_of_int (fst (snd c))) ; "|;" ; generate_equalities (snd (snd c)) ; ";>"]
 
-let store_hyperlabel_data out str =
-  let formatter = Format.formatter_of_out_channel out in
-  Format.fprintf formatter "%s" str
-
 let gen_hyperlabels_racc = ref (fun () ->
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
@@ -223,6 +221,10 @@ let gen_labels_gicc mk_label bexpr =
   let atoms = atomic_conditions bexpr in
   Stmt.block (List.map (gen_labels_gicc_for mk_label bexpr) atoms)
 
+
+let lim_lbl = ref []
+let gap = Options.LimitGap.get ()
+
 class visitExp = object(self)
   inherit Visitor.frama_c_inplace
   val mutable bexprs = []
@@ -230,30 +232,60 @@ class visitExp = object(self)
 
   method! vexpr expr =
     match expr.enode with
-    | BinOp ((Lt|Le), e1, e2, _) ->
+    | BinOp ((Lt | Le | Gt | Ge | LAnd | LOr | Ne | Eq) as op, e1, e2, _) ->
       ignore (Visitor.visitFramacExpr (self :> Visitor.frama_c_visitor) e1);
       ignore (Visitor.visitFramacExpr (self :> Visitor.frama_c_visitor) e2);
-      bexprs <- (Exp.binop MinusA e2 e1) :: bexprs;
-      Cil.SkipChildren
-    | BinOp ((Gt|Ge), e1, e2, _) ->
-      ignore (Visitor.visitFramacExpr (self :> Visitor.frama_c_visitor) e1);
-      ignore (Visitor.visitFramacExpr (self :> Visitor.frama_c_visitor) e2);
-      bexprs <- (Exp.binop MinusA e1 e2) :: bexprs;
-      Cil.SkipChildren
-    | BinOp ((LAnd|LOr), e1, e2, _) ->
-      ignore (Visitor.visitFramacExpr (self :> Visitor.frama_c_visitor) e1);
-      ignore (Visitor.visitFramacExpr (self :> Visitor.frama_c_visitor) e2);
+      begin match op with
+        | Lt ->
+          bexprs <- (Exp.binop Le (Exp.binop MinusA e2 e1) (Exp.integer gap)):: bexprs
+        | Le ->
+          bexprs <- (Exp.binop Lt (Exp.binop MinusA e2 e1) (Exp.integer gap)):: bexprs
+        | Gt ->
+          bexprs <- (Exp.binop Le (Exp.binop MinusA e1 e2) (Exp.integer gap)):: bexprs
+        | Ge ->
+          bexprs <- (Exp.binop Lt (Exp.binop MinusA e1 e2) (Exp.integer gap)):: bexprs
+        | Ne | Eq -> ()
+        | _ -> ()
+      end;
       Cil.SkipChildren
     | _ -> Cil.SkipChildren
 end
 
 (** Generate Limit labels for the given Boolean formula *)
 let gen_labels_limit mk_label bexpr =
+  Options.warning "Limit criteria : WIP";
   let loc = bexpr.eloc in
-  Options.warning "Limit criteria : TODO";
   let ve = new visitExp in
   ignore (Visitor.visitFramacExpr (ve :> Visitor.frama_c_visitor) bexpr);
-  Stmt.block (List.map (fun e -> mk_label e [] loc) (ve#get_exprs()))
+
+  Stmt.block (List.map (fun e ->
+      let lbl = mk_label e [] loc in
+      lim_lbl := (Annotators.getCurrentLabelId(),loc) :: !lim_lbl;
+      lbl
+      (* let id = Annotators.next () in let idExp = (Cil.integer
+         Cil_datatype.Location.unknown id) in let objExp = (Cil.integer
+         Cil_datatype.Location.unknown obj) in let gapExp = (Cil.integer
+         Cil_datatype.Location.unknown gap) in let tagExp = (Cil.mkString
+         Cil_datatype.Location.unknown ("LIMIT")) in let newStmt =
+         (Utils.mk_call "pc_label_limit" ~loc
+         ([e;idExp;gapExp;objExp;tagExp])) in newStmt*)
+    ) (ve#get_exprs()))
+
+(*let gen_limit_file () =
+  let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".limits" in
+  Options.feedback "write limits data (to %s)" data_filename;
+  let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
+  let formatter = Format.formatter_of_out_channel out in
+  Format.fprintf formatter "# id, status, gap, location, objectif, min value@.";
+  let print_one (id, loc) =
+    let origin_file = ((fst loc).Lexing.pos_fname) in
+    let origin_line = (fst loc).Lexing.pos_lnum in
+    Format.fprintf formatter "%d,unknown,%s:%d,%d,%d,0@." id origin_file origin_line
+  in
+  List.iter print_one (List.rev !lim_lbl);
+  Format.pp_print_flush formatter ();
+  close_out out;
+  Options.feedback "finished"*)
 
 (**
    Frama-C in-place visitor that injects labels at each condition/boolean
@@ -409,14 +441,13 @@ module GICC = Annotators.Register (struct
 
   end)
 
-(*
+
 (**
-   General 
+   General
 *)
 module Limit = Annotators.Register (struct
     let name = "LIMIT"
     let help = "Limit Coverage"
     let apply mk_label file =
       apply (gen_labels_limit mk_label) (Options.AllBoolExps.get ()) file
-
-  end)*)
+  end)

@@ -140,3 +140,11 @@ module GlobalsAsInput = False (struct
     let help = "global variables should be considered as input \
                 (disabled by default)"
   end)
+
+let () = Parameter_customize.set_group ipd_group
+module LimitGap = Int (struct
+    let option_name = "-lannot-limitgap"
+    let arg_name = "NUM"
+    let help = "Set the limit gap (default : 0)"
+    let default = 0
+  end)
