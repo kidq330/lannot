@@ -30,7 +30,7 @@ PLUGIN_OFLAGS += -warn-error -a
 PLUGIN_TESTS_DIRS:= options criteria
 
 PLUGIN_CMO = options utils ast_const bes simplify annotators wm \
-             logical partition dataflow function assertion register
+             logical partition dataflow function assertion statement loop register
 include $(FRAMAC_SHARE)/Makefile.dynamic
 
 a:

@@ -64,7 +64,6 @@ let annotate_on_project ann_names =
   let collect ann = annotations := ann :: !annotations in
   Annotators.annotate (compute_outfile (Options.Output.get ()) (Kernel.Files.get ())) ann_names ~collect (Ast.get ());
 
-
   if not !Annotators.assertDone then begin
     let annotations = !annotations in
     (* output modified c file *)

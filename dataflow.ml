@@ -231,9 +231,14 @@ let compute_hl id =
     for k = 1 to (Hashtbl.find nBVarDefs id) do
       let ll = get_list_labels k id in
       if ll != [] then
-        temp := !temp ^ "<"
-                ^ (String.concat !symb (List.map (fun i -> "s" ^ string_of_int i) ll))
-                ^ "|; ;>,\n";
+        if String.equal "-" !symb then begin
+          temp := !temp
+                  ^ (String.concat "" (List.map (fun i -> "<s" ^ string_of_int i ^"|; ;>,\n") ll))
+        end
+        else
+          temp := !temp ^ "<"
+                  ^ (String.concat !symb (List.map (fun i -> "s" ^ string_of_int i) ll))
+                  ^ "|; ;>,\n";
     done;
     !temp
   end
@@ -275,5 +280,17 @@ module AllUses = Annotators.Register (struct
     let apply _ file =
       visite file;
       symb := ".";
+      gen_hyperlabels ()
+  end)
+
+(**
+   Def-Use annotator
+*)
+module Defuse = Annotators.Register (struct
+    let name = "defuse"
+    let help = "Definition-Use Coverage"
+    let apply _ file =
+      visite file;
+      symb := "-";
       gen_hyperlabels ()
   end)

@@ -14,7 +14,7 @@ TODO one day remove the actual annotation from the annotators to be done once
 as single pass by Annotators.
 
 ### `Logical`
-implements the Boolean expression annotators: DC, CC, MCC, NCC, GACC and GICC
+implements the Boolean expression annotators: DC, CC, MCC, NCC, GACC, GICC && LIMIT (WIP)
 
 ### `Partition`
 implements the input partition domain (IPD) annotator.
@@ -36,7 +36,15 @@ implements the Assertion annotators: ASSERT
 NB : Only works if StaDy is installed
 
 ### `Dataflow`
-implements the dataflow criterias : all-defs & all-uses
+implements the dataflow criterias: all-defs, all-uses & def-use
+
+### `Statement (WIP)`
+implements the statement criteria: STMT
+A pc_label is placed before each goto/return, at the start of each block (except the main block in a switch), and after each label (Case, Default and custom label)
+
+### `Loop (WIP)`
+implements a loop criteria: LOOP
+a pc_label is placed before each loop and is covered if we don't enter in the loop.
 
 ### `Utils`
 some utilities but lots of legacy code.

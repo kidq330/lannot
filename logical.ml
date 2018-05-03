@@ -305,11 +305,11 @@ let gen_limit_file = ref (fun () ->
   Options.feedback "write limits data (to %s)" data_filename;
   let out = open_out data_filename in
   let formatter = Format.formatter_of_out_channel out in
-  Format.fprintf formatter "#id, status, location, a, b, drivers@.";
+  Format.fprintf formatter "#id, status, location, (a;b)(|(a;b))*, covering test cases@.";
   let print_one (id, loc) =
     let origin_file = ((fst loc).Lexing.pos_fname) in
     let origin_line = (fst loc).Lexing.pos_lnum in
-    Format.fprintf formatter "%d,unknown,%s:%d,,,@." id origin_file origin_line
+    Format.fprintf formatter "%d,unknown,%s:%d,,@." id origin_file origin_line
   in
   List.iter print_one (List.rev !lim_lbl);
   Format.pp_print_flush formatter ();

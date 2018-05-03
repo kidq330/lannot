@@ -72,8 +72,9 @@ let incomp = Hashtbl.create 10
 
 let () =
   Hashtbl.add incomp "ASSERT" ["ALL"];
-  Hashtbl.add incomp "alldefs" ["alluses"];
-  Hashtbl.add incomp "alluses" ["alldefs"]
+  Hashtbl.add incomp "alldefs" ["alluses";"defuse"];
+  Hashtbl.add incomp "alluses" ["alldefs";"defuse"];
+  Hashtbl.add incomp "defuse" ["alldefs";"alluses"]
 
 let is_compatible name previousAnn =
   if previousAnn != [] then begin
@@ -181,7 +182,7 @@ end
 let shouldInstrument fun_varinfo =
   let names = Options.FunctionNames.get () in
   (* TODO filter builtin functions *)
-  if  Cil_datatype.Kf.Set.is_empty names then
+  if  Cil_datatype.Kf.Set.is_empty names && (not fun_varinfo.vinline || Options.Inline.get ()) then
     true
   else begin
     let f (kf : Cil_datatype.Kf.Set.elt ) =
