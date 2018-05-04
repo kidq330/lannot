@@ -39,7 +39,6 @@ let mkSet fid loopId =
 
 let mkUse fid loopId =
   let id = cantor_pairing fid loopId in
-  idList := id :: !idList;
   let idExp = Exp.integer id in
   let oneExp = Exp.one () in
   let twoExp = Exp.integer 2 in
@@ -48,7 +47,7 @@ let mkUse fid loopId =
   let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int id))) in
   Utils.mk_call "pc_label_sequence" ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])
 
-let mkloopcond fid loopId =
+let mkCond fid loopId =
   let id = cantor_pairing fid loopId in
   let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int id))) in
   let cond = (Utils.mk_call "pc_label_sequence_condition" ([Exp.zero();ccExp])) in
@@ -72,7 +71,7 @@ let visitor = object(_)
         match stmt.skind with
         | If (e,th,el,l) ->
           if first then begin
-            let cond = mkloopcond fid loopId in
+            let cond = mkCond fid loopId in
             first <- false;
             stmt.skind <- (If (e,{th with bstmts = cond::th.bstmts},el,l));
             Cil.ChangeTo stmt
@@ -92,7 +91,7 @@ let visitor = object(_)
                 match stmt.skind with
                 | Loop (ca,b,l,s1,s2) ->
                   first <- false;
-                  let cond = mkloopcond fid local_loopid in
+                  let cond = mkCond fid local_loopid in
                   let nstmt = {stmt with skind = Loop (ca,{b with bstmts = cond::b.bstmts},l,s1,s2)} in
                   Stmt.block [set;nstmt;use]
                 | _ -> assert false
