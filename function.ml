@@ -34,7 +34,7 @@ include Annotators.Register (struct
 
       method! vfunc dec =
         if  Annotators.shouldInstrument dec.svar then begin
-          let label = mk_label (Cil.one Cil_datatype.Location.unknown) [] dec.svar.vdecl in
+          let label = mk_label (Exp.one()) [] dec.svar.vdecl in
           dec.sbody.bstmts <- label :: dec.sbody.bstmts;
         end;
         Cil.SkipChildren
@@ -75,8 +75,8 @@ let mk_call v func =
   let id = Annotators.next () in
   Hashtbl.add disjunctions (func,v.vname) id;
   hyperlabels := (HL.add (func,v.vname) !hyperlabels);
-  let oneExp = (Cil.integer Cil_datatype.Location.unknown 1) in
-  let idExp = (Cil.integer Cil_datatype.Location.unknown id) in
+  let idExp = Exp.integer id in
+  let oneExp = Exp.one () in
   let ccExp = (Cil.mkString Cil_datatype.Location.unknown "FCC") in
   let newStmt = (Utils.mk_call "pc_label" ([oneExp;idExp;ccExp])) in
   newStmt
@@ -98,7 +98,7 @@ class visitor = object(_)
           | Call (_,{eid = _;enode = Lval(Var v,_);eloc = _},_,_)
           | Local_init (_,ConsInit(v, _,_),_) ->
             let newStmt = mk_call v current_func in
-            Cil.ChangeTo (Stmt.block [ newStmt ; stmt])
+            Cil.ChangeTo (Stmt.block [newStmt; stmt])
           | _ -> Cil.DoChildren
         end
       | _ -> Cil.DoChildren

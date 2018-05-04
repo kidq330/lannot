@@ -72,13 +72,13 @@ let handle_param v =
     let i = (Hashtbl.find currentDef v.vid) in begin
       for j = (Hashtbl.find currentUse v.vid) to (Hashtbl.find nBVarUses v.vid) do (* OPTIM : only labels for previous defs/next uses *)
         let id = get_seq_id v.vid i j in
-        let oneExp = (Cil.integer Cil_datatype.Location.unknown 1) in
         idList := id :: !idList;
-        let idExp = (Cil.integer Cil_datatype.Location.unknown id) in
-        let twoExp = (Cil.integer Cil_datatype.Location.unknown 1) in
-        let twoExptwo = (Cil.integer Cil_datatype.Location.unknown 2) in
+        let idExp = Exp.integer id in
+        let oneExp = Exp.one () in
+        let twoExp = Exp.one () in
+        let twoExptwo = Exp.integer 2 in
         let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int  v.vid))) in
-        let zeroExp = (Cil.integer Cil_datatype.Location.unknown 0) in
+        let zeroExp = Exp.zero () in
         let newStmt = (Utils.mk_call "pc_label_sequence" ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])) in
         labelDefs := newStmt :: !labelDefs;
       done;
@@ -116,9 +116,9 @@ class visitorTwo = object(self)
         labelStops := [];
         if not (v.vname = "__retres") && Hashtbl.mem nBVarUses v.vid
            && not ((String.sub v.vname 0 (min 3 (String.length v.vname))) = "tmp") then begin
-          let oneExp = (Cil.integer Cil_datatype.Location.unknown 0) in
+          let zeroExp = Exp.zero () in
           let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int  v.vid))) in
-          let newStmt = (Utils.mk_call "pc_label_sequence_condition" ([oneExp;ccExp])) in
+          let newStmt = (Utils.mk_call "pc_label_sequence_condition" ([zeroExp;ccExp])) in
           labelStops := newStmt :: !labelStops
         end;
         labelDefs := [];
@@ -127,13 +127,13 @@ class visitorTwo = object(self)
           let i = (Hashtbl.find currentDef v.vid) in begin
             for j = (Hashtbl.find currentUse v.vid) to (Hashtbl.find nBVarUses v.vid) do
               let id = get_seq_id v.vid i j in
-              let oneExp = (Cil.integer Cil_datatype.Location.unknown 1) in
               idList := id :: !idList;
-              let idExp = (Cil.integer Cil_datatype.Location.unknown id) in
-              let twoExp = (Cil.integer Cil_datatype.Location.unknown 1) in
-              let twoExptwo = (Cil.integer Cil_datatype.Location.unknown 2) in
+              let idExp = Exp.integer id in
+              let oneExp = Exp.one () in
+              let twoExp = Exp.one () in
+              let twoExptwo = Exp.integer 2 in
               let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int  v.vid))) in
-              let zeroExp = (Cil.integer Cil_datatype.Location.unknown 0) in
+              let zeroExp = Exp.zero () in
               let newStmt = (Utils.mk_call "pc_label_sequence" ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])) in
               labelDefs := newStmt :: !labelDefs
             done;
@@ -150,22 +150,23 @@ class visitorTwo = object(self)
             if not lbl then
               Stmt.block (!labelUses @ !labelStops @ [stmt] @ !labelDefs)
             else
-              Stmt.block ({stmt with skind = Block (Cil.mkBlock (!labelUses @ !labelStops @ [Cil.mkStmt stmt.skind]))} :: !labelDefs)
+              Stmt.block ({stmt with skind = Block (Block.mk (!labelUses @ !labelStops @ [Cil.mkStmt stmt.skind]))} :: !labelDefs)
           in
-          labelUses := []; res
+          labelUses := [];
+          res
         )
     | If (ex,th,el,lo) ->
       ignore(Cil.visitCilExpr (self :> Cil.cilVisitor) ex);
       (let lu = !labelUses in labelUses := [];
        let thenb = (Cil.visitCilBlock (self :> Cil.cilVisitor) th) in
        let elseb = (Cil.visitCilBlock (self :> Cil.cilVisitor) el) in
-       let newSt = (Cil.mkBlock (lu @ [Cil.mkStmt (If (ex,thenb,elseb,lo))])) in stmt.skind <- (Block newSt);
+       let newSt = (Block.mk (lu @ [Cil.mkStmt (If (ex,thenb,elseb,lo))])) in stmt.skind <- (Block newSt);
        Cil.ChangeTo stmt)
     | Switch (ex, b, stmtl, lo) ->
       ignore(Cil.visitCilExpr (self :> Cil.cilVisitor) ex);
       (let lu = !labelUses in labelUses := [];
        let nb = (Cil.visitCilBlock (self :> Cil.cilVisitor) b) in
-       let newSt = (Cil.mkBlock (lu @ [Cil.mkStmt (Switch (ex,nb,stmtl,lo))])) in stmt.skind <- (Block newSt);
+       let newSt = (Block.mk (lu @ [Cil.mkStmt (Switch (ex,nb,stmtl,lo))])) in stmt.skind <- (Block newSt);
        Cil.ChangeTo stmt)
     | _ ->
       Cil.DoChildrenPost (fun stmt ->
@@ -175,11 +176,13 @@ class visitorTwo = object(self)
                seront insérés entre le/les labels labels C et le stmt *)
             if not lbl then
               Stmt.block (!labelUses @ [stmt])
-            else
-              {stmt with skind = Block (Cil.mkBlock (!labelUses @ [Cil.mkStmt stmt.skind]))}
+            else begin
+              stmt.skind <-Block (Cil.mkBlock (!labelUses @ [Cil.mkStmt stmt.skind]));
+              stmt
+            end
           in
           labelUses := []; res
-      )
+        )
 
 
   (* Use *)
@@ -191,13 +194,13 @@ class visitorTwo = object(self)
         begin
           for i = 1 to (Hashtbl.find currentDef v.vid) - 1  do
             let id = get_seq_id v.vid i j in
-            let oneExp = (Cil.integer Cil_datatype.Location.unknown 1) in
             idList := id :: !idList;
-            let idExp = (Cil.integer Cil_datatype.Location.unknown id) in
-            let twoExp = (Cil.integer Cil_datatype.Location.unknown 2) in
-            let twoExptwo = (Cil.integer Cil_datatype.Location.unknown 2) in
+            let idExp = Exp.integer id in
+            let oneExp = Exp.one () in
+            let twoExp = Exp.integer 2 in
+            let twoExptwo = Exp.integer 2 in
             let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int  v.vid))) in
-            let zeroExp = (Cil.integer Cil_datatype.Location.unknown 0) in
+            let zeroExp = Exp.zero () in
             let newStmt = (Utils.mk_call "pc_label_sequence" ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])) in
             labelUses := newStmt :: !labelUses
           done;

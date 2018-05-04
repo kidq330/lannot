@@ -23,46 +23,103 @@
 open Cil_types
 open Ast_const
 
+let cantor_pairing n m = (((n+m)*(n+m+1))/2)+m
+let idList = ref []
+
+let mkSet fid loopId =
+  let id = cantor_pairing fid loopId in
+  idList := id :: !idList;
+  let idExp = Exp.integer id in
+  let oneExp = Exp.one () in
+  let twoExp = Exp.one () in
+  let twoExptwo = Exp.integer 2 in
+  let zeroExp = Exp.zero() in
+  let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int id))) in
+  Utils.mk_call "pc_label_sequence" ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])
+
+let mkUse fid loopId =
+  let id = cantor_pairing fid loopId in
+  idList := id :: !idList;
+  let idExp = Exp.integer id in
+  let oneExp = Exp.one () in
+  let twoExp = Exp.integer 2 in
+  let twoExptwo = Exp.integer 2 in
+  let zeroExp = Exp.zero() in
+  let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int id))) in
+  Utils.mk_call "pc_label_sequence" ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])
+
+let mkloopcond fid loopId =
+  let id = cantor_pairing fid loopId in
+  let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int id))) in
+  let cond = (Utils.mk_call "pc_label_sequence_condition" ([Exp.zero();ccExp])) in
+  cond
+
+let visitor = object(_)
+      inherit Visitor.frama_c_inplace
+
+      val mutable first = false
+      val mutable fid = 0
+      val mutable loopId = 0
+      method! vfunc dec =
+        if Annotators.shouldInstrument dec.svar then begin
+          fid <- dec.svar.vid;
+          Cil.DoChildren
+        end
+        else
+          Cil.SkipChildren
+
+      method! vstmt_aux stmt =
+        match stmt.skind with
+        | If (e,th,el,l) ->
+          if first then begin
+            let cond = mkloopcond fid loopId in
+            first <- false;
+            stmt.skind <- (If (e,{th with bstmts = cond::th.bstmts},el,l));
+            Cil.ChangeTo stmt
+          end
+          else
+            Cil.DoChildren
+        | Loop _ ->
+          first <- true;
+          loopId <- stmt.sid;
+          let set = mkSet fid loopId in
+          let use = mkUse fid loopId in
+          let local_loopid = loopId in
+          Cil.DoChildrenPost (fun stmt ->
+              if not first then
+                Stmt.block [set;stmt;use]
+              else begin
+                match stmt.skind with
+                | Loop (ca,b,l,s1,s2) ->
+                  first <- false;
+                  let cond = mkloopcond fid local_loopid in
+                  let nstmt = {stmt with skind = Loop (ca,{b with bstmts = cond::b.bstmts},l,s1,s2)} in
+                  Stmt.block [set;nstmt;use]
+                | _ -> assert false
+              end
+            )
+         | _ ->
+           Cil.DoChildren
+    end
+
+let gen_hyperlabels () =
+  let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
+  Options.feedback "write hyperlabel data (to %s)" data_filename;
+  let data = String.concat "\n" (List.map (fun i -> "<s" ^ string_of_int i ^"|; ;>,") (List.rev !idList))in
+  let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
+  output_string out data;
+  close_out out;
+  Options.feedback "Total number of labels = %d" ((List.length !idList)*2);
+  Options.feedback "finished"
+
 include Annotators.Register (struct
 
     let name = "LOOP"
     let help = "Loop Coverage"
 
     (** A visitor that adds a label at the start of each loop *)
-    let visitor mk_label = object(_)
-      inherit Visitor.frama_c_inplace
 
-      val mutable first = false
-      val lbl = Stack.create ()
-      val mutable id = 0
-      method! vfunc dec =
-        if Annotators.shouldInstrument dec.svar then
-          Cil.DoChildren
-        else
-          Cil.SkipChildren
-
-      method! vstmt_aux stmt =
-        match stmt.skind with
-        | If (e,_,_,_) ->
-          if first then begin
-            let l = mk_label (Exp.lnot (Exp.copy e)) [] Cil_datatype.Location.unknown in
-            Stack.push l lbl;
-            first <- false
-          end;
-          Cil.DoChildren
-        | Loop _ ->
-          first <- true;
-          Cil.DoChildrenPost (fun stmt ->
-              try
-                Stmt.block [Stack.pop lbl;stmt]
-              with
-                Stack.Empty -> stmt
-            )
-         | _ ->
-           Cil.DoChildren
-    end
-
-    let apply f ast =
-      Visitor.visitFramacFileSameGlobals (visitor f) ast
-
+    let apply _ ast =
+      Visitor.visitFramacFileSameGlobals visitor ast;
+      gen_hyperlabels ()
   end)

@@ -23,6 +23,8 @@
 open Cil_types
 open Ast_const
 
+let unk_loc = Cil_datatype.Location.unknown
+
 include Annotators.Register (struct
 
     let name = "STMT"
@@ -34,7 +36,7 @@ include Annotators.Register (struct
 
       method! vfunc dec =
         if Annotators.shouldInstrument dec.svar then
-          let l = mk_label (Cil.one Cil_datatype.Location.unknown) [] Cil_datatype.Location.unknown in
+          let l = mk_label (Exp.one()) [] unk_loc in
           Cil.DoChildrenPost (fun res ->
               res.sbody.bstmts <- l :: res.sbody.bstmts;
               res
@@ -45,42 +47,38 @@ include Annotators.Register (struct
       method! vstmt_aux stmt =
         let lbl = List.length stmt.labels != 0 in
         match stmt.skind with
-         | Goto (_, _) ->
-           let l = mk_label (Cil.one Cil_datatype.Location.unknown) [] Cil_datatype.Location.unknown in
-           if not lbl then
-             Cil.ChangeTo (Stmt.block ([l;stmt]))
-           else
-             Cil.ChangeTo ({stmt with skind = Block (Cil.mkBlock (l :: [Cil.mkStmt stmt.skind]))})
+         | Goto (_, _)
          | Return (_, _) ->
-           let l = mk_label (Cil.one Cil_datatype.Location.unknown) [] Cil_datatype.Location.unknown in
+           let l = mk_label (Exp.one()) [] unk_loc in
            if not lbl then
              Cil.ChangeTo (Stmt.block ([l;stmt]))
-           else
-             Cil.ChangeTo ({stmt with skind = Block (Cil.mkBlock (l :: [Cil.mkStmt stmt.skind]))})
-         | If(e,b1,b2,l) ->
+           else begin
+             stmt.skind <- Block (Cil.mkBlock (l :: [Cil.mkStmt stmt.skind]));
+             Cil.ChangeTo stmt
+           end
+         | If (e,b1,b2,l) ->
            let nb1 = Cil.visitCilBlock (self :> Cil.cilVisitor) b1 in
            let nb2 = Cil.visitCilBlock (self :> Cil.cilVisitor) b2 in
-           let l1 = mk_label (Cil.one Cil_datatype.Location.unknown) [] Cil_datatype.Location.unknown in
-           let l2 = mk_label (Cil.one Cil_datatype.Location.unknown) [] Cil_datatype.Location.unknown in
+           let l1 = mk_label (Exp.one()) [] unk_loc in
+           let l2 = mk_label (Exp.one()) [] unk_loc in
            nb1.bstmts <- l1 :: nb1.bstmts;
            nb2.bstmts <- l2 :: nb2.bstmts;
-           Cil.ChangeTo ({stmt with skind = (If (e,nb1,nb2,l))})
-         | Switch (e,b,s,l) ->
-           let nb = Cil.visitCilBlock (self :> Cil.cilVisitor) b in
-           Cil.ChangeTo ({stmt with skind = (Switch (e,nb,s,l))})
+           stmt.skind <- (If (e,nb1,nb2,l));
+           Cil.ChangeTo stmt
          | Loop _ ->
            Cil.DoChildrenPost (fun res ->
                match res.skind with
                | Loop  (ca, b, s1, s2, l) ->
-                 let lb = mk_label (Cil.one Cil_datatype.Location.unknown) [] Cil_datatype.Location.unknown in
+                 let lb = mk_label (Exp.one()) [] unk_loc in
                  b.bstmts<- lb :: b.bstmts;
-                 {res with skind = (Loop (ca,b,s1,s2,l))}
+                 res.skind <- (Loop (ca,b,s1,s2,l));
+                 res
                | _ -> assert false
              )
          | _ ->
            Cil.DoChildrenPost (fun res ->
                if lbl then begin
-                 let lb = mk_label (Cil.one Cil_datatype.Location.unknown) [] Cil_datatype.Location.unknown in
+                 let lb = mk_label (Exp.one()) [] unk_loc in
                  {res with skind = Block (Cil.mkBlock (lb :: [Cil.mkStmt res.skind]))}
                end
                else

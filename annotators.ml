@@ -72,9 +72,10 @@ let incomp = Hashtbl.create 10
 
 let () =
   Hashtbl.add incomp "ASSERT" ["ALL"];
-  Hashtbl.add incomp "alldefs" ["alluses";"defuse"];
-  Hashtbl.add incomp "alluses" ["alldefs";"defuse"];
-  Hashtbl.add incomp "defuse" ["alldefs";"alluses"]
+  Hashtbl.add incomp "alldefs" ["alluses";"defuse";"LOOP"];
+  Hashtbl.add incomp "alluses" ["alldefs";"defuse";"LOOP"];
+  Hashtbl.add incomp "defuse" ["alldefs";"alluses";"LOOP"];
+  Hashtbl.add incomp "LOOP" ["alldefs";"alluses";"defuse"]
 
 let is_compatible name previousAnn =
   if previousAnn != [] then begin

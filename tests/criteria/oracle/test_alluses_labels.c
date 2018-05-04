@@ -16,96 +16,96 @@ int f(void)
 int maintest(int c)
 {
   int __retres;
-  pc_label_sequence(1,2504,1,2,"51",0);
-  pc_label_sequence(1,2093,1,2,"51",0);
-  pc_label_sequence(1,1778,1,2,"51",0);
-  pc_label_sequence(1,1544,1,2,"51",0);
-  pc_label_sequence_condition(0,"52");
+  pc_label_sequence(1,2297,1,2,"48",0);
+  pc_label_sequence(1,1904,1,2,"48",0);
+  pc_label_sequence(1,1604,1,2,"48",0);
+  pc_label_sequence(1,1382,1,2,"48",0);
+  pc_label_sequence_condition(0,"49");
   int a = 1;
-  pc_label_sequence(1,2158,1,2,"52",0);
-  pc_label_sequence(1,1838,1,2,"52",0);
-  pc_label_sequence(1,1600,1,2,"52",0);
-  pc_label_sequence_condition(0,"53");
+  pc_label_sequence(1,1966,1,2,"49",0);
+  pc_label_sequence(1,1661,1,2,"49",0);
+  pc_label_sequence(1,1435,1,2,"49",0);
+  pc_label_sequence_condition(0,"50");
   int b = 2;
-  pc_label_sequence(1,3186,1,2,"53",0);
-  pc_label_sequence(1,2647,1,2,"53",0);
-  pc_label_sequence(1,2224,1,2,"53",0);
-  pc_label_sequence(1,1899,1,2,"53",0);
-  pc_label_sequence(1,1657,1,2,"53",0);
+  pc_label_sequence(1,2952,1,2,"50",0);
+  pc_label_sequence(1,2434,1,2,"50",0);
+  pc_label_sequence(1,2029,1,2,"50",0);
+  pc_label_sequence(1,1719,1,2,"50",0);
+  pc_label_sequence(1,1489,1,2,"50",0);
   test: ;
-  pc_label_sequence(1,1600,2,2,"52",0);
+  pc_label_sequence(1,1435,2,2,"49",0);
   if (a) {
-    pc_label_sequence(1,1657,2,2,"53",0);
+    pc_label_sequence(1,1489,2,2,"50",0);
     if (b) {
-      pc_label_sequence_condition(0,"53");
+      pc_label_sequence_condition(0,"50");
       b = 3;
-      pc_label_sequence(1,3774,1,2,"53",0);
-      pc_label_sequence(1,3106,1,2,"53",0);
-      pc_label_sequence(1,2574,1,2,"53",0);
-      pc_label_sequence(1,2157,1,2,"53",0);
+      pc_label_sequence(1,3519,1,2,"50",0);
+      pc_label_sequence(1,2875,1,2,"50",0);
+      pc_label_sequence(1,2364,1,2,"50",0);
+      pc_label_sequence(1,1965,1,2,"50",0);
     }
     else {
-      test2: pc_label_sequence_condition(0,"52");
+      test2: pc_label_sequence_condition(0,"49");
              a = f();
-      pc_label_sequence(1,2503,1,2,"52",0);
-      pc_label_sequence(1,2092,1,2,"52",0);
+      pc_label_sequence(1,2296,1,2,"49",0);
+      pc_label_sequence(1,1903,1,2,"49",0);
     }
   }
   else {
-    pc_label_sequence(1,2157,2,2,"53",0);
-    pc_label_sequence(1,1899,2,2,"53",0);
-    pc_label_sequence_condition(0,"52");
+    pc_label_sequence(1,1965,2,2,"50",0);
+    pc_label_sequence(1,1719,2,2,"50",0);
+    pc_label_sequence_condition(0,"49");
     a = b;
-    pc_label_sequence(1,2950,1,2,"52",0);
-    pc_label_sequence(1,2432,1,2,"52",0);
-    pc_label_sequence(1,2574,2,2,"53",0);
-    pc_label_sequence(1,2224,2,2,"53",0);
+    pc_label_sequence(1,2725,1,2,"49",0);
+    pc_label_sequence(1,2228,1,2,"49",0);
+    pc_label_sequence(1,2364,2,2,"50",0);
+    pc_label_sequence(1,2029,2,2,"50",0);
     if (b) {
-      pc_label_sequence_condition(0,"52");
+      pc_label_sequence_condition(0,"49");
       a = 3;
-      pc_label_sequence(1,3517,1,2,"52",0);
-      pc_label_sequence(1,2873,1,2,"52",0);
-      pc_label_sequence(1,3106,2,2,"53",0);
-      pc_label_sequence(1,2647,2,2,"53",0);
-      pc_label_sequence_condition(0,"53");
+      pc_label_sequence(1,3271,1,2,"49",0);
+      pc_label_sequence(1,2651,1,2,"49",0);
+      pc_label_sequence(1,2875,2,2,"50",0);
+      pc_label_sequence(1,2434,2,2,"50",0);
+      pc_label_sequence_condition(0,"50");
       b = b;
-      pc_label_sequence(1,4506,1,2,"53",0);
+      pc_label_sequence(1,4227,1,2,"50",0);
     }
     else {
       test3:
-      pc_label_sequence(1,2873,2,2,"52",0);
-      pc_label_sequence(1,2432,2,2,"52",0);
-      pc_label_sequence(1,2092,2,2,"52",0);
-      pc_label_sequence(1,1838,2,2,"52",0);
-      pc_label_sequence_condition(0,"53");
+      pc_label_sequence(1,2651,2,2,"49",0);
+      pc_label_sequence(1,2228,2,2,"49",0);
+      pc_label_sequence(1,1903,2,2,"49",0);
+      pc_label_sequence(1,1661,2,2,"49",0);
+      pc_label_sequence_condition(0,"50");
       b = a;
-      pc_label_sequence(1,5406,1,2,"53",0);
+      pc_label_sequence(1,5100,1,2,"50",0);
     }
   }
   test4: ;
-  pc_label_sequence(1,1544,2,2,"51",0);
+  pc_label_sequence(1,1382,2,2,"48",0);
   switch (c) {
     int tmp;
     test5: case 1: case 14: ;
-    pc_label_sequence(1,5406,2,2,"53",0);
-    pc_label_sequence(1,4506,2,2,"53",0);
-    pc_label_sequence(1,3774,2,2,"53",0);
-    pc_label_sequence(1,3186,2,2,"53",0);
-    pc_label_sequence(1,3517,2,2,"52",0);
-    pc_label_sequence(1,2950,2,2,"52",0);
-    pc_label_sequence(1,2503,2,2,"52",0);
-    pc_label_sequence(1,2158,2,2,"52",0);
+    pc_label_sequence(1,5100,2,2,"50",0);
+    pc_label_sequence(1,4227,2,2,"50",0);
+    pc_label_sequence(1,3519,2,2,"50",0);
+    pc_label_sequence(1,2952,2,2,"50",0);
+    pc_label_sequence(1,3271,2,2,"49",0);
+    pc_label_sequence(1,2725,2,2,"49",0);
+    pc_label_sequence(1,2296,2,2,"49",0);
+    pc_label_sequence(1,1966,2,2,"49",0);
     __retres = a + b;
     goto return_label;
     case 12: case 13: ;
-    pc_label_sequence(1,1778,2,2,"51",0);
+    pc_label_sequence(1,1604,2,2,"48",0);
     __retres = c;
     goto return_label;
     default: ;
-    pc_label_sequence(1,2093,2,2,"51",0);
+    pc_label_sequence(1,1904,2,2,"48",0);
     if (c) tmp = 0;
     else {
-      pc_label_sequence(1,2504,2,2,"51",0);
+      pc_label_sequence(1,2297,2,2,"48",0);
       tmp = c;
     }
     __retres = tmp;

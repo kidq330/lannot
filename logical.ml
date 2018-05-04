@@ -290,7 +290,7 @@ let gen_labels_limit _mk_label bexpr =
 
   Stmt.block (List.map (fun (cond,exp,e1,e2,ty) ->
      let id = Annotators.next () in
-     let idExp = Cil.integer Cil_datatype.Location.unknown id in
+     let idExp = Exp.integer id in
      let tagExp = Exp.mk (Const (CStr "LIMIT")) in
      let name =
        if ty then "pc_label_limit" else "pc_label_limitd"
