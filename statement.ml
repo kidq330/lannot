@@ -64,17 +64,17 @@ include Annotators.Register (struct
            let l2 = mk_label (Cil.one Cil_datatype.Location.unknown) [] Cil_datatype.Location.unknown in
            nb1.bstmts <- l1 :: nb1.bstmts;
            nb2.bstmts <- l2 :: nb2.bstmts;
-           Cil.ChangeTo (Cil.mkStmt (If (e,nb1,nb2,l)))
+           Cil.ChangeTo ({stmt with skind = (If (e,nb1,nb2,l))})
          | Switch (e,b,s,l) ->
            let nb = Cil.visitCilBlock (self :> Cil.cilVisitor) b in
-           Cil.ChangeTo (Cil.mkStmt (Switch (e,nb,s,l)))
+           Cil.ChangeTo ({stmt with skind = (Switch (e,nb,s,l))})
          | Loop _ ->
            Cil.DoChildrenPost (fun res ->
                match res.skind with
                | Loop  (ca, b, s1, s2, l) ->
                  let lb = mk_label (Cil.one Cil_datatype.Location.unknown) [] Cil_datatype.Location.unknown in
                  b.bstmts<- lb :: b.bstmts;
-                 (Cil.mkStmt (Loop (ca,b,s1,s2,l)))
+                 {res with skind = (Loop (ca,b,s1,s2,l))}
                | _ -> assert false
              )
          | _ ->
