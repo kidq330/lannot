@@ -95,15 +95,14 @@ let labelUses = ref []
 let labelDefs = ref []
 let labelStops = ref []
 let idList = ref []
-let idListLoop = ref []
 
 let handle_param v =
   if Hashtbl.mem nBVarUses v.vid then begin
     let i = (Hashtbl.find currentDef v.vid) in
     for j = (Hashtbl.find currentUse v.vid) to (Hashtbl.find nBVarUses v.vid) do (* OPTIM : only labels for previous defs/next uses *)
-      let id = get_seq_id v.vid i j in
-      idList := id :: !idList;
-      let idExp = Exp.integer id in
+      let ids = get_seq_id v.vid i j in
+      idList := (v.vid,i,ids) :: !idList;
+      let idExp = Exp.integer ids in
       let oneExp = Exp.one () in
       let twoExp = Exp.one () in
       let twoExptwo = Exp.integer 2 in
@@ -148,14 +147,14 @@ class visitorTwo = object(self)
 
         if not (v.vname = "__retres") && not v.vtemp && Hashtbl.mem nBVarUses v.vid then begin
           let zeroExp = Exp.zero () in
-          let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int  v.vid))) in
+          let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int v.vid))) in
           let newStmt = (Utils.mk_call "pc_label_sequence_condition" ([zeroExp;ccExp])) in
           labelStops := newStmt :: !labelStops;
           let defId = (Hashtbl.find currentDef v.vid) in
           for j = (Hashtbl.find currentUse v.vid) to (Hashtbl.find nBVarUses v.vid) do
-            let id = get_seq_id v.vid defId j in
-            idList := id :: !idList;
-            let idExp = Exp.integer id in
+            let ids = get_seq_id v.vid defId j in
+            idList := (v.vid,defId,ids) :: !idList;
+            let idExp = Exp.integer ids in
             let oneExp = Exp.one () in
             let twoExp = Exp.one () in
             let twoExptwo = Exp.integer 2 in
@@ -186,7 +185,7 @@ class visitorTwo = object(self)
               let i = (Hashtbl.find currentInLoopDef id) in
               for j = 1 to (Hashtbl.find currentInLoopUse id) - 1 do
                 let ids = get_seq_id v.vid (i+offseti) (j+offsetj) in
-                idListLoop := (v.vid,defId,ids) :: !idListLoop;
+                idList := (v.vid,defId,ids) :: !idList;
                 let idExp = Exp.integer ids in
                 let oneExp = Exp.one () in
                 let twoExp = Exp.one () in
@@ -299,28 +298,13 @@ class visitorTwo = object(self)
     | _ -> Cil.DoChildren
 end
 
-let listLabels = ref []
-
-let nbLabels = ref 0
-
-let get_list_labels i id =
-  listLabels := [];
-  for j = 1 to (Hashtbl.find nBVarUses id) do
-    let lid = get_seq_id id i j in
-    if List.exists (fun lblId -> lid = lblId) !idList then
-      listLabels := lid :: !listLabels;
-  done;
-  nbLabels:= !nbLabels + (List.length !listLabels);
-  !listLabels
-
 let symb = ref ""
 let temp = ref ""
 
 let compute_hl id =
   if (Hashtbl.mem nBVarDefs id) then begin
     for k = 1 to (Hashtbl.find nBVarDefs id) do
-      let loop_labels = List.fold_left (fun acc (idv,defId,ids) -> if defId = k && idv = id then ids::acc else acc) [] !idListLoop in
-      let ll = (get_list_labels k id) @ loop_labels in
+      let ll = List.fold_left (fun acc (idv,defId,ids) -> if idv = id && defId = k then ids::acc else acc) [] !idList in
       if ll != [] then begin
         if String.equal "-" !symb then begin
           temp := !temp ^ (String.concat "" (List.map (fun i -> "<s" ^ string_of_int i ^"|; ;>,\n") ll))
@@ -342,7 +326,7 @@ let gen_hyperlabels () =
   let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
   output_string out data;
   close_out out;
-  Options.feedback "Total number of labels = %d" (!nbLabels*2);
+  Options.feedback "Total number of labels = %d" ((List.length !idList) *2);
   Options.feedback "finished"
 
 (**
