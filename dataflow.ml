@@ -181,9 +181,11 @@ class visitorTwo = object(self)
             let idl = Stack.top inLoopId in
             let id = cantor_pairing idl v.vid in
             if Hashtbl.mem nBInLoopUses id then begin
-              let i = Hashtbl.find currentInLoopDef id in
+              let offseti = (Hashtbl.find nBVarDefs v.vid) in
+              let offsetj = (Hashtbl.find nBVarUses v.vid) in
+              let i = (Hashtbl.find currentInLoopDef id) in
               for j = 1 to (Hashtbl.find currentInLoopUse id) - 1 do
-                let ids = get_seq_id id i j in
+                let ids = get_seq_id v.vid (i+offseti) (j+offsetj) in
                 idListLoop := (v.vid,defId,ids) :: !idListLoop;
                 let idExp = Exp.integer ids in
                 let oneExp = Exp.one () in
@@ -275,14 +277,16 @@ class visitorTwo = object(self)
           let idl = Stack.top inLoopId in
           let id = cantor_pairing idl v.vid in
           if Hashtbl.mem nBInLoopDefs id then begin
+            let offseti = (Hashtbl.find nBVarDefs v.vid) in
+            let offsetj = (Hashtbl.find nBVarUses v.vid) in
             let j = (Hashtbl.find currentInLoopUse id) in
             for i = (Hashtbl.find currentInLoopDef id) to (Hashtbl.find nBInLoopDefs id) do
-              let ids = get_seq_id id i j in
+              let ids = get_seq_id v.vid (i+offseti) (j+offsetj) in
               let idExp = Exp.integer ids in
               let oneExp = Exp.one () in
               let twoExp = Exp.integer 2 in
               let twoExptwo = Exp.integer 2 in
-              let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int  v.vid))) in
+              let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int v.vid))) in
               let zeroExp = Exp.zero () in
               let newStmt = (Utils.mk_call "pc_label_sequence" ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])) in
               labelUses := newStmt :: !labelUses
@@ -334,11 +338,7 @@ let compute_hl id =
 let gen_hyperlabels () =
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
-  let f str id =
-    temp := ""; (compute_hl id) ^ str
-  in
-  let uses = Hashtbl.fold (fun k _ acc -> k :: acc) nBVarUses [] in
-  let data = List.fold_left f "" uses in
+  let data = (Hashtbl.fold (fun id _ str -> temp := ""; (compute_hl id) ^ str) nBVarUses "") in
   let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
   output_string out data;
   close_out out;
