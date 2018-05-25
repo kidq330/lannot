@@ -89,14 +89,14 @@ class visitor = object(self)
     | Instr (Set ((Var v,_),_,_))
     | Instr (Call (Some (Var v,_),_,_,_))
     | Instr (Local_init (v,_,_)) ->
-      let index = get_index_from_skind stmt.skind in
-      let rvid =
-        match set_and_get_index_id v.vid index with
-        | None -> v.vid
-        | Some(i) -> i
-      in
       Cil.DoChildrenPost (fun f ->
           if not (v.vname = "__retres") && not v.vtemp then begin
+            let index = get_index_from_skind stmt.skind in
+            let rvid =
+              match set_and_get_index_id v.vid index with
+              | None -> v.vid
+              | Some(i) -> i
+            in
             if (Hashtbl.mem nBVarDefs rvid) then
               (Hashtbl.replace nBVarDefs rvid ((Hashtbl.find nBVarDefs rvid) + 1))
             else
@@ -316,14 +316,13 @@ class visitorTwo = object(self)
   (* Use *)
   method! vexpr expr = match expr.enode with
     | Lval (Var v,oft) ->
-      if not v.vglob && not (v.vname = "__retres") && not v.vtemp then begin
-        let index = get_index_from_offset oft in
-        let rvid =
-          match get_index_id v.vid index with
-          | None -> v.vid
-          | Some(i) -> i
-        in
-        if Hashtbl.mem nBVarDefs rvid then begin
+      let index = get_index_from_offset oft in
+      let rvid =
+        match get_index_id v.vid index with
+        | None -> v.vid
+        | Some(i) -> i
+      in
+      if not v.vglob && not (v.vname = "__retres") && not v.vtemp && Hashtbl.mem nBVarDefs rvid then begin
           let j = (Hashtbl.find currentUse rvid) in
           for i = 1 to (Hashtbl.find currentDef rvid) - 1  do
             let id = get_seq_id rvid i j in
@@ -336,32 +335,31 @@ class visitorTwo = object(self)
             let newStmt = (Utils.mk_call "pc_label_sequence" ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])) in
             labelUses := newStmt :: !labelUses
           done;
-          (Hashtbl.replace currentUse rvid (j + 1))
-        end;
+          (Hashtbl.replace currentUse rvid (j + 1));
 
-        (* même chose que pour les Set (cf. vstmt_aux) *)
-        if not (Stack.is_empty inLoopId) then begin
-          let idl = Stack.top inLoopId in
-          let id = cantor_pairing idl rvid in
-          if Hashtbl.mem nBInLoopDefs id then begin
-            let offseti = (Hashtbl.find nBVarDefs rvid) in
-            let offsetj = (Hashtbl.find nBVarUses rvid) in
-            let j = (Hashtbl.find currentInLoopUse id) in
-            for i = (Hashtbl.find currentInLoopDef id) to (Hashtbl.find nBInLoopDefs id) do
-              let ids = get_seq_id rvid (i+offseti) (j+offsetj) in
-              let idExp = Exp.integer ids in
-              let oneExp = Exp.one () in
-              let twoExp = Exp.integer 2 in
-              let twoExptwo = Exp.integer 2 in
-              let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int rvid))) in
-              let zeroExp = Exp.zero () in
-              let newStmt = (Utils.mk_call "pc_label_sequence" ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])) in
-              labelUses := newStmt :: !labelUses
-            done;
-            Hashtbl.replace currentInLoopUse id (j + 1)
+          (* même chose que pour les Set (cf. vstmt_aux) *)
+          if not (Stack.is_empty inLoopId) then begin
+            let idl = Stack.top inLoopId in
+            let id = cantor_pairing idl rvid in
+            if Hashtbl.mem nBInLoopDefs id then begin
+              let offseti = (Hashtbl.find nBVarDefs rvid) in
+              let offsetj = (Hashtbl.find nBVarUses rvid) in
+              let j = (Hashtbl.find currentInLoopUse id) in
+              for i = (Hashtbl.find currentInLoopDef id) to (Hashtbl.find nBInLoopDefs id) do
+                let ids = get_seq_id rvid (i+offseti) (j+offsetj) in
+                let idExp = Exp.integer ids in
+                let oneExp = Exp.one () in
+                let twoExp = Exp.integer 2 in
+                let twoExptwo = Exp.integer 2 in
+                let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int rvid))) in
+                let zeroExp = Exp.zero () in
+                let newStmt = (Utils.mk_call "pc_label_sequence" ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])) in
+                labelUses := newStmt :: !labelUses
+              done;
+              Hashtbl.replace currentInLoopUse id (j + 1)
+            end
           end
-        end
-      end;
+        end;
       Cil.DoChildren
     | _ -> Cil.DoChildren
 end
