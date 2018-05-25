@@ -148,8 +148,3 @@ module LimitGapFloat = Int (struct
     let help = "Set the number of zero decimal...[0-4] (default 2 => 0.001) "
     let default = 2
   end)
-
-module Inline = True (struct
-    let option_name = "-lannot-inline"
-    let help = "Don't ignore inline "
-  end)

@@ -183,12 +183,8 @@ end
 
 let shouldInstrument fun_varinfo =
   let names = Options.FunctionNames.get () in
+  let f (kf : Cil_datatype.Kf.Set.elt ) =
+    (Cil_datatype.Kf.vi kf).vname =  fun_varinfo.vname
+  in
   (* TODO filter builtin functions *)
-  if  Cil_datatype.Kf.Set.is_empty names && (not fun_varinfo.vinline || Options.Inline.get ()) then
-    true
-  else begin
-    let f (kf : Cil_datatype.Kf.Set.elt ) =
-      (Cil_datatype.Kf.vi kf).vname =  fun_varinfo.vname
-    in
-    Cil_datatype.Kf.Set.exists f names
-  end
+  Cil_datatype.Kf.Set.is_empty names || Cil_datatype.Kf.Set.exists f names
