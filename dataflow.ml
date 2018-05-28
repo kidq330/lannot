@@ -16,30 +16,21 @@ let pairVarOffset = Hashtbl.create 100
 let cantor_pairing n m = (((n+m)*(n+m+1))/2)+m
 let get_seq_id varId def use = cantor_pairing varId (cantor_pairing def use)
 
-let get_index_from_offset offset =
-  match offset with
+let get_index_from_offset = function
   | Index (e,_) ->
-    begin
-      match e.enode with
-      | Const c ->
-        begin match c with
-          | CInt64(i,_,_) ->
-            Some(Integer.to_int i)
-          | _ -> None
-        end
-      | _ -> None
-    end
+    let i = Cil.constFoldToInt e in
+    (match i with
+    | None -> None
+    | Some(int) -> Some(Integer.to_int int))
   | _ -> None
 
-let get_index_from_skind skind =
-  match skind with
+let get_index_from_skind = function
   | Instr (Set ((Var _,offset),_,_))
   | Instr (Call (Some (Var _,offset),_,_,_)) ->
     get_index_from_offset offset
   | _ -> None
 
-let set_and_get_index_id vid index =
-  match index with
+let set_and_get_index_id vid = function
   | None -> None
   | Some(i) ->
     if not (Hashtbl.mem pairVarOffset (vid,i)) then begin
@@ -50,8 +41,7 @@ let set_and_get_index_id vid index =
     else
       Some(Hashtbl.find pairVarOffset (vid,i))
 
-let get_index_id vid index =
-  match index with
+let get_index_id vid = function
   | None -> None
   | Some(i) ->
     if (Hashtbl.mem pairVarOffset (vid,i)) then
@@ -101,7 +91,7 @@ class visitor = object(self)
               (Hashtbl.replace nBVarDefs rvid ((Hashtbl.find nBVarDefs rvid) + 1))
             else
               (Hashtbl.add nBVarDefs rvid 1; Hashtbl.add currentDef rvid 1);
-            (*Dans le cas ou le Set se trouve dans une loop, on fait la même chose mais avec des hashtbl pour def/use interne aux boucles *)
+            (*Dans le cas ou le Set se trouve dans une loop, on fait la même chose mais avec des hashtbl pour def/use internes aux boucles *)
             if not (Stack.is_empty inLoopId) then begin
               let idl = Stack.top inLoopId in
               let id = cantor_pairing idl rvid in
@@ -126,7 +116,7 @@ class visitor = object(self)
       if not v.vglob && not (v.vname = "__retres" ) && not v.vtemp then begin
         let index = get_index_from_offset oft in
         let rvid =
-          match get_index_id v.vid index with
+          match set_and_get_index_id v.vid index with
           | None -> v.vid
           | Some(i) -> i
         in
