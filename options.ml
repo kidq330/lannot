@@ -148,3 +148,9 @@ module LimitGapFloat = Int (struct
     let help = "Set the number of zero decimal...[0-4] (default 2 => 0.001) "
     let default = 2
   end)
+
+let () = Parameter_customize.set_group ipd_group
+module ConstantFoldingArray = False (struct
+    let option_name = "-lannot-constant-folding-array"
+    let help = "todo"
+  end)

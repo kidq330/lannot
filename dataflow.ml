@@ -16,7 +16,8 @@ let pairVarOffset = Hashtbl.create 100
 let cantor_pairing n m = (((n+m)*(n+m+1))/2)+m
 let get_seq_id varId def use = cantor_pairing varId (cantor_pairing def use)
 
-let get_index_from_offset = function
+let get_index_from_offset offset =
+  match offset with
   | Index (e,_) ->
     let i = Cil.constFoldToInt e in
     (match i with
@@ -24,13 +25,15 @@ let get_index_from_offset = function
     | Some(int) -> Some(Integer.to_int int))
   | _ -> None
 
-let get_index_from_skind = function
+let get_index_from_skind skind =
+  match skind with
   | Instr (Set ((Var _,offset),_,_))
   | Instr (Call (Some (Var _,offset),_,_,_)) ->
     get_index_from_offset offset
   | _ -> None
 
-let set_and_get_index_id vid = function
+let get_index_id vid index =
+  match index with
   | None -> None
   | Some(i) ->
     if not (Hashtbl.mem pairVarOffset (vid,i)) then begin
@@ -41,13 +44,23 @@ let set_and_get_index_id vid = function
     else
       Some(Hashtbl.find pairVarOffset (vid,i))
 
-let get_index_id vid = function
-  | None -> None
-  | Some(i) ->
-    if (Hashtbl.mem pairVarOffset (vid,i)) then
-      Some(Hashtbl.find pairVarOffset (vid,i))
-    else
-      None
+let get_rvid_offset vid offset =
+  if not (Options.ConstantFoldingArray.get ()) then
+    vid
+  else
+    let index = get_index_from_offset offset in
+    match get_index_id vid index with
+    | None -> vid
+    | Some(i) -> i
+
+let get_rvid_skind vid skind =
+  if not (Options.ConstantFoldingArray.get ()) then
+    vid
+  else
+    let index = get_index_from_skind skind in
+    match get_index_id vid index with
+    | None -> vid
+    | Some(i) -> i
 
 (** All-defs Visitor Count **)
 class visitor = object(self)
@@ -81,12 +94,7 @@ class visitor = object(self)
     | Instr (Local_init (v,_,_)) ->
       Cil.DoChildrenPost (fun f ->
           if not (v.vname = "__retres") && not v.vtemp then begin
-            let index = get_index_from_skind stmt.skind in
-            let rvid =
-              match set_and_get_index_id v.vid index with
-              | None -> v.vid
-              | Some(i) -> i
-            in
+            let rvid = get_rvid_skind v.vid stmt.skind in
             if (Hashtbl.mem nBVarDefs rvid) then
               (Hashtbl.replace nBVarDefs rvid ((Hashtbl.find nBVarDefs rvid) + 1))
             else
@@ -112,14 +120,9 @@ class visitor = object(self)
   (* Use *)
   method! vexpr expr =
     match expr.enode with
-    | Lval (Var v,oft) ->
+    | Lval (Var v,offset) ->
       if not v.vglob && not (v.vname = "__retres" ) && not v.vtemp then begin
-        let index = get_index_from_offset oft in
-        let rvid =
-          match set_and_get_index_id v.vid index with
-          | None -> v.vid
-          | Some(i) -> i
-        in
+        let rvid = get_rvid_offset v.vid offset in
         if (Hashtbl.mem nBVarUses rvid) then
           (Hashtbl.replace nBVarUses rvid ((Hashtbl.find nBVarUses rvid) + 1))
         else
@@ -191,12 +194,7 @@ class visitorTwo = object(self)
       let processSet v =
         labelStops := [];
         labelDefs := [];
-        let index = get_index_from_skind stmt.skind in
-        let rvid =
-          match get_index_id v.vid index with
-          | None -> v.vid
-          | Some(i) -> i
-        in
+        let rvid = get_rvid_skind v.vid stmt.skind in
         if not (v.vname = "__retres") && not v.vtemp && Hashtbl.mem nBVarUses rvid then begin
           let zeroExp = Exp.zero () in
           let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int rvid))) in
@@ -305,13 +303,8 @@ class visitorTwo = object(self)
 
   (* Use *)
   method! vexpr expr = match expr.enode with
-    | Lval (Var v,oft) ->
-      let index = get_index_from_offset oft in
-      let rvid =
-        match get_index_id v.vid index with
-        | None -> v.vid
-        | Some(i) -> i
-      in
+    | Lval (Var v,offset) ->
+      let rvid = get_rvid_offset v.vid offset in
       if not v.vglob && not (v.vname = "__retres") && not v.vtemp && Hashtbl.mem nBVarDefs rvid then begin
           let j = (Hashtbl.find currentUse rvid) in
           for i = 1 to (Hashtbl.find currentDef rvid) - 1  do
