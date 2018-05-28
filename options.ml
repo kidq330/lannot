@@ -149,8 +149,7 @@ module LimitGapFloat = Int (struct
     let default = 2
   end)
 
-let () = Parameter_customize.set_group ipd_group
 module ConstantFoldingArray = False (struct
-    let option_name = "-lannot-constant-folding-array"
-    let help = "todo"
+    let option_name ="-lannot-constant-folding-array"
+    let help = "For dataflows : Apply constant folding on array's indexes. If the result is a integer, then the sequence will be created for this specific index, not for the entire array (false by default). Todo : struct?"
   end)
