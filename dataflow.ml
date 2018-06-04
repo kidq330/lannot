@@ -13,8 +13,10 @@ let currentInLoopUse = Hashtbl.create 100
 
 let pairVarOffset = Hashtbl.create 100
 
-let cantor_pairing n m = (((n+m)*(n+m+1))/2)+m
-let get_seq_id varId def use = cantor_pairing varId (cantor_pairing def use)
+let varCounter = Hashtbl.create 100
+let varDefUseID = Hashtbl.create 100
+
+(*let get_seq_id varId def use = cantor_pairing varId (cantor_pairing def use)*)
 
 (* Pour polarSSL *)
 let ignore_ret vname =
@@ -68,6 +70,19 @@ let get_rvid_skind vid skind =
     match get_index_id vid index with
     | None -> vid
     | Some(i) -> i
+
+let cantor_pairing n m = (((n+m)*(n+m+1))/2)+m
+let get_seq_id vid def use =
+  if Hashtbl.mem varDefUseID (vid,def,use) then
+    cantor_pairing vid (Hashtbl.find varDefUseID (vid,def,use))
+  else begin
+    if not (Hashtbl.mem varCounter vid) then
+      Hashtbl.add varCounter vid (ref 0);
+    let cpt = Hashtbl.find varCounter vid in
+    incr cpt;
+    Hashtbl.add varDefUseID (vid,def,use) !cpt;
+    cantor_pairing vid !cpt
+  end
 
 (** All-defs Visitor Count **)
 class visitor = object(self)
@@ -242,7 +257,7 @@ class visitorTwo = object(self)
               let offsetj = (Hashtbl.find nBVarUses rvid) in
               let i = (Hashtbl.find currentInLoopDef id) in
               for j = 1 to (Hashtbl.find currentInLoopUse id) - 1 do
-                let ids = get_seq_id rvid (i+offseti) (j+offsetj) in
+                let ids = get_seq_id id (i+offseti) (j+offsetj) in
                 idList := (rvid,defId,ids) :: !idList;
                 let idExp = Exp.integer ids in
                 let oneExp = Exp.one () in
@@ -338,7 +353,7 @@ class visitorTwo = object(self)
               let offsetj = (Hashtbl.find nBVarUses rvid) in
               let j = (Hashtbl.find currentInLoopUse id) in
               for i = (Hashtbl.find currentInLoopDef id) to (Hashtbl.find nBInLoopDefs id) do
-                let ids = get_seq_id rvid (i+offseti) (j+offsetj) in
+                let ids = get_seq_id id (i+offseti) (j+offsetj) in
                 let idExp = Exp.integer ids in
                 let oneExp = Exp.one () in
                 let twoExp = Exp.integer 2 in
