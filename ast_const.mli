@@ -12,6 +12,9 @@ module Exp : sig
   (** [int] constant *)
   val integer : ?loc:location -> int -> exp
 
+  (** [ikind] constant *)
+  val kinteger : ?loc:location -> Cil_types.ikind -> int -> exp
+
   (** [float] constant *)
   val float : ?loc:location -> float -> exp
 

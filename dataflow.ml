@@ -3,20 +3,15 @@ open Ast_const
 
 let nBVarDefs = Hashtbl.create 100
 let nBVarUses = Hashtbl.create 100
-let nBInLoopDefs = Hashtbl.create 10
-let nBInLoopUses = Hashtbl.create 10
 
 let currentDef = Hashtbl.create 100
 let currentUse = Hashtbl.create 100
-let currentInLoopDef = Hashtbl.create 100
-let currentInLoopUse = Hashtbl.create 100
 
 let pairVarOffset = Hashtbl.create 100
+let pairVarLoop = Hashtbl.create 100
 
 let varCounter = Hashtbl.create 100
 let varDefUseID = Hashtbl.create 100
-
-(*let get_seq_id varId def use = cantor_pairing varId (cantor_pairing def use)*)
 
 (* Pour polarSSL *)
 let ignore_ret vname =
@@ -25,6 +20,7 @@ let ignore_ret vname =
   else
     false
 
+(* Récupère l'index à partir d'un offset sous forme d'entier quand c'est possible *)
 let get_index_from_offset offset =
   match offset with
   | Index (e,_) ->
@@ -34,6 +30,7 @@ let get_index_from_offset offset =
     | Some(int) -> Some(Integer.to_int int))
   | _ -> None
 
+(* Récupère l'index à partir d'un skind sous forme d'entier quand c'est possible *)
 let get_index_from_skind skind =
   match skind with
   | Instr (Set ((Var _,offset),_,_))
@@ -41,6 +38,7 @@ let get_index_from_skind skind =
     get_index_from_offset offset
   | _ -> None
 
+(* Attribut un identifiant unique à un couple (vid,index) *)
 let get_index_id vid index =
   match index with
   | None -> None
@@ -53,6 +51,7 @@ let get_index_id vid index =
     else
       Some(Hashtbl.find pairVarOffset (vid,i))
 
+(* Retourne l'identifiant de variable en prenant en compte un index s'il existe et que l'option est activé *)
 let get_rvid_offset vid offset =
   if not (Options.ConstantFoldingArray.get ()) then
     vid
@@ -71,7 +70,18 @@ let get_rvid_skind vid skind =
     | None -> vid
     | Some(i) -> i
 
+(* Attribut un identifiant unique pour une variable dans une boucle *)
+let get_varLoop_id lid vid =
+  if Hashtbl.mem pairVarLoop (vid,lid) then
+    Hashtbl.find pairVarLoop (vid,lid)
+  else begin
+    let new_id = Cil_const.new_raw_id () in
+    Hashtbl.add pairVarLoop (vid,lid) new_id;
+    new_id
+  end
+
 let cantor_pairing n m = (((n+m)*(n+m+1))/2)+m
+(* Attribut un identifiant unique de séquence pour d'un triplet (vid,def,use) à partir d'un compteur lié à vid *)
 let get_seq_id vid def use =
   if Hashtbl.mem varDefUseID (vid,def,use) then
     cantor_pairing vid (Hashtbl.find varDefUseID (vid,def,use))
@@ -124,11 +134,11 @@ class visitor = object(self)
             (*Dans le cas ou le Set se trouve dans une loop, on fait la même chose mais avec des hashtbl pour def/use internes aux boucles *)
             if not (Stack.is_empty inLoopId) then begin
               let idl = Stack.top inLoopId in
-              let id = cantor_pairing idl rvid in
-              if (Hashtbl.mem nBInLoopDefs id) then
-                (Hashtbl.replace nBInLoopDefs id ((Hashtbl.find nBInLoopDefs id) + 1))
+              let id = get_varLoop_id idl rvid in
+              if (Hashtbl.mem nBVarDefs id) then
+                (Hashtbl.replace nBVarDefs id ((Hashtbl.find nBVarDefs id) + 1))
               else
-                (Hashtbl.add nBInLoopDefs id 1; Hashtbl.add currentInLoopDef id 1)
+                (Hashtbl.add nBVarDefs id 1; Hashtbl.add currentDef id 1)
             end
           end; f
         )
@@ -152,11 +162,11 @@ class visitor = object(self)
             (*Dans le cas ou le Use se trouve dans une loop, on fait la même chose mais avec des hashtbl pour def/use interne aux boucles *)
         if not (Stack.is_empty inLoopId) then begin
           let idl = Stack.top inLoopId in
-          let id = cantor_pairing idl rvid in
-          if (Hashtbl.mem nBInLoopUses id) then
-            (Hashtbl.replace nBInLoopUses id ((Hashtbl.find nBInLoopUses id) + 1))
+          let id = get_varLoop_id idl rvid in
+          if (Hashtbl.mem nBVarUses id) then
+            (Hashtbl.replace nBVarUses id ((Hashtbl.find nBVarUses id) + 1))
           else
-            (Hashtbl.add nBInLoopUses id 1; Hashtbl.add currentInLoopUse id 1)
+            (Hashtbl.add nBVarUses id 1; Hashtbl.add currentUse id 1)
         end
       end;
       Cil.DoChildren
@@ -174,7 +184,7 @@ let handle_param v =
     for j = (Hashtbl.find currentUse v.vid) to (Hashtbl.find nBVarUses v.vid) do (* OPTIM : only labels for previous defs/next uses *)
       let ids = get_seq_id v.vid i j in
       idList := (v.vid,i,ids) :: !idList;
-      let idExp = Exp.integer ids in
+      let idExp = Exp.kinteger IULong ids in
       let oneExp = Exp.one () in
       let twoExp = Exp.one () in
       let twoExptwo = Exp.integer 2 in
@@ -227,7 +237,7 @@ class visitorTwo = object(self)
           for j = (Hashtbl.find currentUse rvid) to (Hashtbl.find nBVarUses rvid) do
             let ids = get_seq_id rvid defId j in
             idList := (rvid,defId,ids) :: !idList;
-            let idExp = Exp.integer ids in
+            let idExp = Exp.kinteger IULong ids in
             let oneExp = Exp.one () in
             let twoExp = Exp.one () in
             let twoExptwo = Exp.integer 2 in
@@ -251,15 +261,13 @@ class visitorTwo = object(self)
           *)
           if not (Stack.is_empty inLoopId) then begin
             let idl = Stack.top inLoopId in
-            let id = cantor_pairing idl rvid in
-            if Hashtbl.mem nBInLoopUses id then begin
-              let offseti = (Hashtbl.find nBVarDefs rvid) in
-              let offsetj = (Hashtbl.find nBVarUses rvid) in
-              let i = (Hashtbl.find currentInLoopDef id) in
-              for j = 1 to (Hashtbl.find currentInLoopUse id) - 1 do
-                let ids = get_seq_id id (i+offseti) (j+offsetj) in
+            let id = get_varLoop_id idl rvid in
+            if Hashtbl.mem nBVarUses id then begin
+              let i = (Hashtbl.find currentDef id) in
+              for j = 1 to (Hashtbl.find currentUse id) - 1 do
+                let ids = get_seq_id id i j in
                 idList := (rvid,defId,ids) :: !idList;
-                let idExp = Exp.integer ids in
+                let idExp = Exp.kinteger IULong ids in
                 let oneExp = Exp.one () in
                 let twoExp = Exp.one () in
                 let twoExptwo = Exp.integer 2 in
@@ -268,7 +276,7 @@ class visitorTwo = object(self)
                 let newStmt = (Utils.mk_call "pc_label_sequence" ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])) in
                 labelDefs := newStmt :: !labelDefs
               done;
-              Hashtbl.replace currentInLoopDef id (i + 1)
+              Hashtbl.replace currentDef id (i + 1)
             end
           end
         end
@@ -332,8 +340,8 @@ class visitorTwo = object(self)
          && not v.vtemp && Hashtbl.mem nBVarDefs rvid then begin
           let j = (Hashtbl.find currentUse rvid) in
           for i = 1 to (Hashtbl.find currentDef rvid) - 1  do
-            let id = get_seq_id rvid i j in
-            let idExp = Exp.integer id in
+            let ids = get_seq_id rvid i j in
+            let idExp = Exp.kinteger IULong ids in
             let oneExp = Exp.one () in
             let twoExp = Exp.integer 2 in
             let twoExptwo = Exp.integer 2 in
@@ -347,14 +355,12 @@ class visitorTwo = object(self)
           (* même chose que pour les Set (cf. vstmt_aux) *)
           if not (Stack.is_empty inLoopId) then begin
             let idl = Stack.top inLoopId in
-            let id = cantor_pairing idl rvid in
-            if Hashtbl.mem nBInLoopDefs id then begin
-              let offseti = (Hashtbl.find nBVarDefs rvid) in
-              let offsetj = (Hashtbl.find nBVarUses rvid) in
-              let j = (Hashtbl.find currentInLoopUse id) in
-              for i = (Hashtbl.find currentInLoopDef id) to (Hashtbl.find nBInLoopDefs id) do
-                let ids = get_seq_id id (i+offseti) (j+offsetj) in
-                let idExp = Exp.integer ids in
+            let id = get_varLoop_id idl rvid in
+            if Hashtbl.mem nBVarDefs id then begin
+              let j = (Hashtbl.find currentUse id) in
+              for i = (Hashtbl.find currentDef id) to (Hashtbl.find nBVarDefs id) do
+                let ids = get_seq_id id i j in
+                let idExp = Exp.kinteger IULong ids in
                 let oneExp = Exp.one () in
                 let twoExp = Exp.integer 2 in
                 let twoExptwo = Exp.integer 2 in
@@ -363,7 +369,7 @@ class visitorTwo = object(self)
                 let newStmt = (Utils.mk_call "pc_label_sequence" ([oneExp;idExp;twoExp;twoExptwo;ccExp;zeroExp])) in
                 labelUses := newStmt :: !labelUses
               done;
-              Hashtbl.replace currentInLoopUse id (j + 1)
+              Hashtbl.replace currentUse id (j + 1)
             end
           end
         end;

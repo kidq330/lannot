@@ -15,6 +15,9 @@ module Exp = struct
   let integer ?(loc=unk_loc) =
     Cil.integer ~loc
 
+  let kinteger ?(loc=unk_loc) =
+    Cil.kinteger ~loc
+
   let float ?(loc=unk_loc) =
     Cil.kfloat ~loc FDouble
 
