@@ -151,5 +151,25 @@ module LimitGapFloat = Int (struct
 
 module ConstantFoldingArray = False (struct
     let option_name ="-lannot-constant-folding-array"
-    let help = "For dataflows : Apply constant folding on array's indexes. If the result is a integer, then the sequence will be created for this specific index, not for the entire array (false by default). Todo : struct?"
+    let help = "For dataflows : Apply constant folding on array's indexes. If the result is a integer, then the sequence will be created for this specific index, not for the entire array (false by default). \
+               Todo : Utiliser EVA pour les non-constantes? (et renommer cette option) \
+                      Faire pareil pour les structures, en fonction du champ"
+
+  end)
+
+(* Pour polarSSL *)
+module Inline = True (struct
+    let option_name = "-lannot-inline"
+    let help = "Don't ignore inline"
+  end)
+
+module IgnoreRet = False (struct
+    let option_name = "-lannot-ignore-ret"
+    let help = "For polarSSL : ignore the variable ret"
+  end)
+
+module InlineException = Kernel_function_set (struct
+    let arg_name = "funs"
+    let option_name = "-lannot-inline-functions"
+    let help = "in -lannot-inline is false, then this option permit to add exception and annotate inline functions"
   end)

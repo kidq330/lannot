@@ -16,6 +16,13 @@ let pairVarOffset = Hashtbl.create 100
 let cantor_pairing n m = (((n+m)*(n+m+1))/2)+m
 let get_seq_id varId def use = cantor_pairing varId (cantor_pairing def use)
 
+(* Pour polarSSL *)
+let ignore_ret vname =
+  if Options.IgnoreRet.get () then
+    vname = "ret"
+  else
+    false
+
 let get_index_from_offset offset =
   match offset with
   | Index (e,_) ->
@@ -93,7 +100,7 @@ class visitor = object(self)
     | Instr (Call (Some (Var v,_),_,_,_))
     | Instr (Local_init (v,_,_)) ->
       Cil.DoChildrenPost (fun f ->
-          if not (v.vname = "__retres") && not v.vtemp then begin
+          if not (v.vname = "__retres") && not (ignore_ret v.vname) && not v.vtemp then begin
             let rvid = get_rvid_skind v.vid stmt.skind in
             if (Hashtbl.mem nBVarDefs rvid) then
               (Hashtbl.replace nBVarDefs rvid ((Hashtbl.find nBVarDefs rvid) + 1))
@@ -121,7 +128,7 @@ class visitor = object(self)
   method! vexpr expr =
     match expr.enode with
     | Lval (Var v,offset) ->
-      if not v.vglob && not (v.vname = "__retres" ) && not v.vtemp then begin
+      if not v.vglob && not (v.vname = "__retres" ) && not (ignore_ret v.vname) && not v.vtemp then begin
         let rvid = get_rvid_offset v.vid offset in
         if (Hashtbl.mem nBVarUses rvid) then
           (Hashtbl.replace nBVarUses rvid ((Hashtbl.find nBVarUses rvid) + 1))
@@ -195,7 +202,8 @@ class visitorTwo = object(self)
         labelStops := [];
         labelDefs := [];
         let rvid = get_rvid_skind v.vid stmt.skind in
-        if not (v.vname = "__retres") && not v.vtemp && Hashtbl.mem nBVarUses rvid then begin
+        if not (v.vname = "__retres") && not (ignore_ret v.vname)
+           && not v.vtemp && Hashtbl.mem nBVarUses rvid then begin
           let zeroExp = Exp.zero () in
           let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int rvid))) in
           let newStmt = (Utils.mk_call "pc_label_sequence_condition" ([zeroExp;ccExp])) in
@@ -305,7 +313,8 @@ class visitorTwo = object(self)
   method! vexpr expr = match expr.enode with
     | Lval (Var v,offset) ->
       let rvid = get_rvid_offset v.vid offset in
-      if not v.vglob && not (v.vname = "__retres") && not v.vtemp && Hashtbl.mem nBVarDefs rvid then begin
+      if not v.vglob && not (v.vname = "__retres") && not (ignore_ret v.vname)
+         && not v.vtemp && Hashtbl.mem nBVarDefs rvid then begin
           let j = (Hashtbl.find currentUse rvid) in
           for i = 1 to (Hashtbl.find currentDef rvid) - 1  do
             let id = get_seq_id rvid i j in
