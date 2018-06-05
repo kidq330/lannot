@@ -142,18 +142,16 @@ module GlobalsAsInput = False (struct
   end)
 
 let () = Parameter_customize.set_group crit_group
-module LimitGapFloat = Int (struct
-    let option_name = "-lannot-limitgap-float"
+module LimitGapInt = Int (struct
+    let option_name = "-lannot-limitgap-int"
     let arg_name = "NUM"
-    let help = "Set the number of zero decimal...[0-4] (default 2 => 0.001) "
-    let default = 2
+    let help = "Set the precision of limit labels (Default : 0)"
+    let default = 0
   end)
 
 module ConstantFoldingArray = False (struct
     let option_name ="-lannot-constant-folding-array"
-    let help = "For dataflows : Apply constant folding on array's indexes. If the result is a integer, then the sequence will be created for this specific index, not for the entire array (false by default). \
-               Todo : Utiliser EVA pour les non-constantes? (et renommer cette option) \
-                      Faire pareil pour les structures, en fonction du champ"
+    let help = "For dataflows : Apply constant folding on array's indexes. If the result is a integer, then the sequence will be created for this specific index, not for the entire array (false by default). NB : Is it really useful?"
 
   end)
 

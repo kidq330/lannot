@@ -220,100 +220,59 @@ let gen_labels_gicc mk_label bexpr =
   Stmt.block (List.map (gen_labels_gicc_for mk_label bexpr) atoms)
 
 
-let lim_lbl = ref []
-let gapF =
-    match Options.LimitGapFloat.get () with
-    | 0 -> 0.1
-    | 1 -> 0.01
-    | 2 -> 0.001
-    | 3 -> 0.0001
-    | 4 -> 0.00001
-    | a when a < 0 -> 0.1
-    | a when a > 4 -> 0.00001
-    | _ -> assert false
+let int_gap = ref 0
 
 class visitExp = object(self)
   inherit Visitor.frama_c_inplace
   val mutable bexprs = []
   method get_exprs () = bexprs
 
+  method mk_limit cond exp =
+    (* cond : a < b *)
+    (* exp : a-b ((+|-) 1) *)
+    (* posComp : exp <= int_gap *)
+    (* negComp : -exp <= int_gap *)
+    (* abs : posComp && negComp *)
+    (* ret: cond && abs *)
+    let posComp = Exp.binop Le exp (Exp.integer !int_gap) in
+    let negComp = Exp.binop Le (Exp.neg exp) (Exp.integer !int_gap) in
+    let abs = Exp.binop LAnd posComp negComp in
+    Exp.binop LAnd cond abs
+
   method! vexpr cond =
     match cond.enode with
-    | BinOp ((Lt | Le | Gt | Ge | LAnd | LOr | Ne | Eq) as op, e1, e2, _) ->
+    | BinOp ((Lt | Le | Gt | Ge) as op, e1, e2, _) ->
       ignore (Visitor.visitFramacExpr (self :> Visitor.frama_c_visitor) e1);
       ignore (Visitor.visitFramacExpr (self :> Visitor.frama_c_visitor) e2);
-      let e = ref [] in
-      begin match op with
-        | Lt ->
-          e := [Exp.binop MinusA e1 e2]
-        | Gt ->
-          e := [Exp.binop MinusA e1 e2]
-        | Le | Ge ->
-          e := [Exp.binop MinusA e1 e2]
-        | _ -> ()
-      end;
-      if !e != [] then begin
-        let exp = List.nth !e 0 in
-        match exp.enode with
-        | BinOp (_,_,_,ty) ->
-          begin match ty,op with
-            | TInt _, Lt ->
-              let ne = Exp.binop PlusA exp (Exp.one()) in
-              bexprs <- (cond,ne,e1,e2,true) :: bexprs
-            | TInt _, Gt ->
-              let ne = Exp.binop MinusA exp (Exp.one()) in
-              bexprs <- (cond,ne,e1,e2,true) :: bexprs
-            | TInt _, _ ->
-              bexprs <- (cond,exp,e1,e2,true) :: bexprs
-            | TFloat _, Lt ->
-              let ne = Exp.binop PlusA exp (Exp.float gapF) in
-              bexprs <- (cond,ne,e1,e2,true) :: bexprs
-            | TFloat _, Gt ->
-              let ne = Exp.binop MinusA exp (Exp.float gapF) in
-              bexprs <- (cond,ne,e1,e2,true) :: bexprs
-            | TFloat _, _ ->
-              bexprs <- (cond,exp,e1,e2,true) :: bexprs
-            | _ -> Options.warning "not supported yet (is that possible?)"
-          end
-        | _ -> assert false
+      let e = Exp.binop MinusA e1 e2 in
+      let isInt = Cil.isIntegralType (Cil.typeOf e) in
+      if isInt then begin
+        begin match op with
+          | Lt ->
+            let to_zero = Exp.binop PlusA e (Exp.one()) in
+            let new_exp = self#mk_limit cond to_zero in
+            bexprs <- new_exp :: bexprs
+          | Gt ->
+            let to_zero = Exp.binop MinusA e (Exp.one()) in
+            let new_exp = self#mk_limit cond to_zero in
+            bexprs <- new_exp :: bexprs
+          | Le | Ge ->
+            let new_exp = self#mk_limit cond e in
+            bexprs <- new_exp :: bexprs
+          | _ -> ()
+        end
       end;
       Cil.SkipChildren
     | _ -> Cil.DoChildren
 end
 
 (** Generate Limit labels for the given Boolean formula *)
-let gen_labels_limit _mk_label bexpr =
-  Options.warning "Limit criteria : WIP";
+let gen_labels_limit mk_label bexpr =
+  int_gap := Options.LimitGapInt.get ();
   let loc = bexpr.eloc in
   let ve = new visitExp in
   ignore (Visitor.visitFramacExpr (ve :> Visitor.frama_c_visitor) bexpr);
-
-  Stmt.block (List.map (fun (cond,exp,e1,e2,ty) ->
-     let id = Annotators.next () in
-     let idExp = Exp.integer id in
-     let tagExp = Exp.mk (Const (CStr "LIMIT")) in
-     let name =
-       if ty then "pc_label_limit" else "pc_label_limitd"
-     in
-     let newStmt = Utils.mk_call name ~loc ([cond;exp;e1;e2;idExp;tagExp]) in
-     lim_lbl := (Annotators.getCurrentLabelId(),loc) :: !lim_lbl;
-     newStmt
-    ) (ve#get_exprs()))
-
-let gen_limit_file = ref (fun () ->
-  let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".limits" in
-  Options.feedback "write limits data (to %s)" data_filename;
-  let out = open_out data_filename in
-  let formatter = Format.formatter_of_out_channel out in
-  Format.fprintf formatter "#id, status, location, (a;b)(|(a;b))*, covering test cases@.";
-  let print_one (id, loc) =
-    let origin_file = ((fst loc).Lexing.pos_fname) in
-    let origin_line = (fst loc).Lexing.pos_lnum in
-    Format.fprintf formatter "%d,unknown,%s:%d,,@." id origin_file origin_line
-  in
-  List.iter print_one (List.rev !lim_lbl);
-  Format.pp_print_flush formatter ();
-  close_out out)
+  Stmt.block (List.map (fun exp -> mk_label exp [] loc) (ve#get_exprs()))
 
 (**
    Frama-C in-place visitor that injects labels at each condition/boolean
@@ -477,6 +436,5 @@ module Limit = Annotators.Register (struct
     let name = "LIMIT"
     let help = "Limit Coverage"
     let apply mk_label file =
-      apply (gen_labels_limit mk_label) (Options.AllBoolExps.get ()) file;
-      !gen_limit_file ()
+      apply (gen_labels_limit mk_label) (Options.AllBoolExps.get ()) file
   end)
