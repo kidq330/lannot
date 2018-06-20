@@ -167,7 +167,14 @@ module IgnoreRet = False (struct
   end)
 
 module InlineException = Kernel_function_set (struct
-    let arg_name = "funs"
     let option_name = "-lannot-inline-functions"
+    let arg_name = "funs"
     let help = "in -lannot-inline is false, then this option permit to add exception and annotate inline functions"
+  end)
+
+module MaxContextPath = Int (struct
+    let option_name = "-lannot-maxpath"
+    let arg_name = "NUM"
+    let help = "set the maximum number of path for one expression with the context criteria (default : 8192)"
+    let default = 8192
   end)
