@@ -18,6 +18,9 @@ module Exp : sig
   (** [float] constant *)
   val float : ?loc:location -> float -> exp
 
+  (** [string] constant *)
+  val string : ?loc:location -> string -> exp
+
   val var : ?loc:location -> varinfo -> exp
 
   val lval : ?loc:location -> lval -> exp

@@ -222,14 +222,16 @@ let gen_labels_gicc mk_label bexpr =
 
 let int_gap = ref 0
 
+(** Visotor that will store all limits expressions *)
 class visitExp = object(self)
   inherit Visitor.frama_c_inplace
   val mutable bexprs = []
   method get_exprs () = bexprs
 
   method mk_limit cond exp =
+    (* Example *)
     (* cond : a < b *)
-    (* exp : a-b ((+|-) 1) *)
+    (* exp : a - b (+/-) 1 *)
     (* posComp : exp <= int_gap *)
     (* negComp : -exp <= int_gap *)
     (* abs : posComp && negComp *)
@@ -430,7 +432,7 @@ module GICC = Annotators.Register (struct
 
 
 (**
-   General
+   Limit Coverage annotator
 *)
 module Limit = Annotators.Register (struct
     let name = "LIMIT"

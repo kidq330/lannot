@@ -56,11 +56,11 @@ let hyperlabels = ref HL.empty
 let label_id = ref 0
 let disjunctions = Hashtbl.create 100
 
-let compute_hl caller_callee = "<" ^
-                               (String.concat "+" (List.map (fun i -> "l" ^ string_of_int i)
-                                                     (Hashtbl.find_all disjunctions caller_callee)
-                                                  ))
-                               ^ "|; ;>,"
+let compute_hl caller_callee =
+  let disj =
+    String.concat "+" (List.map (fun i -> "l" ^ string_of_int i) (Hashtbl.find_all disjunctions caller_callee))
+  in
+  "<" ^ disj ^ "|; ;>,"
 
 let gen_hyperlabels_callcov = ref (fun () ->
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
@@ -77,7 +77,7 @@ let mk_call v func =
   hyperlabels := (HL.add (func,v.vname) !hyperlabels);
   let idExp = Exp.integer id in
   let oneExp = Exp.one () in
-  let ccExp = (Cil.mkString Cil_datatype.Location.unknown "FCC") in
+  let ccExp = Exp.string "FCC" in
   let newStmt = (Utils.mk_call "pc_label" ([oneExp;idExp;ccExp])) in
   newStmt
 

@@ -1,26 +1,39 @@
 open Cil_types
 open Ast_const
 
-let nBVarDefs = Hashtbl.create 32
-let nBVarUses = Hashtbl.create 32
+(** Number of defs for each variable *)
+let nBVarDefs : (int,int) Hashtbl.t = Hashtbl.create 32
+(** Number of uses for each variable *)
+let nBVarUses : (int,int) Hashtbl.t = Hashtbl.create 32
 
-let currentDef = Hashtbl.create 32
-let currentUse = Hashtbl.create 32
+(** Current def for each variable *)
+let currentDef : (int,int) Hashtbl.t = Hashtbl.create 32
+(** Current use for each variable *)
+let currentUse : (int,int) Hashtbl.t = Hashtbl.create 32
 
-let varCounter = Hashtbl.create 32
-let varLoopID = Hashtbl.create 32
-let varDefUseID = Hashtbl.create 32
+(** Keep a counter that will be incremented for each nuplet
+    (Variable id, Def id, Use id) *)
+let varCounter : (int,int ref) Hashtbl.t  = Hashtbl.create 32
+(** Store for each couple (variable id, loop id) a unique id *)
+let varLoopID : (int*int,int) Hashtbl.t  = Hashtbl.create 32
+(** Using varCounter, associate to each nuplet (Variable id, Def id, Use id)
+    a unique (for this variable) id *)
+let varDefUseID  : (int*int*int,int) Hashtbl.t = Hashtbl.create 32
 
-let labelUses = ref []
-let labelDefs = ref []
-let labelStops = ref []
-let idList = ref []
+(** Store use labels *)
+let labelUses : (stmt list) ref = ref []
+(** Store def labels *)
+let labelDefs : (stmt list) ref = ref []
+(** Store conditions labels *)
+let labelStops : (stmt list) ref = ref []
+(** Store a nuplet (Variable id, Def id, Sequence Id).
+    Will be used to create hyperlabels *)
+let idList : ((int*int*int) list) ref = ref []
 
-let symb = ref ""
-let temp = ref ""
+(** Hyperlabel's type *)
+let symb : string ref = ref ""
 
-let () = Options.result "TODO : Check Set/Use\
-                         Gérer les fields de struct (easy)"
+let () = Options.result "Gérer les fields de struct?"
 
 (*
 (* Récupère l'index à partir d'un offset sous forme d'entier quand c'est possible *)
@@ -74,8 +87,8 @@ let get_rvid_skind vid skind =
     | Some(i) -> i
 *)
 
-(* Attribut un identifiant unique pour une variable dans une boucle *)
-let get_varLoop_id vid lid =
+(** Associates a unique id to a couple (Variable id, loop id) and store/return it (or return it if already exists *)
+let get_varLoop_id (vid : int) (lid:int) : int =
   if Hashtbl.mem varLoopID (vid,lid) then
     Hashtbl.find varLoopID (vid,lid)
   else begin
@@ -84,21 +97,10 @@ let get_varLoop_id vid lid =
     new_id
   end
 
-(*
-let varFieldID = Hashtbl.create 32
-
-let get_field_id vid field =
-  if Hashtbl.mem varFieldID (vid,field) then
-    Hashtbl.find varFieldID (vid,field)
-  else begin
-    let new_id = Cil_const.new_raw_id () in
-    Hashtbl.add varLoopID (vid,field) new_id;
-    new_id
-  end*)
-
-let cantor_pairing n m = (((n+m)*(n+m+1))/2)+m
-(* Attribut un identifiant unique de séquence pour d'un triplet (vid,def,use) à partir d'un compteur lié à vid *)
-let get_seq_id vid def use =
+(** Pairing function used to get unique Id from a couple of Ids *)
+let cantor_pairing (n : int) (m : int) : int = (((n+m)*(n+m+1))/2)+m
+(** Associates an id to a nuplet (Variable id, Def id, Use id), store it and return a unique id from a couple with the id previously created and the Variable Id *)
+let get_seq_id (vid : int) (def : int) (use : int) : int =
   if Hashtbl.mem varDefUseID (vid,def,use) then
     cantor_pairing vid (Hashtbl.find varDefUseID (vid,def,use))
   else begin
@@ -110,29 +112,32 @@ let get_seq_id vid def use =
     cantor_pairing vid !cpt
   end
 
-(** Visitor Count **)
+(** Visitor that will count the number of Def/Use for each variable *)
 class countDefUse = object(self)
   inherit Visitor.frama_c_inplace
 
-  val inLoopId = Stack.create ()
+  (** Stack that store loops id wen entering in it, and pop it when leaving *)
+  val inLoopId : int Stack.t = Stack.create ()
 
-  method fill_aux nBVar current vid =
+  (** Take 2 hashtbl (nbVarDefs/Uses, currentDef/Use) and create/replace the binding of this Id *)
+  method fill_aux (nBVar : (int, int) Hashtbl.t) (current : (int, int) Hashtbl.t) (vid : int) : unit =
     if (Hashtbl.mem nBVar vid) then
       (Hashtbl.replace nBVar vid ((Hashtbl.find nBVar vid) + 1))
     else
       (Hashtbl.add nBVar vid 1; Hashtbl.add current vid 1)
 
-  method fill_tbl nBVar current vid =
+  (** Call fill_aux for the "normal" vid, and call it again if we're in a loop with the
+      id assiociated to this variable id and loop id *)
+  method fill_tbl (nBVar : (int, int) Hashtbl.t) (current : (int, int) Hashtbl.t) (vid : int) : unit =
     self#fill_aux nBVar current vid;
-    (*Dans le cas ou le Def/Use se trouve dans une loop, on fait la même chose avec un identifiant lié à la boucle *)
+
     if not (Stack.is_empty inLoopId) then begin
       let lid = Stack.top inLoopId in
       let nvid = get_varLoop_id vid lid in
       self#fill_aux nBVar current nvid
     end
 
-  (* Def-Param *)
-  method! vfunc dec =
+  method! vfunc (dec : Cil_types.fundec) : Cil_types.fundec Cil.visitAction =
     if not (Annotators.shouldInstrument dec.svar) then
       Cil.SkipChildren
     else begin
@@ -141,10 +146,9 @@ class countDefUse = object(self)
       Cil.DoChildren
     end
 
-  (* Def-Var *)
-  method! vstmt_aux stmt =
+  method! vstmt_aux (stmt : Cil_types.stmt) : Cil_types.stmt Cil.visitAction =
     match stmt.skind with
-    | Instr i when Utils.is_label i -> Cil.SkipChildren (* Ignorer les labels *)
+    | Instr i when Utils.is_label i -> Cil.SkipChildren (* Ignore labels *)
     | Instr (Set ((Var v,_),_,_))
     | Instr (Call (Some (Var v,_),_,_,_))
     | Instr (Local_init (v,_,_)) ->
@@ -160,28 +164,29 @@ class countDefUse = object(self)
       Cil.SkipChildren
     | _ -> Cil.DoChildren
 
-  (* Use *)
-  method! vexpr expr =
+  method! vexpr (expr : Cil_types.exp) : Cil_types.exp Cil.visitAction =
     match expr.enode with
-    | Lval (Var v,offset) ->
+    | Lval (Var v,_) ->
       if not v.vglob && not (v.vname = "__retres" ) && not v.vtemp then
         self#fill_tbl nBVarUses currentUse v.vid;
       Cil.DoChildren
     | _ -> Cil.DoChildren
 end
 
-(** Visitor Add Labels **)
+(** Visitor that will add all labels using the previously filled Hashtbl **)
 class addLabels = object(self)
   inherit Visitor.frama_c_inplace
 
+  (** Stack that store loops id wen entering in it, and pop it when leaving *)
   val inLoopId = Stack.create ()
 
-  method mkSeq ids vid nb =
+  (** Create a pc_label_sequence and store it in the corresponding list of labels *)
+  method mkSeq (ids : int) (vid : int) (nb : int) : unit =
     let idExp = Exp.kinteger IULong ids in
     let oneExp = Exp.one () in
     let curr = Exp.integer nb in
     let slen = Exp.integer 2 in
-    let varExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int vid))) in
+    let varExp = Exp.string (string_of_int vid) in
     let zeroExp = Exp.zero () in
     let newStmt = (Utils.mk_call "pc_label_sequence" ([oneExp;idExp;curr;slen;varExp;zeroExp])) in
     if nb = 1 (*Def*) then
@@ -189,17 +194,31 @@ class addLabels = object(self)
     else (* Use *)
       labelUses := newStmt :: !labelUses
 
-  method mkCond vid =
+  (** Create a pc_label_sequence_condiion and store it in the corresponding list of labels *)
+  method mkCond (vid : int) : unit =
     let zeroExp = Exp.zero () in
-    let ccExp = (Cil.mkString Cil_datatype.Location.unknown ((string_of_int vid))) in
+    let ccExp = Exp.string (string_of_int vid) in
     let newStmt = (Utils.mk_call "pc_label_sequence_condition" ([zeroExp;ccExp])) in
     labelStops := newStmt :: !labelStops
 
-  method process_def v =
+  (** Called for each parameters of a function, and the corresponding sequences *)
+  method handle_param (v : Cil_types.varinfo) : unit  =
+    if Hashtbl.mem nBVarUses v.vid then begin
+      for j = 1 to (Hashtbl.find nBVarUses v.vid) do
+        let ids = get_seq_id v.vid 1 j in
+        idList := (v.vid,1,ids) :: !idList;
+        self#mkSeq ids v.vid 1
+      done;
+      Hashtbl.replace currentDef v.vid 2
+    end
+
+  (** Take a variable that is currenlty being defined, and add the corresponding sequences *)
+  method process_def (v : Cil_types.varinfo) : unit  =
     let vid = v.vid in
     if not (v.vname = "__retres") && not v.vtemp && Hashtbl.mem nBVarUses vid then begin
       self#mkCond vid;
       let defId = (Hashtbl.find currentDef vid) in
+      (* For each following uses *)
       for j = (Hashtbl.find currentUse vid) to (Hashtbl.find nBVarUses vid) do
         let ids = get_seq_id vid defId j in
         idList := (vid,defId,ids) :: !idList;
@@ -212,6 +231,7 @@ class addLabels = object(self)
         let nvid = get_varLoop_id vid lid in
         if Hashtbl.mem nBVarUses nvid then begin
           let i = (Hashtbl.find currentDef nvid) in
+          (* For each preceding uses *)
           for j = 1 to (Hashtbl.find currentUse nvid) - 1 do
             let ids = get_seq_id nvid i j in
             idList := (vid,defId,ids) :: !idList;
@@ -222,18 +242,7 @@ class addLabels = object(self)
       end
     end
 
-  method handle_param v =
-    if Hashtbl.mem nBVarUses v.vid then begin
-      for j = 1 to (Hashtbl.find nBVarUses v.vid) do
-        let ids = get_seq_id v.vid 1 j in
-        idList := (v.vid,1,ids) :: !idList;
-        self#mkSeq ids v.vid 1
-      done;
-      Hashtbl.replace currentDef v.vid 2
-    end
-
-  (* Def-Param *)
-  method! vfunc dec =
+  method! vfunc (dec : Cil_types.fundec) : Cil_types.fundec Cil.visitAction =
     if not (Annotators.shouldInstrument dec.svar) then
       Cil.SkipChildren
     else begin
@@ -244,8 +253,7 @@ class addLabels = object(self)
       Cil.DoChildrenPost (fun dec -> (dec.sbody.bstmts <- (labelParams @ dec.sbody.bstmts));  dec)
     end
 
-  (* Def-Var *)
-  method! vstmt_aux stmt =
+  method! vstmt_aux (stmt : Cil_types.stmt) : Cil_types.stmt Cil.visitAction =
     let lbl = List.length stmt.labels != 0 in
     match stmt.skind with
     | Instr i when Utils.is_label i -> Cil.SkipChildren (* ignorer les labels *)
@@ -254,11 +262,13 @@ class addLabels = object(self)
     | Instr (Local_init (v,_,_)) ->
       Cil.DoChildrenPost (fun stmt ->
           self#process_def v;
+          (* if this statement is associated to one or more C labels, then sequences will be placed
+             between this labels and the statement itself *)
           let res =
             if not lbl then
               Stmt.block (!labelUses @ !labelStops @ [stmt] @ !labelDefs)
             else
-              Stmt.block ({stmt with skind = Block (Block.mk (!labelUses @ !labelStops @ [Cil.mkStmt stmt.skind]))} :: !labelDefs)
+              Stmt.block ({stmt with skind = Block (Block.mk (!labelUses @ !labelStops @ [Stmt.mk stmt.skind]))} :: !labelDefs)
           in
           labelUses := [];
           labelDefs := [];
@@ -270,13 +280,13 @@ class addLabels = object(self)
       (let lu = !labelUses in labelUses := [];
        let thenb = (Cil.visitCilBlock (self :> Cil.cilVisitor) th) in
        let elseb = (Cil.visitCilBlock (self :> Cil.cilVisitor) el) in
-       let newSt = (Block.mk (lu @ [Cil.mkStmt (If (ex,thenb,elseb,lo))])) in stmt.skind <- (Block newSt);
+       let newSt = (Block.mk (lu @ [Stmt.mk (If (ex,thenb,elseb,lo))])) in stmt.skind <- (Block newSt);
        Cil.ChangeTo stmt)
     | Switch (ex, b, stmtl, lo) ->
       ignore(Cil.visitCilExpr (self :> Cil.cilVisitor) ex);
       (let lu = !labelUses in labelUses := [];
        let nb = (Cil.visitCilBlock (self :> Cil.cilVisitor) b) in
-       let newSt = (Block.mk (lu @ [Cil.mkStmt (Switch (ex,nb,stmtl,lo))])) in stmt.skind <- (Block newSt);
+       let newSt = (Block.mk (lu @ [Stmt.mk (Switch (ex,nb,stmtl,lo))])) in stmt.skind <- (Block newSt);
        Cil.ChangeTo stmt)
     | Loop (ca,b,l,s1,s2) ->
       Stack.push stmt.sid inLoopId;
@@ -291,31 +301,33 @@ class addLabels = object(self)
             if not lbl then
               Stmt.block (!labelUses @ [stmt])
             else begin
-              stmt.skind <-Block (Cil.mkBlock (!labelUses @ [Cil.mkStmt stmt.skind]));
+              stmt.skind <-Block (Block.mk (!labelUses @ [Stmt.mk stmt.skind]));
               stmt
             end
           in
           labelUses := []; res
         )
 
-  (* Use *)
-  method! vexpr expr = match expr.enode with
+  method! vexpr (expr : Cil_types.exp) : Cil_types.exp Cil.visitAction =
+    match expr.enode with
     | Lval (Var v,offset) ->
       let vid = v.vid in
       if not v.vglob && not (v.vname = "__retres")
          && not v.vtemp && Hashtbl.mem nBVarDefs vid then begin
           let j = (Hashtbl.find currentUse vid) in
+          (* For each preceding Def *)
           for i = 1 to (Hashtbl.find currentDef vid) - 1  do
             let ids = get_seq_id vid i j in
             self#mkSeq ids vid 2
           done;
           (Hashtbl.replace currentUse vid (j + 1));
-          (* même chose que pour les Set (cf. vstmt_aux) *)
+
           if not (Stack.is_empty inLoopId) then begin
             let lid = Stack.top inLoopId in
             let nvid = get_varLoop_id vid lid in
             if Hashtbl.mem nBVarDefs nvid then begin
               let j = (Hashtbl.find currentUse nvid) in
+              (* For each following Def *)
               for i = (Hashtbl.find currentDef nvid) to (Hashtbl.find nBVarDefs nvid) do
                 let ids = get_seq_id nvid i j in
                 self#mkSeq ids vid 2
@@ -328,7 +340,8 @@ class addLabels = object(self)
     | _ -> Cil.DoChildren
 end
 
-let compute_hl () =
+(** Use idList to create all hyprlabels *)
+let compute_hl () : string =
   let regroup = Hashtbl.create 128 in
   let fill (vid,defId,ids) =
     if Hashtbl.mem regroup (vid,defId) then
@@ -356,13 +369,13 @@ let gen_hyperlabels () =
   Options.feedback "Total number of labels = %d" ((List.length !idList) *2);
   Options.feedback "finished"
 
-(**
-   All-defs annotator
-*)
-let visite file =
+
+(** Successively pass the 2 visitors *)
+let visite (file : Cil_types.file) : unit =
   Visitor.visitFramacFileSameGlobals (new countDefUse :> Visitor.frama_c_visitor) file;
   Visitor.visitFramacFileSameGlobals (new addLabels :> Visitor.frama_c_visitor) file
 
+(** All-defs annotator *)
 module AllDefs = Annotators.Register (struct
     let name = "alldefs"
     let help = "All-Definitions Coverage"
@@ -373,9 +386,7 @@ module AllDefs = Annotators.Register (struct
   end)
 
 
-(**
-   All-uses annotator
-*)
+(** All-uses annotator *)
 module AllUses = Annotators.Register (struct
     let name = "alluses"
     let help = "All-Uses Coverage"
@@ -385,9 +396,7 @@ module AllUses = Annotators.Register (struct
       gen_hyperlabels ()
   end)
 
-(**
-   Def-Use annotator
-*)
+(** Def-Use annotator *)
 module Defuse = Annotators.Register (struct
     let name = "defuse"
     let help = "Definition-Use Coverage"
