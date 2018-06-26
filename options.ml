@@ -176,5 +176,5 @@ module MaxContextPath = Int (struct
     let option_name = "-lannot-maxpath"
     let arg_name = "NUM"
     let help = "set the maximum number of path for one expression with the context criteria (default : 8192)"
-    let default = 8192
+    let default = 1024
   end)

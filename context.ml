@@ -26,7 +26,10 @@ let labelStops : (stmt list) ref = ref []
 let idList : ((int*int) list) ref = ref []
 
 (** Count the number of labels *)
-let totalLabel = ref 0
+let totalLabels = ref 0
+(** Count the number of ignored labels *)
+let ignoredLabels = ref 0
+
 (** Hyperlabel's type *)
 let symb = ref ""
 
@@ -138,8 +141,13 @@ class computeCombinations = object(self)
   method! vfunc dec =
     if not (Annotators.shouldInstrument dec.svar) then
       Cil.SkipChildren
-    else
+    else begin
+      let parList = dec.sformals in
+      List.iter (fun v ->
+          Hashtbl.replace currentDef v.vid ((Hashtbl.find currentDef v.vid) + 1);
+        ) parList;
       Cil.DoChildren
+    end
 
   (* Def-Var *)
   method! vstmt_aux stmt =
@@ -237,8 +245,10 @@ class computeCombinations = object(self)
             List.iter (f new_id) c
           ) all_cases
       end
-      else
-        Options.warning "Expression ignored in file %a, to many paths (%d)" Printer.pp_location expr.eloc taille_prod
+      else begin
+        Options.warning "Expression ignored in file %a, too many paths (%d)" Printer.pp_location expr.eloc taille_prod;
+        ignoredLabels := (List.length lvalIds) * taille_prod + !ignoredLabels
+      end
     end;
     Cil.SkipChildren
 end
@@ -267,6 +277,7 @@ class addLabels = object(self)
 
   (** Create a pc_label_sequence_condiion and store it*)
   method mkCond (vid:int) : unit =
+    totalLabels := 1 + !totalLabels;
     let zeroExp = Exp.zero () in
     let ccExp = Exp.string (string_of_int vid) in
     let newStmt = (Utils.mk_call "pc_label_sequence_condition" ([zeroExp;ccExp])) in
@@ -283,8 +294,9 @@ class addLabels = object(self)
         self#mkSeq idComb (string_of_int v.vid) !sid len;
         incr sid
       in
-      List.iter f combIds
-    end
+      List.iter f (List.rev combIds)
+    end;
+    Hashtbl.replace currentDef v.vid (i + 1);
 
   method! vfunc dec =
     if not (Annotators.shouldInstrument dec.svar) then
@@ -324,7 +336,7 @@ class addLabels = object(self)
             in
             List.iter f combIds;
           end;
-          (Hashtbl.replace currentDef vid (currDef + 1));
+          Hashtbl.replace currentDef vid (currDef + 1);
 
           if not (Stack.is_empty inLoopId) then begin
             let lid = Stack.top inLoopId in
@@ -399,7 +411,7 @@ class addLabels = object(self)
       let f idComb =
         let (len,sid) = Hashtbl.find combsID idComb in
         self#mkSeq idComb "N/A" len len;
-        totalLabel := len + !totalLabel;
+        totalLabels := len + !totalLabels;
         idList := (eid,idComb) :: !idList
       in
       List.iter f combIds
@@ -426,7 +438,8 @@ let gen_hyperlabels () =
   let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
   output_string out data;
   close_out out;
-  Options.feedback "Total number of labels = %d" !totalLabel;
+  Options.feedback "Total number of labels = %d" !totalLabels;
+  Options.feedback "Total number of ignored labels = %d" !ignoredLabels;
   Options.feedback "finished"
 
 

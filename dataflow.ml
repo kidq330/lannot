@@ -366,7 +366,7 @@ let gen_hyperlabels () =
   let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
   output_string out data;
   close_out out;
-  Options.feedback "Total number of labels = %d" ((List.length !idList) *2);
+  Options.feedback "Total number of sequences = %d" (List.length !idList);
   Options.feedback "finished"
 
 
