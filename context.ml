@@ -277,7 +277,6 @@ class addLabels = object(self)
 
   (** Create a pc_label_sequence_condiion and store it*)
   method mkCond (vid:int) : unit =
-    totalLabels := 1 + !totalLabels;
     let zeroExp = Exp.zero () in
     let ccExp = Exp.string (string_of_int vid) in
     let newStmt = (Utils.mk_call "pc_label_sequence_condition" ([zeroExp;ccExp])) in
@@ -429,7 +428,9 @@ let compute_hl () =
       Hashtbl.add regroup eid [idComb]
   in
   List.iter fill !idList;
-  Hashtbl.fold (fun _ seqs str -> str ^ "<" ^ (String.concat !symb (List.rev (List.map (fun s -> "s" ^ string_of_int s) seqs))) ^ "|; ;>,\n") regroup ""
+  Hashtbl.fold (fun _ seqs str ->
+      List.fold_left (fun acc s -> "<s" ^ string_of_int s ^"|; ;>,\n" ^ acc ) str seqs
+    ) regroup ""
 
 let gen_hyperlabels () =
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
@@ -459,6 +460,5 @@ module Context = Annotators.Register (struct
     let apply _ file =
       Options.result "[WIP] Context is currently in Alpha";
       visite file;
-      symb := "+";
       gen_hyperlabels ()
   end)

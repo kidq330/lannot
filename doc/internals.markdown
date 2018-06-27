@@ -38,13 +38,14 @@ NB : Only works if StaDy is installed
 ### `Dataflow`
 implements the dataflow criterias: all-defs, all-uses & def-use
 
-### `Statement (WIP)`
-implements the statement criteria: STMT
-A pc_label is placed before each goto/return, at the start of each block (except the main block in a switch), and after each label (Case, Default and custom label)
+### `Context`
+implements the dataflow criteria: context
 
-### `Loop (WIP)`
-implements a loop criteria: LOOP
-a pc_label is placed before each loop and is covered if we don't enter in the loop.
+### `Statement`
+implements the statement criteria: STMT
+
+### `Loop`
+implements loops criterias: LOOPIN & LOOPOUT
 
 ### `Utils`
 some utilities but lots of legacy code.

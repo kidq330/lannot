@@ -35,58 +35,6 @@ let symb : string ref = ref ""
 
 let () = Options.result "Gérer les fields de struct?"
 
-(*
-(* Récupère l'index à partir d'un offset sous forme d'entier quand c'est possible *)
-let get_index_from_offset offset =
-  match offset with
-  | Index (e,_) ->
-    let i = Cil.constFoldToInt e in
-    (match i with
-     | None -> None
-     | Some(int) -> Some(Integer.to_int int))
-  | _ -> None
-
-(* Récupère l'index à partir d'un skind sous forme d'entier quand c'est possible *)
-let get_index_from_skind skind =
-  match skind with
-  | Instr (Set ((Var _,offset),_,_))
-  | Instr (Call (Some (Var _,offset),_,_,_)) ->
-    get_index_from_offset offset
-  | _ -> None
-
-           (* Attribut un identifiant unique à un couple (vid,index) *)
-let get_index_id vid index =
-  match index with
-  | None -> None
-  | Some(i) ->
-    if not (Hashtbl.mem pairVarOffset (vid,i)) then begin
-      let new_id = Cil_const.new_raw_id () in
-      Hashtbl.add pairVarOffset (vid,i) new_id;
-      Some(new_id)
-    end
-    else
-      Some(Hashtbl.find pairVarOffset (vid,i))
-
-(* Retourne l'identifiant de variable en prenant en compte un index s'il existe et que l'option est activé *)
-let get_rvid_offset vid offset =
-  if not (Options.ConstantFoldingArray.get ()) then
-    vid
-  else
-    let index = get_index_from_offset offset in
-    match get_index_id vid index with
-    | None -> vid
-    | Some(i) -> i
-
-let get_rvid_skind vid skind =
-  if not (Options.ConstantFoldingArray.get ()) then
-    vid
-  else
-    let index = get_index_from_skind skind in
-    match get_index_id vid index with
-    | None -> vid
-    | Some(i) -> i
-*)
-
 (** Associates a unique id to a couple (Variable id, loop id) and store/return it (or return it if already exists *)
 let get_varLoop_id (vid : int) (lid:int) : int =
   if Hashtbl.mem varLoopID (vid,lid) then
@@ -352,7 +300,7 @@ let compute_hl () : string =
   List.iter fill !idList;
   if String.equal "-" !symb then
     Hashtbl.fold (fun _ seqs str ->
-        List.fold_left (fun acc s -> acc ^ "<s" ^ string_of_int s ^"|; ;>,\n") "" seqs
+        List.fold_left (fun acc s -> "<s" ^ string_of_int s ^"|; ;>,\n" ^ acc ) str seqs
       ) regroup ""
   else
     Hashtbl.fold (fun _ seqs str ->
@@ -366,7 +314,7 @@ let gen_hyperlabels () =
   let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
   output_string out data;
   close_out out;
-  Options.feedback "Total number of sequences = %d" (List.length !idList);
+  Options.feedback "Total number of sequences = %d" ((List.length !idList)*2);
   Options.feedback "finished"
 
 

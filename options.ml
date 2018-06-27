@@ -142,17 +142,11 @@ module GlobalsAsInput = False (struct
   end)
 
 let () = Parameter_customize.set_group crit_group
-module LimitGapInt = Int (struct
-    let option_name = "-lannot-limitgap-int"
+module LimitDelta = Int (struct
+    let option_name = "-lannot-limit-delta"
     let arg_name = "NUM"
     let help = "Set the precision of limit labels (Default : 0)"
     let default = 0
-  end)
-
-module ConstantFoldingArray = False (struct
-    let option_name ="-lannot-constant-folding-array"
-    let help = "For dataflows : Apply constant folding on array's indexes. If the result is a integer, then the sequence will be created for this specific index, not for the entire array (false by default). NB : Is it really useful?"
-
   end)
 
 (* Pour polarSSL *)
@@ -161,15 +155,10 @@ module Inline = True (struct
     let help = "Don't ignore inline"
   end)
 
-module IgnoreRet = False (struct
-    let option_name = "-lannot-ignore-ret"
-    let help = "For polarSSL : ignore the variable ret"
-  end)
-
 module InlineException = Kernel_function_set (struct
     let option_name = "-lannot-inline-functions"
     let arg_name = "funs"
-    let help = "in -lannot-inline is false, then this option permit to add exception and annotate inline functions"
+    let help = "if -lannot-inline is false, then this option permit to add exception and annotate inline functions"
   end)
 
 module MaxContextPath = Int (struct

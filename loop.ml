@@ -161,6 +161,7 @@ include Annotators.Register (struct
     let help = "Enter in Loop Coverage"
 
     let apply mk_label ast =
+      Options.result "TODO : gérer les do... while...";
       Visitor.visitFramacFileSameGlobals (inner mk_label) ast
   end)
 
@@ -170,6 +171,7 @@ include Annotators.Register (struct
     let help = "Skip Loop Coverage"
 
     let apply mk_label ast =
+      Options.result "TODO : gérer les do... while...";
       Visitor.visitFramacFileSameGlobals (outter ()) ast;
       gen_hyperlabels ()
   end)

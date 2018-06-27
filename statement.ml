@@ -60,10 +60,10 @@ let visitor mk_label = object(self)
         Cil.ChangeTo stmt
       end
     | If (e,b1,b2,loc) ->
-      let nb1 = Cil.visitCilBlock (self :> Cil.cilVisitor) b1 in
-      let nb2 = Cil.visitCilBlock (self :> Cil.cilVisitor) b2 in
       let l1 = mk_label (Exp.one()) [] loc in
+      let nb1 = Cil.visitCilBlock (self :> Cil.cilVisitor) b1 in
       let l2 = mk_label (Exp.one()) [] loc in
+      let nb2 = Cil.visitCilBlock (self :> Cil.cilVisitor) b2 in
       nb1.bstmts <- l1 :: nb1.bstmts;
       nb2.bstmts <- l2 :: nb2.bstmts;
       stmt.skind <- (If (e,nb1,nb2,loc));

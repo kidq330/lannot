@@ -220,7 +220,7 @@ let gen_labels_gicc mk_label bexpr =
   Stmt.block (List.map (gen_labels_gicc_for mk_label bexpr) atoms)
 
 
-let int_gap = ref 0
+let int_delta = ref 0
 
 (** Visotor that will store all limits expressions *)
 class visitExp = object(self)
@@ -236,8 +236,8 @@ class visitExp = object(self)
     (* negComp : -exp <= int_gap *)
     (* abs : posComp && negComp *)
     (* ret: cond && abs *)
-    let posComp = Exp.binop Le exp (Exp.integer !int_gap) in
-    let negComp = Exp.binop Le (Exp.neg exp) (Exp.integer !int_gap) in
+    let posComp = Exp.binop Le exp (Exp.integer !int_delta) in
+    let negComp = Exp.binop Le (Exp.neg exp) (Exp.integer !int_delta) in
     let abs = Exp.binop LAnd posComp negComp in
     Exp.binop LAnd cond abs
 
@@ -270,7 +270,7 @@ end
 
 (** Generate Limit labels for the given Boolean formula *)
 let gen_labels_limit mk_label bexpr =
-  int_gap := Options.LimitGapInt.get ();
+  int_delta := Options.LimitDelta.get ();
   let loc = bexpr.eloc in
   let ve = new visitExp in
   ignore (Visitor.visitFramacExpr (ve :> Visitor.frama_c_visitor) bexpr);
