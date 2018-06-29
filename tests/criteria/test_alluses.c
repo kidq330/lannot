@@ -1,5 +1,5 @@
 /* run.config
-   EXECNOW: LOG @PTEST_NAME@_labels.c LOG @PTEST_NAME@_labels.hyperlabels LOG @PTEST_NAME@_labels.labels LOG @PTEST_NAME@_output.log @frama-c@ -lannot=alluses -lannot-debug 1 @PTEST_DIR@/@PTEST_NAME@.c -lannot-o @PTEST_DIR@/result/@PTEST_NAME@_labels.c > @PTEST_DIR@/result/@PTEST_NAME@_output.log
+   EXECNOW: LOG @PTEST_NAME@_labels.c LOG @PTEST_NAME@_labels.hyperlabels LOG @PTEST_NAME@_labels.labels LOG @PTEST_NAME@_output.log @frama-c@ -lannot=alluses @PTEST_DIR@/@PTEST_NAME@.c -lannot-o @PTEST_DIR@/result/@PTEST_NAME@_labels.c > @PTEST_DIR@/result/@PTEST_NAME@_output.log
  */
 
 int f(){
@@ -9,7 +9,7 @@ int f(){
 int maintest(int c){
 	int a = 1;
 	int b = 2;
-	
+
 	test : if (a){
 		if(b){
 			b = 3;
@@ -17,18 +17,13 @@ int maintest(int c){
 		else{
 			test2 : a = f();
 		}
-	}
-	else{
-		a = b;
-		if (b){
-			a = 3;
-			b = b;	
+ 	}
+ 	else{
+		for(int i = a; i < b; i++){
+			f();
 		}
-		else{
-			test3 : b = a;		
-		}
-	}
-	
+ 	}
+
 	test4 : switch(c){
 		case 1 : case 14 :
 	       test5 : return a + b;
@@ -41,4 +36,3 @@ int maintest(int c){
    }
    return 0;
 }
-

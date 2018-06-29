@@ -1,0 +1,7 @@
+[kernel] Parsing tests/criteria/test_LOOPIN.c (with preprocessing)
+[kernel] Parsing tests/criteria/test_LOOPIN.c (with preprocessing)
+[lannot] apply annotations for LOOPIN
+[lannot] Warning: This criteria can only handle For,While and Do...while(true) loops. Do...While(condition) are not supported
+[lannot] write modified C file (to tests/criteria/result/test_LOOPIN_labels.c)
+[lannot] write label data (to tests/criteria/result/test_LOOPIN_labels.labels)
+[lannot] finished

@@ -6,36 +6,44 @@
 #define pc_label_bindings(...) do{}while(0)
 #endif
 
+#ifndef pc_label_sequence
+#define pc_label_sequence(...) do{}while(0)
+#endif
+
+#ifndef pc_label_sequence_condition
+#define pc_label_sequence_condition(...) do{}while(0)
+#endif
+
 int main(int a, int b)
  {
    int __retres;
-   pc_label((a < b || a / b != 42) != (a < b && a / b != 42),11,"WM COR");
-   pc_label((a <= b) != (a < b),12,"WM ROR");
-   pc_label((a > b) != (a < b),13,"WM ROR");
-   pc_label((a >= b) != (a < b),14,"WM ROR");
-   pc_label(a < 0,15,"WM ABS");
-   pc_label(b < 0,16,"WM ABS");
-   pc_label((a / b == 42) != (a / b != 42),17,"WM ROR");
-   pc_label(a * b != a / b,18,"WM AOR");
-   pc_label(a + b != a / b,19,"WM AOR");
-   pc_label(a - b != a / b,20,"WM AOR");
-   pc_label(a < 0,21,"WM ABS");
-   pc_label(b < 0,22,"WM ABS");
+   pc_label((a < b || a / b != 42) != (a < b && a / b != 42),1,"WM COR");
+   pc_label((a <= b) != (a < b),2,"WM ROR");
+   pc_label((a > b) != (a < b),3,"WM ROR");
+   pc_label((a >= b) != (a < b),4,"WM ROR");
+   pc_label(a < 0,5,"WM ABS");
+   pc_label(b < 0,6,"WM ABS");
+   pc_label((a / b == 42) != (a / b != 42),7,"WM ROR");
+   pc_label(a * b != a / b,8,"WM AOR");
+   pc_label(a + b != a / b,9,"WM AOR");
+   pc_label(a - b != a / b,10,"WM AOR");
+   pc_label(a < 0,11,"WM ABS");
+   pc_label(b < 0,12,"WM ABS");
    if (a < b && a / b != 42) {
-     pc_label(a < 0,1,"WM ABS");
-     pc_label(b < 0,2,"WM ABS");
+     pc_label(a < 0,13,"WM ABS");
+     pc_label(b < 0,14,"WM ABS");
      __retres = a % b;
      goto return_label;
    }
    else {
-     pc_label((a + b) / 4 != (a + b) * 4,3,"WM AOR");
-     pc_label((a + b) + 4 != (a + b) * 4,4,"WM AOR");
-     pc_label((a + b) - 4 != (a + b) * 4,5,"WM AOR");
-     pc_label(a * b != a + b,6,"WM AOR");
-     pc_label(a / b != a + b,7,"WM AOR");
-     pc_label(a - b != a + b,8,"WM AOR");
-     pc_label(a < 0,9,"WM ABS");
-     pc_label(b < 0,10,"WM ABS");
+     pc_label((a + b) / 4 != (a + b) * 4,15,"WM AOR");
+     pc_label((a + b) + 4 != (a + b) * 4,16,"WM AOR");
+     pc_label((a + b) - 4 != (a + b) * 4,17,"WM AOR");
+     pc_label(a * b != a + b,18,"WM AOR");
+     pc_label(a / b != a + b,19,"WM AOR");
+     pc_label(a - b != a + b,20,"WM AOR");
+     pc_label(a < 0,21,"WM ABS");
+     pc_label(b < 0,22,"WM ABS");
      __retres = (a + b) * 4;
      goto return_label;
    }

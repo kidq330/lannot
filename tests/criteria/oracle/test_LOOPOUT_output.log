@@ -1,0 +1,9 @@
+[kernel] Parsing tests/criteria/test_LOOPOUT.c (with preprocessing)
+[kernel] Parsing tests/criteria/test_LOOPOUT.c (with preprocessing)
+[lannot] apply annotations for LOOPOUT
+[lannot] Warning: This criteria can only handle For, While and Do...while(true) loops. Do...While(condition) are not supported
+[lannot] write hyperlabel data (to tests/criteria/result/test_LOOPOUT_labels.hyperlabels)
+[lannot] Total number of labels = 36
+[lannot] write modified C file (to tests/criteria/result/test_LOOPOUT_labels.c)
+[lannot] write label data (to tests/criteria/result/test_LOOPOUT_labels.labels)
+[lannot] finished

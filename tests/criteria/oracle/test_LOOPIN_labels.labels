@@ -1,0 +1,13 @@
+# id, status, tag, origin_loc, current_loc, emitter, exec_time
+1,unknown,LOOPIN,/home/tmartin/Documents/Labels/lannotate/tests/criteria/test_LOOPIN.c:8,,lannot,0.
+2,unknown,LOOPIN,/home/tmartin/Documents/Labels/lannotate/tests/criteria/test_LOOPIN.c:9,,lannot,0.
+3,unknown,LOOPIN,/home/tmartin/Documents/Labels/lannotate/tests/criteria/test_LOOPIN.c:10,,lannot,0.
+4,unknown,LOOPIN,/home/tmartin/Documents/Labels/lannotate/tests/criteria/test_LOOPIN.c:11,,lannot,0.
+5,unknown,LOOPIN,/home/tmartin/Documents/Labels/lannotate/tests/criteria/test_LOOPIN.c:12,,lannot,0.
+6,unknown,LOOPIN,/home/tmartin/Documents/Labels/lannotate/tests/criteria/test_LOOPIN.c:13,,lannot,0.
+7,unknown,LOOPIN,/home/tmartin/Documents/Labels/lannotate/tests/criteria/test_LOOPIN.c:15,,lannot,0.
+8,unknown,LOOPIN,/home/tmartin/Documents/Labels/lannotate/tests/criteria/test_LOOPIN.c:16,,lannot,0.
+9,unknown,LOOPIN,/home/tmartin/Documents/Labels/lannotate/tests/criteria/test_LOOPIN.c:17,,lannot,0.
+10,unknown,LOOPIN,/home/tmartin/Documents/Labels/lannotate/tests/criteria/test_LOOPIN.c:18,,lannot,0.
+11,unknown,LOOPIN,/home/tmartin/Documents/Labels/lannotate/tests/criteria/test_LOOPIN.c:19,,lannot,0.
+12,unknown,LOOPIN,/home/tmartin/Documents/Labels/lannotate/tests/criteria/test_LOOPIN.c:20,,lannot,0.

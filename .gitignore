@@ -11,6 +11,7 @@
 *.check_mli_exists
 .Makefile.plugin.generated
 /top/
+/doc/code/*
 META.frama-c-*
 /tests/ptests_config
 .merlin

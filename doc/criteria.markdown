@@ -159,18 +159,18 @@ Also supports `-lannot-allbool` in addition to `-lannot-simplify`.
 
 The following example:
 ```c
-if (i < 10) ...
+if (A < B) ...
 ```
 becomes:
 ```c
-pc_label(i < 10 && ((i - 10) + 1 <= DELTA && - ((i - 10) + 1) <= DELTA),1,"LIMIT");
+pc_label(A < B && ((A - B) + 1 <= N && - ((A - B) + 1) <= N),1,"LIMIT");
 if (i < 10) ...
 ```
-where `((i - 10) + 1 <= DELTA && - ((i - 10) + 1) <= DELTA)` in an equivalent to `abs((i-10)+1)`,
+`X <= N && -X <= N)` in an equivalent to `abs(X) <= N` when N is positive (the COQ proof can be found in LIMIT_proof.v),
 `A (<|<=|=>|>) B` becomes `(A - B) ((+|-) 1)?`, so it is equal to 0 when `i`'s value is the limit.
-In this example the condition is true onl if `i` equal 9
+In this example the condition is true only if `i` equal 9
 
-DELTA can be set using -lannot-limit-delta (default : 0)
+N can be set using -lannot-limit-delta (default : 0)
 
 Function
 --------
