@@ -423,13 +423,13 @@ let compute_hl () =
   let regroup = Hashtbl.create 512 in
   let fill (eid,idComb) =
     if Hashtbl.mem regroup eid then
-      Hashtbl.replace regroup eid (idComb :: (Hashtbl.find regroup eid))
+      Hashtbl.replace regroup eid ((Hashtbl.find regroup eid)@[idComb])
     else
       Hashtbl.add regroup eid [idComb]
   in
   List.iter fill !idList;
   Hashtbl.fold (fun _ seqs str ->
-      List.fold_left (fun acc s -> "<s" ^ string_of_int s ^"|; ;>,\n" ^ acc ) str seqs
+      List.fold_left (fun acc s -> acc ^ "<s" ^ string_of_int s ^"|; ;>,\n" ) str seqs
     ) regroup ""
 
 let gen_hyperlabels () =
@@ -440,8 +440,7 @@ let gen_hyperlabels () =
   output_string out data;
   close_out out;
   Options.feedback "Total number of labels = %d" !totalLabels;
-  Options.feedback "Total number of ignored labels = %d" !ignoredLabels;
-  Options.feedback "finished"
+  Options.feedback "Total number of ignored labels = %d" !ignoredLabels
 
 
 (** Successively pass the 3 visitors, reset curentDef after the 2nd one *)

@@ -33,8 +33,6 @@ let idList : ((int*int*int) list) ref = ref []
 (** Hyperlabel's type *)
 let symb : string ref = ref ""
 
-let () = Options.result "Gérer les fields de struct?"
-
 (** Associates a unique id to a couple (Variable id, loop id) and store/return it (or return it if already exists *)
 let get_varLoop_id (vid : int) (lid:int) : int =
   if Hashtbl.mem varLoopID (vid,lid) then
@@ -183,7 +181,8 @@ class addLabels = object(self)
           for j = 1 to (Hashtbl.find currentUse nvid) - 1 do
             let ids = get_seq_id nvid i j in
             idList := (vid,defId,ids) :: !idList;
-            self#mkSeq ids vid 1
+            self#mkSeq ids vid 1;
+            Hashtbl.remove varDefUseID (nvid,i,j)
           done;
           Hashtbl.replace currentDef nvid (i + 1)
         end
@@ -266,7 +265,8 @@ class addLabels = object(self)
           (* For each preceding Def *)
           for i = 1 to (Hashtbl.find currentDef vid) - 1  do
             let ids = get_seq_id vid i j in
-            self#mkSeq ids vid 2
+            self#mkSeq ids vid 2;
+            Hashtbl.remove varDefUseID (vid,i,j)
           done;
           (Hashtbl.replace currentUse vid (j + 1));
 
@@ -314,8 +314,7 @@ let gen_hyperlabels () =
   let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
   output_string out data;
   close_out out;
-  Options.feedback "Total number of sequences = %d" ((List.length !idList)*2);
-  Options.feedback "finished"
+  Options.feedback "Total number of sequences = %d" ((List.length !idList)*2)
 
 
 (** Successively pass the 2 visitors *)

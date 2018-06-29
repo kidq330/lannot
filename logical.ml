@@ -229,13 +229,15 @@ class visitExp = object(self)
   method get_exprs () = bexprs
 
   method mk_limit cond exp =
-    (* Example *)
-    (* cond : a < b *)
-    (* exp : a - b (+/-) 1 *)
-    (* posComp : exp <= int_gap *)
-    (* negComp : -exp <= int_gap *)
-    (* abs : posComp && negComp *)
-    (* ret: cond && abs *)
+    (* Example
+       cond : a < b
+       exp : (a - b) + 1
+       posComp : exp <= int_delta
+       negComp : -exp <= int_delta
+       abs : posComp && negComp
+       ret: cond && abs
+       cf. COQ proof in file LIMIT_proof.v
+    *)
     let posComp = Exp.binop Le exp (Exp.integer !int_delta) in
     let negComp = Exp.binop Le (Exp.neg exp) (Exp.integer !int_delta) in
     let abs = Exp.binop LAnd posComp negComp in

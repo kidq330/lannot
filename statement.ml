@@ -25,6 +25,13 @@ open Ast_const
 
 let unk_loc = Cil_datatype.Location.unknown
 
+(* Est-ce qu'on peut recup' la loc plus simplement? *)
+let get_fundec_loc dec =
+  let glob = Ast.def_or_last_decl dec.svar in
+  match glob with
+  | GFun (_, loc) -> loc
+  | _ -> unk_loc
+
 (** A visitor that adds a label at the start of each statement
     i.e. :
     -Start of a function
@@ -39,7 +46,7 @@ let visitor mk_label = object(self)
 
   method! vfunc dec =
     if Annotators.shouldInstrument dec.svar then
-      let l = mk_label (Exp.one()) [] unk_loc in
+      let l = mk_label (Exp.one()) [] (get_fundec_loc dec) in
       Cil.DoChildrenPost (fun res ->
           res.sbody.bstmts <- l :: res.sbody.bstmts;
           res
@@ -81,7 +88,13 @@ let visitor mk_label = object(self)
     | _ ->
       Cil.DoChildrenPost (fun res ->
           if lbl then begin
-            let lb = mk_label (Exp.one()) [] unk_loc in
+            let loc =
+              match List.hd stmt.labels with
+              | Label (_,l,_)
+              | Case (_,l)
+              | Default l -> l
+            in
+            let lb = mk_label (Exp.one()) [] loc in
             {res with skind = Block (Block.mk (lb :: [Stmt.mk res.skind]))}
           end
           else

@@ -58,7 +58,7 @@ let disjunctions = Hashtbl.create 100
 
 let compute_hl caller_callee =
   let disj =
-    String.concat "+" (List.map (fun i -> "l" ^ string_of_int i) (Hashtbl.find_all disjunctions caller_callee))
+    String.concat "+" (List.rev (List.map (fun i -> "l" ^ string_of_int i) (Hashtbl.find_all disjunctions caller_callee)))
   in
   "<" ^ disj ^ "|; ;>,"
 
@@ -66,9 +66,8 @@ let gen_hyperlabels_callcov = ref (fun () ->
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
   let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
-  output_string out (HL.fold (fun el str -> (compute_hl el) ^ "\n" ^ str) !hyperlabels "");
-  close_out out;
-  Options.feedback "finished")
+  output_string out (HL.fold (fun el str -> str ^ (compute_hl el) ^ "\n") !hyperlabels "");
+  close_out out)
 
 
 let mk_call v func =
