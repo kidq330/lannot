@@ -5,11 +5,9 @@
 #ifndef pc_label_bindings
 #define pc_label_bindings(...) do{}while(0)
 #endif
-
 #ifndef pc_label_sequence
 #define pc_label_sequence(...) do{}while(0)
 #endif
-
 #ifndef pc_label_sequence_condition
 #define pc_label_sequence_condition(...) do{}while(0)
 #endif
@@ -32,8 +30,10 @@ int main(int i)
   }
   pc_label_sequence(1,2UL,2,2,"83",0);
   pc_label_sequence(1,3UL,1,2,"85",0);
-  while (1) 
-    if (i < 10) pc_label_sequence_condition(0,"85"); else break;
+  while (1) {
+    pc_label_sequence_condition(0,"85");
+    if (! (i < 10)) break;
+  }
   pc_label_sequence(1,3UL,2,2,"85",0);
   pc_label_sequence(1,4UL,1,2,"90",0);
   while (1) {
@@ -44,10 +44,11 @@ int main(int i)
   pc_label_sequence(1,5UL,1,2,"95",0);
   while (1) {
     int tmp;
+    pc_label_sequence_condition(0,"95");
     tmp = i;
     i ++;
     ;
-    if (tmp) pc_label_sequence_condition(0,"95"); else break;
+    if (! tmp) break;
   }
   pc_label_sequence(1,5UL,2,2,"95",0);
   pc_label_sequence(1,6UL,1,2,"103",0);
@@ -70,32 +71,37 @@ int main(int i)
   }
   pc_label_sequence(1,8UL,2,2,"113",0);
   pc_label_sequence(1,9UL,1,2,"115",0);
-  while (1) 
-    if (i < 10) pc_label_sequence_condition(0,"115"); else break;
+  while (1) {
+    pc_label_sequence_condition(0,"115");
+    if (! (i < 10)) break;
+  }
   pc_label_sequence(1,9UL,2,2,"115",0);
   pc_label_sequence(1,10UL,1,2,"121",0);
   while (1) {
+    pc_label_sequence_condition(0,"121");
     donothing();
-    if (i < 10) pc_label_sequence_condition(0,"121"); else break;
+    if (! (i < 10)) break;
   }
   pc_label_sequence(1,10UL,2,2,"121",0);
   pc_label_sequence(1,11UL,1,2,"127",0);
   while (1) {
     int tmp_1;
+    pc_label_sequence_condition(0,"127");
     tmp_1 = i;
     i ++;
     ;
-    if (tmp_1) pc_label_sequence_condition(0,"127"); else break;
+    if (! tmp_1) break;
   }
   pc_label_sequence(1,11UL,2,2,"127",0);
   pc_label_sequence(1,12UL,1,2,"136",0);
   while (1) {
     int tmp_2;
+    pc_label_sequence_condition(0,"136");
     donothing();
     tmp_2 = i;
     i ++;
     ;
-    if (tmp_2) pc_label_sequence_condition(0,"136"); else break;
+    if (! tmp_2) break;
   }
   pc_label_sequence(1,12UL,2,2,"136",0);
   __retres = 0;

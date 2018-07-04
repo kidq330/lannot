@@ -31,9 +31,9 @@ module Printer = Printer_builder.Make (struct
                             #ifndef pc_label\n#define pc_label(...) do{}while(0)\n\
                             #endif@\n";
         Format.fprintf fmt "#ifndef pc_label_bindings\n#define pc_label_bindings(...) do{}while(0)\n\
-                            #endif@\n\n";
+                            #endif@\n";
         Format.fprintf fmt "#ifndef pc_label_sequence\n#define pc_label_sequence(...) do{}while(0)\n\
-                            #endif@\n\n";
+                            #endif@\n";
         Format.fprintf fmt "#ifndef pc_label_sequence_condition\n#define pc_label_sequence_condition(...) do{}while(0)\n\
                             #endif@\n\n";
         Cil.iterGlobals file (fun g -> self#global fmt g);

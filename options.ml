@@ -167,3 +167,14 @@ module MaxContextPath = Int (struct
     let help = "set the maximum number of path for one expression with the context criteria (default : 8192)"
     let default = 1024
   end)
+
+
+(* There is no way to determine the original loop form after the CIL transformation.
+   Since loops criterias depend on if we are in a while or do..while.. I added this option to
+   tell to Lannotate if we support do..while.. or not. See doc/LOOPS.markdown for examples
+*)
+module HandleDoWhile = True (struct
+    let option_name = "-lannot-handle-dowhile"
+    let arg_name = "NUM"
+    let help = "Do..While.. will be supported in loops criterias, but empty loops will also be considered as Do..While.. (default: true)"
+  end)

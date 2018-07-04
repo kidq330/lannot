@@ -5,11 +5,9 @@
 #ifndef pc_label_bindings
 #define pc_label_bindings(...) do{}while(0)
 #endif
-
 #ifndef pc_label_sequence
 #define pc_label_sequence(...) do{}while(0)
 #endif
-
 #ifndef pc_label_sequence_condition
 #define pc_label_sequence_condition(...) do{}while(0)
 #endif
@@ -27,18 +25,21 @@ int main(int i)
     pc_label(1,2,"LOOPIN");
     donothing();
   }
-  while (1) 
-    if (i < 10) pc_label(1,3,"LOOPIN"); else break;
+  while (1) {
+    pc_label(1,3,"LOOPIN");
+    if (! (i < 10)) break;
+  }
   while (1) {
     if (i < 10) pc_label(1,4,"LOOPIN"); else break;
     donothing();
   }
   while (1) {
     int tmp;
+    pc_label(1,5,"LOOPIN");
     tmp = i;
     i ++;
     ;
-    if (tmp) pc_label(1,5,"LOOPIN"); else break;
+    if (! tmp) break;
   }
   while (1) {
     int tmp_0;
@@ -53,26 +54,31 @@ int main(int i)
     pc_label(1,8,"LOOPIN");
     donothing();
   }
-  while (1) 
-    if (i < 10) pc_label(1,9,"LOOPIN"); else break;
   while (1) {
+    pc_label(1,9,"LOOPIN");
+    if (! (i < 10)) break;
+  }
+  while (1) {
+    pc_label(1,10,"LOOPIN");
     donothing();
-    if (i < 10) pc_label(1,10,"LOOPIN"); else break;
+    if (! (i < 10)) break;
   }
   while (1) {
     int tmp_1;
+    pc_label(1,11,"LOOPIN");
     tmp_1 = i;
     i ++;
     ;
-    if (tmp_1) pc_label(1,11,"LOOPIN"); else break;
+    if (! tmp_1) break;
   }
   while (1) {
     int tmp_2;
+    pc_label(1,12,"LOOPIN");
     donothing();
     tmp_2 = i;
     i ++;
     ;
-    if (tmp_2) pc_label(1,12,"LOOPIN"); else break;
+    if (! tmp_2) break;
   }
   __retres = 0;
   return __retres;
