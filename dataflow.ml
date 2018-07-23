@@ -11,9 +11,6 @@ let currentDef : (int,int) Hashtbl.t = Hashtbl.create 32
 (** Current use for each variable *)
 let currentUse : (int,int) Hashtbl.t = Hashtbl.create 32
 
-(** Keep a counter that will be incremented for each nuplet
-    (Variable id, Def id, Use id) *)
-let varCounter : (int,int ref) Hashtbl.t  = Hashtbl.create 32
 (** Store for each couple (variable id, loop id) a unique id *)
 let varLoopID : (int*int,int) Hashtbl.t  = Hashtbl.create 32
 (** Using varCounter, associate to each nuplet (Variable id, Def id, Use id)
@@ -43,19 +40,16 @@ let get_varLoop_id (vid : int) (lid:int) : int =
     new_id
   end
 
-(** Pairing function used to get unique Id from a couple of Ids *)
-let cantor_pairing (n : int) (m : int) : int = (((n+m)*(n+m+1))/2)+m
-(** Associates an id to a nuplet (Variable id, Def id, Use id), store it and return a unique id from a couple with the id previously created and the Variable Id *)
+(** Associates an id to a nuplet (Variable id, Def id, Use id), store it and return it. If already exist return and remove it from the hashtbl *)
 let get_seq_id (vid : int) (def : int) (use : int) : int =
   if Hashtbl.mem varDefUseID (vid,def,use) then
-    cantor_pairing vid (Hashtbl.find varDefUseID (vid,def,use))
+    let tmp = Hashtbl.find varDefUseID (vid,def,use) in
+    Hashtbl.remove varDefUseID (vid,def,use);
+    tmp
   else begin
-    if not (Hashtbl.mem varCounter vid) then
-      Hashtbl.add varCounter vid (ref 0);
-    let cpt = Hashtbl.find varCounter vid in
-    incr cpt;
-    Hashtbl.add varDefUseID (vid,def,use) !cpt;
-    cantor_pairing vid !cpt
+    let new_id = Annotators.next() in
+    Hashtbl.add varDefUseID (vid,def,use) new_id;
+    new_id
   end
 
 (** Visitor that will count the number of Def/Use for each variable *)
@@ -66,7 +60,7 @@ class countDefUse = object(self)
   val inLoopId : int Stack.t = Stack.create ()
 
   (** Take 2 hashtbl (nbVarDefs/Uses, currentDef/Use) and create/replace the binding of this Id *)
-  method fill_aux (nBVar : (int, int) Hashtbl.t) (current : (int, int) Hashtbl.t) (vid : int) : unit =
+  method private fill_aux (nBVar : (int, int) Hashtbl.t) (current : (int, int) Hashtbl.t) (vid : int) : unit =
     if (Hashtbl.mem nBVar vid) then
       (Hashtbl.replace nBVar vid ((Hashtbl.find nBVar vid) + 1))
     else
@@ -74,7 +68,7 @@ class countDefUse = object(self)
 
   (** Call fill_aux for the "normal" vid, and call it again if we're in a loop with the
       id assiociated to this variable id and loop id *)
-  method fill_tbl (nBVar : (int, int) Hashtbl.t) (current : (int, int) Hashtbl.t) (vid : int) : unit =
+  method private fill_tbl (nBVar : (int, int) Hashtbl.t) (current : (int, int) Hashtbl.t) (vid : int) : unit =
     self#fill_aux nBVar current vid;
 
     if not (Stack.is_empty inLoopId) then begin
@@ -127,7 +121,7 @@ class addLabels = object(self)
   val inLoopId = Stack.create ()
 
   (** Create a pc_label_sequence and store it in the corresponding list of labels *)
-  method mkSeq (ids : int) (vid : int) (nb : int) : unit =
+  method private mkSeq (ids : int) (vid : int) (nb : int) : unit =
     let idExp = Exp.kinteger IULong ids in
     let oneExp = Exp.one () in
     let curr = Exp.integer nb in
@@ -141,14 +135,14 @@ class addLabels = object(self)
       labelUses := newStmt :: !labelUses
 
   (** Create a pc_label_sequence_condiion and store it in the corresponding list of labels *)
-  method mkCond (vid : int) : unit =
+  method private mkCond (vid : int) : unit =
     let zeroExp = Exp.zero () in
     let ccExp = Exp.string (string_of_int vid) in
     let newStmt = (Utils.mk_call "pc_label_sequence_condition" ([zeroExp;ccExp])) in
     labelStops := newStmt :: !labelStops
 
   (** Called for each parameters of a function, and the corresponding sequences *)
-  method handle_param (v : Cil_types.varinfo) : unit  =
+  method private handle_param (v : Cil_types.varinfo) : unit  =
     if Hashtbl.mem nBVarUses v.vid then begin
       for j = 1 to (Hashtbl.find nBVarUses v.vid) do
         let ids = get_seq_id v.vid 1 j in
@@ -159,7 +153,7 @@ class addLabels = object(self)
     end
 
   (** Take a variable that is currenlty being defined, and add the corresponding sequences *)
-  method process_def (v : Cil_types.varinfo) : unit  =
+  method private process_def (v : Cil_types.varinfo) : unit  =
     let vid = v.vid in
     if not (v.vname = "__retres") && not v.vtemp && Hashtbl.mem nBVarUses vid then begin
       self#mkCond vid;
@@ -211,6 +205,8 @@ class addLabels = object(self)
           self#process_def v;
           (* if this statement is associated to one or more C labels, then sequences will be placed
              between this labels and the statement itself *)
+          labelUses := List.rev !labelUses;
+          labelDefs := List.rev !labelDefs;
           let res =
             if not lbl then
               Stmt.block (!labelUses @ !labelStops @ [stmt] @ !labelDefs)
@@ -224,14 +220,14 @@ class addLabels = object(self)
         )
     | If (ex,th,el,lo) ->
       ignore(Cil.visitCilExpr (self :> Cil.cilVisitor) ex);
-      (let lu = !labelUses in labelUses := [];
+      (let lu = List.rev !labelUses in labelUses := [];
        let thenb = (Cil.visitCilBlock (self :> Cil.cilVisitor) th) in
        let elseb = (Cil.visitCilBlock (self :> Cil.cilVisitor) el) in
        let newSt = (Block.mk (lu @ [Stmt.mk (If (ex,thenb,elseb,lo))])) in stmt.skind <- (Block newSt);
        Cil.ChangeTo stmt)
     | Switch (ex, b, stmtl, lo) ->
       ignore(Cil.visitCilExpr (self :> Cil.cilVisitor) ex);
-      (let lu = !labelUses in labelUses := [];
+      (let lu = List.rev !labelUses in labelUses := [];
        let nb = (Cil.visitCilBlock (self :> Cil.cilVisitor) b) in
        let newSt = (Block.mk (lu @ [Stmt.mk (Switch (ex,nb,stmtl,lo))])) in stmt.skind <- (Block newSt);
        Cil.ChangeTo stmt)
@@ -245,6 +241,7 @@ class addLabels = object(self)
     | _ ->
       Cil.DoChildrenPost (fun stmt ->
           let res =
+            labelUses := List.rev !labelUses;
             if not lbl then
               Stmt.block (!labelUses @ [stmt])
             else begin

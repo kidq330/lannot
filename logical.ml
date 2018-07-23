@@ -228,7 +228,7 @@ class visitExp = object(self)
   val mutable bexprs = []
   method get_exprs () = bexprs
 
-  method mk_limit cond exp =
+  method private mk_limit cond exp =
     (* Example
        cond : a < b
        exp : (a - b) + 1
@@ -293,7 +293,7 @@ class visitor gen_labels all_boolean = object(self)
     else
       Cil.SkipChildren
 
-  method vstmt_post stmt =
+  method private vstmt_post stmt =
     match bexprs with
     | [] -> stmt
     | _ ->

@@ -33,5 +33,7 @@ PLUGIN_CMO = options utils ast_const bes simplify annotators wm \
              logical partition dataflow context function assertion statement loop register
 include $(FRAMAC_SHARE)/Makefile.dynamic
 
-a:
-	sudo make uninstall && make clean && make && sudo make install
+clean::
+	$(RM) -rf top
+	$(RM) -f META.*
+	$(RM) -f .depend

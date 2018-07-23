@@ -81,7 +81,7 @@ class countDef = object(self)
   val inLoopId = Stack.create ()
 
   (** Fill nbVarDefs and currentDef with vid *)
-  method fill_aux (vid : int) : unit =
+  method private fill_aux (vid : int) : unit =
     if (Hashtbl.mem nBVarDefs vid) then
       (Hashtbl.replace nBVarDefs vid ((Hashtbl.find nBVarDefs vid) + 1))
     else
@@ -89,7 +89,7 @@ class countDef = object(self)
 
   (** Call fill_aux for the "normal" vid, and call it again if we're in a loop
       with the id assiociated to this variable id and loop id *)
-  method fill_def (vid : int) : unit =
+  method private fill_def (vid : int) : unit =
     self#fill_aux vid;
     if not (Stack.is_empty inLoopId) then begin
       let lid = Stack.top inLoopId in
@@ -262,7 +262,7 @@ class addLabels = object(self)
 
   (** From a sequence id, a variable id, this sequence length and current position,
       create the corresponding label ad store it *)
-  method mkSeq (ids:int) (vid:string) (sid:int) (lid:int) : unit =
+  method private mkSeq (ids:int) (vid:string) (sid:int) (lid:int) : unit =
     let idExp = Exp.kinteger IULong ids in
     let oneExp = Exp.one () in
     let curr = Exp.integer sid in
@@ -276,13 +276,13 @@ class addLabels = object(self)
       labelUses := newStmt :: !labelUses
 
   (** Create a pc_label_sequence_condiion and store it*)
-  method mkCond (vid:int) : unit =
+  method private mkCond (vid:int) : unit =
     let zeroExp = Exp.zero () in
     let ccExp = Exp.string (string_of_int vid) in
     let newStmt = (Utils.mk_call "pc_label_sequence_condition" ([zeroExp;ccExp])) in
     labelStops := newStmt :: !labelStops
 
-  method handle_param v =
+  method private handle_param v =
     let i = (Hashtbl.find currentDef v.vid) in
     if Hashtbl.mem invertedPathID (v.vid,i) then begin
       (* Je récupère toutes les expressions ou v apparait avec cette def *)

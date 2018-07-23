@@ -34,7 +34,7 @@ do{donothing();} while(i++); //12
 Here the option does not matter
 
 ```c
-while (1) pc_label(1,1,"LOOPIN");
+while (1) pc_label(1,1,"ELO");
 ```
 
 #### loop 2 and 8
@@ -43,7 +43,7 @@ Here the option does not matter
 
 ```c
 while (1) {
-    pc_label(1,2,"LOOPIN");
+    pc_label(1,2,"ELO");
 }
 ```
 
@@ -53,14 +53,14 @@ Whitout the option :
 
 ```c
 while (1) 
-	if (i < 10) pc_label(1,3,"LOOPIN"); else break;LOOPIN");
+	if (i < 10) pc_label(1,3,"ELO"); else break;
 }
 ```
 
 With the option :
 ```c
 while (1) {
-    pc_label(1,3,"LOOPIN");
+    pc_label(1,3,"ELO");
 	if (! (i < 10)) break;
   }
 ```
@@ -71,7 +71,7 @@ Without the option it is correct for loop 3 but incorrect for the 9th one, and w
 Here the option does not matter
 ```c
 while (1) {
-	if (i < 10) pc_label(1,4,"LOOPIN"); else break;
+	if (i < 10) pc_label(1,4,"ELO"); else break;
     donothing();
 }
 ```
@@ -84,7 +84,7 @@ while (1) {
 	int tmp;
     tmp = i;
     i ++;
-    if (tmp) pc_label(1,5,"LOOPIN"); else break;
+    if (tmp) pc_label(1,5,"ELO"); else break;
   }
 ```
 
@@ -92,7 +92,7 @@ With:
 ```c
 while (1) {
     int tmp;
-    pc_label(1,5,"LOOPIN");
+    pc_label(1,5,"ELO");
     tmp = i;
     i ++;
     if (! tmp) break;
@@ -108,7 +108,7 @@ while (1) {
 	int tmp_0;
     tmp_0 = i;
     i ++;
-    if (tmp_0) pc_label(1,6,"LOOPIN"); else break;
+    if (tmp_0) pc_label(1,6,"ELO"); else break;
     donothing();
   }
 ```
@@ -119,13 +119,13 @@ Without the option:
 ```c
 while (1) {
     donothing();
-    if (i < 10) pc_label(1,10,"LOOPIN"); else break;
+    if (i < 10) pc_label(1,10,"ELO"); else break;
 }
 ```
 With it:
 ```c
 while (1) {
-    pc_label(1,10,"LOOPIN");
+    pc_label(1,10,"ELO");
     donothing();
     if (! (i < 10)) break;
 }
@@ -141,14 +141,14 @@ while (1) {
     donothing();
     tmp_2 = i;
     i ++;
-    if (tmp_2) pc_label(1,12,"LOOPIN"); else break;
+    if (tmp_2) pc_label(1,12,"ELO"); else break;
 }
 ```
 With the option:
 ```c
 while (1) {
     int tmp_2;
-    pc_label(1,12,"LOOPIN");
+    pc_label(1,12,"ELO");
     donothing();
     tmp_2 = i;
     i ++;

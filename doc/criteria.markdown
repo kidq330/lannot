@@ -211,11 +211,10 @@ Loop
 ----
 
 Here are the criterias relative to loops.
-The union of LOOPIN & LOOPOUT gives the covered loops.
 
-### LOOPIN
+### ELO
 
-This criteria check if we enter in each loop in the program.
+This criteria check if we enter at least once in each loop in the program.
 the following example:
 
 ```c
@@ -227,14 +226,14 @@ becomes:
 ```c
 int i = 0;
 while (1) {
-	if (i < 10) pc_label(1,1,"LOOPIN"); else break;
+	if (i < 10) pc_label(1,1,"ELO"); else break;
     i++;
 }
 ```
 
-### LOOPOUT
+### SLO
 
-This criteria check if we skip each loop in the program. It uses sequences which break if we enter in the loop.
+This criteria check for each loop in the program if we skip it at least once. It uses sequences which break if we enter in the loop.
 the following example:
 
 ```c

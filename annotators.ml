@@ -71,11 +71,7 @@ let nocollect _ = ()
 let incomp = Hashtbl.create 10
 
 let () =
-  Hashtbl.add incomp "ASSERT" ["ALL"];
-  Hashtbl.add incomp "alldefs" ["alluses";"defuse";"context"];
-  Hashtbl.add incomp "alluses" ["alldefs";"defuse";"context"];
-  Hashtbl.add incomp "defuse" ["alldefs";"alluses";"context"];
-  Hashtbl.add incomp "context" ["alldefs";"alluses";"defuse"]
+  Hashtbl.add incomp "ASSERT" ["ALL"]
 
 let is_compatible name previousAnn =
   if previousAnn != [] then begin

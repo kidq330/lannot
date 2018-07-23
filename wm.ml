@@ -35,11 +35,11 @@ class mutationVisitor mk_label = object(self)
   val mutable exprs = []
   val mutable currloc = Cil_datatype.Location.unknown
 
-  method makeLabel cond category =
+  method private makeLabel cond category =
     let le = mk_label ~extra:[category] cond [] currloc in
     exprs <- exprs @ [le]
 
-  method mk_op_labels e lop lexp rexp ty wm opt =
+  method private mk_op_labels e lop lexp rexp ty wm opt =
     if opt = true then
       List.iter (fun op ->
           let newExp = Ast_const.Exp.mk(BinOp(op, lexp, rexp, ty)) in
@@ -50,7 +50,7 @@ class mutationVisitor mk_label = object(self)
     self#traitExp rexp
 
 
-  method traitExp e =
+  method private traitExp e =
     match e.enode with
     | BinOp(LAnd, lexp, rexp, ty) ->
       self#mk_op_labels e [LOr] lexp rexp ty "COR" !corOption

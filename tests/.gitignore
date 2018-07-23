@@ -1,2 +1,0 @@
-# .labels files depend on current directory path, so tests will fail depending on this path
-*/result/

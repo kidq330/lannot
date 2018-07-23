@@ -45,7 +45,7 @@ implements the dataflow criteria: context
 implements the statement criteria: STMT
 
 ### `Loop`
-implements loops criterias: LOOPIN & LOOPOUT
+implements loops criterias: ELO & SLO
 
 ### `Utils`
 some utilities but lots of legacy code.

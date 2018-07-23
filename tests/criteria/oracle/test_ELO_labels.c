@@ -20,22 +20,22 @@ void donothing(void)
 int main(int i)
 {
   int __retres;
-  while (1) pc_label(1,1,"LOOPIN");
+  while (1) pc_label(1,1,"ELO");
   while (1) {
-    pc_label(1,2,"LOOPIN");
+    pc_label(1,2,"ELO");
     donothing();
   }
   while (1) {
-    pc_label(1,3,"LOOPIN");
+    pc_label(1,3,"ELO");
     if (! (i < 10)) break;
   }
   while (1) {
-    if (i < 10) pc_label(1,4,"LOOPIN"); else break;
+    if (i < 10) pc_label(1,4,"ELO"); else break;
     donothing();
   }
   while (1) {
     int tmp;
-    pc_label(1,5,"LOOPIN");
+    pc_label(1,5,"ELO");
     tmp = i;
     i ++;
     ;
@@ -46,26 +46,26 @@ int main(int i)
     tmp_0 = i;
     i ++;
     ;
-    if (tmp_0) pc_label(1,6,"LOOPIN"); else break;
+    if (tmp_0) pc_label(1,6,"ELO"); else break;
     donothing();
   }
-  while (1) pc_label(1,7,"LOOPIN");
+  while (1) pc_label(1,7,"ELO");
   while (1) {
-    pc_label(1,8,"LOOPIN");
+    pc_label(1,8,"ELO");
     donothing();
   }
   while (1) {
-    pc_label(1,9,"LOOPIN");
+    pc_label(1,9,"ELO");
     if (! (i < 10)) break;
   }
   while (1) {
-    pc_label(1,10,"LOOPIN");
+    pc_label(1,10,"ELO");
     donothing();
     if (! (i < 10)) break;
   }
   while (1) {
     int tmp_1;
-    pc_label(1,11,"LOOPIN");
+    pc_label(1,11,"ELO");
     tmp_1 = i;
     i ++;
     ;
@@ -73,7 +73,7 @@ int main(int i)
   }
   while (1) {
     int tmp_2;
-    pc_label(1,12,"LOOPIN");
+    pc_label(1,12,"ELO");
     donothing();
     tmp_2 = i;
     i ++;

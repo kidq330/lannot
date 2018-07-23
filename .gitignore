@@ -12,6 +12,7 @@
 .Makefile.plugin.generated
 /top/
 /doc/code/*
+/tests/*/result/
 META.frama-c-*
 /tests/ptests_config
 .merlin
