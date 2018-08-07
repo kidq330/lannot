@@ -1,3 +1,25 @@
+(**************************************************************************)
+(*                                                                        *)
+(*  This file is part of Frama-C.                                         *)
+(*                                                                        *)
+(*  Copyright (C) 2013-2018                                               *)
+(*    CEA (Commissariat à l'énergie atomique et aux énergies              *)
+(*         alternatives)                                                  *)
+(*                                                                        *)
+(*  You may redistribute it and/or modify it under the terms of the GNU   *)
+(*  Lesser General Public License as published by the Free Software       *)
+(*  Foundation, version 3.                                                *)
+(*                                                                        *)
+(*  It is distributed in the hope that it will be useful, but WITHOUT     *)
+(*  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY    *)
+(*  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General      *)
+(*  Public License for more details.                                      *)
+(*                                                                        *)
+(*  See the GNU Lesser General Public License version 3 for more          *)
+(*  details (enclosed in the file LICENSE).                               *)
+(*                                                                        *)
+(**************************************************************************)
+
 open Cil_types
 open Ast_const
 
@@ -11,7 +33,7 @@ open Ast_const
    width for array and structures explorations.
 *)
 let rec partition_lval ~depth ~width ~(emit: exp -> unit) typ lval =
-  Options.debug5 "partitioning l-value @[%a@] : @[%a@] (max_depth=%d)" Printer.pp_lval (lval ()) Printer.pp_typ typ depth;
+  Options.debug "partitioning l-value @[%a@] : @[%a@] (max_depth=%d)" Printer.pp_lval (lval ()) Printer.pp_typ typ depth;
   if depth >= 0 then
     match typ with
     | TVoid _ | TFun _ ->
@@ -76,7 +98,7 @@ let rec partition_lval ~depth ~width ~(emit: exp -> unit) typ lval =
    See {!partition_lval} for details.
 *)
 and partition_exp ~depth ~width ~(emit : exp -> unit) typ exp =
-  Options.debug5 "partitioning expression @[%a@] : @[%a@] (max_depth=%d)" Printer.pp_exp (exp ()) Printer.pp_typ typ depth;
+  Options.debug "partitioning expression @[%a@] : @[%a@] (max_depth=%d)" Printer.pp_exp (exp ()) Printer.pp_typ typ depth;
   if depth >= 0 then
     match typ with
 
@@ -151,17 +173,16 @@ module Partition = Annotators.Register (struct
 
     let name = "IDP"
     let help = "Input Domain Partition"
-    
+
     let apply mk_label ast =
       let max_depth = Options.MaxDepth.get () in
       let max_width = Options.MaxWidth.get () in
       let all_funs = Options.AllFuns.get () in
       let globals_as_input = Options.GlobalsAsInput.get () in
-      Options.debug4 "input domain partition (max depth %d, max width %d, all funs? %b, globals as input? %b)" max_depth max_width all_funs globals_as_input;
+      Options.debug "input domain partition (max depth %d, max width %d, all funs? %b, globals as input? %b)" max_depth max_width all_funs globals_as_input;
       let globals = if globals_as_input then Utils.extract_global_vars ast else [] in
       Visitor.visitFramacFileSameGlobals
         (new inputDomainVisitor max_depth max_width all_funs globals mk_label :> Visitor.frama_c_inplace)
         ast
 
   end)
-

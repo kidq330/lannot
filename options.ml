@@ -2,20 +2,20 @@
 (*                                                                        *)
 (*  This file is part of Frama-C.                                         *)
 (*                                                                        *)
-(*  Copyright (C) 2013-2014                                               *)
+(*  Copyright (C) 2013-2018                                               *)
 (*    CEA (Commissariat à l'énergie atomique et aux énergies              *)
 (*         alternatives)                                                  *)
 (*                                                                        *)
 (*  You may redistribute it and/or modify it under the terms of the GNU   *)
 (*  Lesser General Public License as published by the Free Software       *)
-(*  Foundation, version 2.1.                                              *)
+(*  Foundation, version 3.                                                *)
 (*                                                                        *)
 (*  It is distributed in the hope that it will be useful, but WITHOUT     *)
 (*  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY    *)
 (*  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General      *)
 (*  Public License for more details.                                      *)
 (*                                                                        *)
-(*  See the GNU Lesser General Public License version 2.1 for more        *)
+(*  See the GNU Lesser General Public License version 3 for more          *)
 (*  details (enclosed in the file LICENSE).                               *)
 (*                                                                        *)
 (**************************************************************************)
@@ -33,7 +33,7 @@ let rec string_list l =
   | a :: b :: [] -> a^" and "^b
   | head :: tail -> head^", "^string_list tail
 
-module Annotators = StringSet (struct
+module Annotators = String_set (struct
     let option_name = "-lannot"
     let arg_name = "criteria"
     let help = "generate labels for each criterion (comma-separated \
@@ -41,7 +41,7 @@ module Annotators = StringSet (struct
   end)
 let () = Annotators.add_aliases ["-lannotate"]
 
-module Output = EmptyString (struct
+module Output = Empty_string (struct
     let option_name = "-lannot-o"
     let arg_name = "file"
     let help = "set output file (default: add _labels before extension)"
@@ -53,8 +53,7 @@ module Simplify = False (struct
     let help = "enable the simplification of boolean expressions before annotations"
   end)
 
-let () = Parameter_customize.argument_is_function_name ()
-module FunctionNames = StringSet (struct
+module FunctionNames = Kernel_function_set (struct
     let arg_name = "funs"
     let option_name = "-lannot-functions"
     let help = "filter by function names (disabled by default)"
@@ -67,6 +66,15 @@ let () = Parameter_customize.do_not_save ()
 module ListAnnotators = False (struct
     let option_name = "-lannot-list"
     let help = "show list of criteria"
+  end)
+
+let () = Parameter_customize.set_group help
+let () = Parameter_customize.do_not_journalize ()
+let () = Parameter_customize.do_not_projectify ()
+let () = Parameter_customize.do_not_save ()
+module ListAnnotatorsIncomp = False (struct
+    let option_name = "-lannot-incomp-list"
+    let help = "show list of criteria incompatibility"
   end)
 
 let crit_group = add_group "Criterion-specific options"
@@ -87,19 +95,17 @@ module N = Int (struct
     let default = 2
   end)
 
-
 let () = Parameter_customize.set_group crit_group
 let mutators = ["AOR"; "ROR"; "COR"; "ABS"]
-module Mutators = FilledStringSet (struct
+module Mutators = Filled_string_set (struct
     let option_name = "-lannot-mutators"
     let arg_name = "mutators"
     let help = "select mutators for WM labelling (comma-separated list \
-                of mutators among "^string_list mutators^", default: all)"
+                of mutators among "^string_list mutators^", default: all)." ^
+               "Mutators prefixed with '-' are removed from the list"
+
     let default = Datatype.String.Set.of_list mutators
   end)
-
-let () = Mutators.set_possible_values mutators
-
 
 let ipd_group = add_group "Options for Input Domain Partionning (IPD)"
 
@@ -135,3 +141,39 @@ module GlobalsAsInput = False (struct
                 (disabled by default)"
   end)
 
+let () = Parameter_customize.set_group crit_group
+module LimitDelta = Int (struct
+    let option_name = "-lannot-limit-delta"
+    let arg_name = "NUM"
+    let help = "Set the precision of limit labels (Default : 0)"
+    let default = 0
+  end)
+
+(* Pour polarSSL *)
+module Inline = True (struct
+    let option_name = "-lannot-inline"
+    let help = "Annotate inline functions (Default : true)"
+  end)
+
+module InlineException = Kernel_function_set (struct
+    let option_name = "-lannot-inline-functions"
+    let arg_name = "funs"
+    let help = "if -lannot-inline is false, then this option allows to add exceptions and annotate some inline functions"
+  end)
+
+module MaxContextPath = Int (struct
+    let option_name = "-lannot-maxpath"
+    let arg_name = "NUM"
+    let help = "set the maximum number of path for one expression with the context criteria (Default : 1024)"
+    let default = 1024
+  end)
+
+(* There is no way to determine the original loop form after the CIL transformation.
+   Since loops criterias depend on if we are in a while or do..while.. I added this option to
+   tell to Lannotate if we support do..while.. or not. See doc/LOOPS.markdown for examples
+*)
+module HandleDoWhile = True (struct
+    let option_name = "-lannot-handle-dowhile"
+    let arg_name = "NUM"
+    let help = "Do..While.. will be supported in loops criterias, but empty loops will also be considered as Do..While.. (default: true)"
+  end)

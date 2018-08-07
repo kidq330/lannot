@@ -281,7 +281,7 @@ type debug_level = Info | Waring | Error
 let debug_print (lvl : debug_level) (str : string) : unit =
   if !is_verbose_mode then
     match lvl with
-    | Info -> Options.debug1 "BES: %s" str
+    | Info -> Options.debug "BES: %s" str
     | Waring -> Options.warning "BES: %s" str
     | Error -> ignore(Error); Options.error "BES: %s" str
   else

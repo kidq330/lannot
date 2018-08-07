@@ -1,3 +1,25 @@
+(**************************************************************************)
+(*                                                                        *)
+(*  This file is part of Frama-C.                                         *)
+(*                                                                        *)
+(*  Copyright (C) 2013-2018                                               *)
+(*    CEA (Commissariat à l'énergie atomique et aux énergies              *)
+(*         alternatives)                                                  *)
+(*                                                                        *)
+(*  You may redistribute it and/or modify it under the terms of the GNU   *)
+(*  Lesser General Public License as published by the Free Software       *)
+(*  Foundation, version 3.                                                *)
+(*                                                                        *)
+(*  It is distributed in the hope that it will be useful, but WITHOUT     *)
+(*  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY    *)
+(*  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General      *)
+(*  Public License for more details.                                      *)
+(*                                                                        *)
+(*  See the GNU Lesser General Public License version 3 for more          *)
+(*  details (enclosed in the file LICENSE).                               *)
+(*                                                                        *)
+(**************************************************************************)
+
 open Cil_types
 
 let debug_level = 3
@@ -82,7 +104,7 @@ let dnf_and_dnf_minterm (n: int) a bminterm =
     | None -> acc
   in
   let res = List.rev (List.fold_left f [] a) in
-  Options.debug6 ~level:10 "@[%a@] . @[%a@] = @[%a@]"
+  Options.debug ~level:10 "@[%a@] . @[%a@] = @[%a@]"
     Bes.pp_dnf_expression a Bes.pp_dnf_minterm bminterm Bes.pp_dnf_expression res;
   res
 
@@ -90,7 +112,7 @@ let dnf_and (n: int) a b =
   let f acc minterm =
     dnf_or n (dnf_and_dnf_minterm n a minterm) acc
   in
-  List.fold_left f [] b;;
+  List.fold_left f [] b
 
 let dnf_var (n: int) v value : [> `True |`False |`Dontcare] list list =
   assert (v >= 0 && v < n);
@@ -119,7 +141,7 @@ let rec propagate_nots_aux ~neg (t : formula) : formula2 =
 
 let propagate_nots (formula : formula) : formula2 =
   let res = propagate_nots_aux false formula in
-  Options.debug4 ~level:debug_level "remove negations: @[%a@] -> @[%a@]"
+  Options.debug ~level:debug_level "remove negations: @[%a@] -> @[%a@]"
     pp_formula formula pp_formula res;
   res
 
@@ -129,14 +151,14 @@ let rec to_dnf_aux n t =
     let a = to_dnf_aux n a in
     let b = to_dnf_aux n b in
     let res = dnf_and n a b in
-    Options.debug6 ~level:(debug_level+1) "@[%a@] . @[%a@] = @[%a@]"
+    Options.debug ~level:(debug_level+1) "@[%a@] . @[%a@] = @[%a@]"
       Bes.pp_dnf_expression a Bes.pp_dnf_expression b Bes.pp_dnf_expression res;
     res
   | `TOr (a, b) ->
     let a = to_dnf_aux n a in
     let b = to_dnf_aux n b in
     let res = dnf_or n a b in
-    Options.debug6 ~level:(debug_level+1) "@[%a@] + @[%a@] = @[%a@]"
+    Options.debug ~level:(debug_level+1) "@[%a@] + @[%a@] = @[%a@]"
       Bes.pp_dnf_expression a Bes.pp_dnf_expression b Bes.pp_dnf_expression res;
     res
   | `TAtomPos id -> dnf_var n id `True
@@ -146,7 +168,7 @@ let rec to_dnf_aux n t =
 
 let to_dnf n (t : formula) =
   let res = to_dnf_aux n (propagate_nots t) in
-  Options.debug4 ~level:debug_level "convert to dnf: @[%a@] -> @[%a@]"
+  Options.debug ~level:debug_level "convert to dnf: @[%a@] -> @[%a@]"
     pp_formula t Bes.pp_dnf_expression res;
   res
 
@@ -223,7 +245,7 @@ module Exp = Make (struct
         if ExpH.mem h e then
           (n, l, `TAtom (ExpH.find h e))
         else
-          (ExpH.add h e n; (n+1, e :: l, `TAtom n));;
+          (ExpH.add h e n; (n+1, e :: l, `TAtom n))
 
     let convert ?info e =
       let h, n, l = match info with

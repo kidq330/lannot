@@ -1,3 +1,25 @@
+(**************************************************************************)
+(*                                                                        *)
+(*  This file is part of Frama-C.                                         *)
+(*                                                                        *)
+(*  Copyright (C) 2013-2018                                               *)
+(*    CEA (Commissariat à l'énergie atomique et aux énergies              *)
+(*         alternatives)                                                  *)
+(*                                                                        *)
+(*  You may redistribute it and/or modify it under the terms of the GNU   *)
+(*  Lesser General Public License as published by the Free Software       *)
+(*  Foundation, version 3.                                                *)
+(*                                                                        *)
+(*  It is distributed in the hope that it will be useful, but WITHOUT     *)
+(*  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY    *)
+(*  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General      *)
+(*  Public License for more details.                                      *)
+(*                                                                        *)
+(*  See the GNU Lesser General Public License version 3 for more          *)
+(*  details (enclosed in the file LICENSE).                               *)
+(*                                                                        *)
+(**************************************************************************)
+
 Internals
 =========
 
@@ -14,7 +36,7 @@ TODO one day remove the actual annotation from the annotators to be done once
 as single pass by Annotators.
 
 ### `Logical`
-implements the Boolean expression annotators: DC, CC, MCC, NCC, GACC and GICC
+implements the Boolean expression annotators: DC, CC, MCC, NCC, GACC, GICC && LIMIT (WIP)
 
 ### `Partition`
 implements the input partition domain (IPD) annotator.
@@ -25,12 +47,27 @@ contains the simplification passes (or pass for now).
 Implemented: use Bes to simplify the purely Boolean part of expression, works
 pretty well, but its mainly minimizes the DNF. Does not seem optimal for DSE?
 
-### `Instru`
-used to contain almost everything. But now only the WM annotator is in there.
-Still a lot of legacy code to be remove.
-And one day to be remove.
+### `Wm`
+implements the Weak mutation annotator: WM
 
-TODO cleanup and rename
+### `Function`
+implements the Function annotators: FC, FCC
+
+### `Assertion`
+implements the Assertion annotators: ASSERT
+NB : Only works if StaDy is installed
+
+### `Dataflow`
+implements the dataflow criterias: all-defs, all-uses & def-use
+
+### `Context`
+implements the dataflow criteria: context
+
+### `Statement`
+implements the statement criteria: STMT
+
+### `Loop`
+implements loops criterias: ELO & SLO
 
 ### `Utils`
 some utilities but lots of legacy code.

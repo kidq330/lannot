@@ -1,3 +1,25 @@
+(**************************************************************************)
+(*                                                                        *)
+(*  This file is part of Frama-C.                                         *)
+(*                                                                        *)
+(*  Copyright (C) 2013-2018                                               *)
+(*    CEA (Commissariat à l'énergie atomique et aux énergies              *)
+(*         alternatives)                                                  *)
+(*                                                                        *)
+(*  You may redistribute it and/or modify it under the terms of the GNU   *)
+(*  Lesser General Public License as published by the Free Software       *)
+(*  Foundation, version 3.                                                *)
+(*                                                                        *)
+(*  It is distributed in the hope that it will be useful, but WITHOUT     *)
+(*  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY    *)
+(*  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General      *)
+(*  Public License for more details.                                      *)
+(*                                                                        *)
+(*  See the GNU Lesser General Public License version 3 for more          *)
+(*  details (enclosed in the file LICENSE).                               *)
+(*                                                                        *)
+(**************************************************************************)
+
 open Cil_types
 
 let unk_loc = Cil_datatype.Location.unknown
@@ -14,6 +36,15 @@ module Exp = struct
 
   let integer ?(loc=unk_loc) =
     Cil.integer ~loc
+
+  let kinteger ?(loc=unk_loc) =
+    Cil.kinteger ~loc
+
+  let float ?(loc=unk_loc) =
+    Cil.kfloat ~loc FDouble
+
+  let string ?(loc=unk_loc) =
+    Cil.mkString ~loc
 
   let var ?(loc=unk_loc) varinfo =
     Cil.evar ~loc varinfo
@@ -35,9 +66,23 @@ module Exp = struct
     Cil.new_exp ~loc (UnOp (Neg, e', newt))
 
   let binop ?(loc=unk_loc) op left right =
-    (* QUICK FIX: Avoid Frama-C failure when a pointer should be converted into a boolean like in "if(pointer)": seems that this function suppose left and right are integers but can in fact be pointers as well. "if(pointer)" is translated into "if(pointer==(void *) 0)"*)
-    let l = if Cil.isPointerType (Cil.typeOf left) then Cil.new_exp ~loc (BinOp (Ne,left,(Cil.mkCast (Cil.zero ~loc) Cil.voidPtrType),Cil.intType)) else left in
-    let r = if Cil.isPointerType (Cil.typeOf right) then Cil.new_exp ~loc (BinOp (Ne,right,(Cil.mkCast (Cil.zero ~loc) Cil.voidPtrType),Cil.intType)) else right in
+    (* QUICK FIX: Avoid Frama-C failure when a pointer should be
+       converted into a boolean like in "if(pointer)": seems that this
+       function suppose left and right are integers but can in fact be
+       pointers as well. "if(pointer)" is translated into
+       "if(pointer==(void 0)"*)
+    let l =
+      if Cil.isPointerType (Cil.typeOf left) then
+        Cil.new_exp ~loc (BinOp (Ne,left,(Cil.mkCast (Cil.zero ~loc) Cil.voidPtrType),Cil.intType))
+      else
+        left
+    in
+    let r =
+      if Cil.isPointerType (Cil.typeOf right) then
+        Cil.new_exp ~loc (BinOp (Ne,right,(Cil.mkCast (Cil.zero ~loc) Cil.voidPtrType),Cil.intType))
+      else
+        right
+    in
     (* END QUICK FIX *)
     Cil.mkBinOp ~loc op l r
 
