@@ -7,14 +7,12 @@ support of many different testing criteria as well as an easy integration of
 new criteria. *LAnnotate* is the module of LTest in charge of adding coverage
 objectives into program in the form of annotations.
 
-LAnnotate is a Frama-C plugin. It requires a patched version of Frama-C. The
-patch, as well as an already patched Frama-C, are available for download online
-at http://micdel.fr/ltest.html .
+LAnnotate is a Frama-C plugin.
 
 Installation
 ------------
-
-Once Frama-C is installed, compile and install GenLabels:
+LAnnotate requires Frama-C (Chlorine or latter) to be installed. A patch (Chlorine.patch) is available for LUncov compatibility.
+Once Frama-C is installed, compile and install LAnnotate:
 
     make
     make install
