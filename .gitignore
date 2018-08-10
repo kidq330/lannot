@@ -16,3 +16,8 @@
 META.frama-c-*
 /tests/ptests_config
 .merlin
+autom4te.cache
+config.log
+config.status
+configure
+Makefile

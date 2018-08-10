@@ -34,7 +34,7 @@ endif
 ###################
 
 PLUGIN_DIR ?=.
-PLUGIN_ENABLE:=yes
+PLUGIN_ENABLE:=@ENABLE_LANNOTATE@
 PLUGIN_NAME:=LAnnotate
 PLUGIN_CMO:= options utils ast_const bes simplify annotators wm \
              logical partition ldataflow context function statement lloop \

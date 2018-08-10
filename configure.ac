@@ -20,44 +20,25 @@
 #                                                                        #
 ##########################################################################
 
-# Do not use ?= to initialize both below variables
-# (fixed efficiency issue, see GNU Make manual, Section 8.11)
-ifndef FRAMAC_SHARE
-FRAMAC_SHARE  :=$(shell frama-c-config -print-share-path)
-endif
-ifndef FRAMAC_LIBDIR
-FRAMAC_LIBDIR :=$(shell frama-c-config -print-libpath)
-endif
+###########################################
+# LAnnotate as a standard Frama-C plug-in #
+###########################################
 
-###################
-# Plug-in Setting #
-###################
+m4_define([plugin_file],Makefile.in)
 
-PLUGIN_DIR ?=.
-PLUGIN_ENABLE:=yes
-PLUGIN_NAME:=LAnnotate
-PLUGIN_CMO:= options utils ast_const bes simplify annotators wm \
-             logical partition ldataflow context function statement lloop \
-             register
-PLUGIN_DISTRIBUTED:=$(PLUGIN_ENABLE)
-PLUGIN_DISTRIB_EXTERNAL:= Makefile.in configure.ac configure
-PLUGIN_TESTS_DIRS:=options criteria
+m4_define([FRAMAC_SHARE_ENV],
+          [m4_normalize(m4_esyscmd([echo $FRAMAC_SHARE]))])
 
-################
-# Generic part #
-################
+m4_define([FRAMAC_SHARE],
+          [m4_ifval(FRAMAC_SHARE_ENV,[FRAMAC_SHARE_ENV],
+                                     [m4_esyscmd(frama-c -print-path)])])
 
-include $(FRAMAC_SHARE)/Makefile.dynamic
+m4_ifndef([FRAMAC_M4_MACROS], [m4_include(FRAMAC_SHARE/configure.ac)])
+ check_plugin(lannotate,PLUGIN_RELATIVE_PATH(plugin_file),
+             [support for lannotate plug-in],yes)
 
-#####################################
-# Regenerating the Makefile on need #
-#####################################
+#######################
+# Generating Makefile #
+#######################
 
-ifeq ("$(FRAMAC_INTERNAL)","yes")
-CONFIG_STATUS_DIR=$(FRAMAC_SRC)
-else
-CONFIG_STATUS_DIR=.
-endif
-$(LAnnotate_DIR)/Makefile: $(LAnnotate_DIR)/Makefile.in \
-                         $(CONFIG_STATUS_DIR)/config.status
-	cd $(CONFIG_STATUS_DIR) && ./config.status --file $@
+write_plugin_config(Makefile)
