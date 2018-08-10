@@ -27,9 +27,6 @@ let filen = ref ""
 
 let get_file_name () = !filen
 
-let assertDone = ref false
-
-
 type annotation =
   int * string * exp * location
 
@@ -68,53 +65,19 @@ let next () =
 
 let nocollect _ = ()
 
-let incomp = Hashtbl.create 10
-
-let () =
-  Hashtbl.add incomp "ASSERT" ["ALL"]
-
-let is_compatible name previousAnn =
-  if previousAnn != [] then begin
-    if List.exists (fun s -> String.equal s "ASSERT") previousAnn then
-      Some("ASSERT")
-    else if Hashtbl.mem incomp name then begin
-      try
-        let l = Hashtbl.find incomp name in
-        if String.equal (List.nth l 0) "ALL" then
-          Some("ALL")
-        else
-          let s = List.find (fun a -> List.exists (fun a2 -> String.equal a a2) l) previousAnn in
-          Some(s)
-      with Not_found -> None
-    end
-    else
-      None
-  end
-  else
-    None
-
 let annotate_with annotator ?(id=next) ?(collect=nocollect) ast =
   Options.feedback "apply annotations for %s@." annotator.name;
-  annotator.apply id collect ast;
-  if String.equal annotator.name "ASSERT" then
-    assertDone := true
+  annotator.apply id collect ast
 
 let annotate filename names ?(id=next) ?(collect=nocollect) ast =
   filen := filename;
-  let previousAnn = ref [] in
   let f name =
-    match is_compatible name !previousAnn with
+    let ann = Hashtbl.find_opt annotators name in
+    match ann with
     | None ->
-      let ann = Hashtbl.find_opt annotators name in
-      begin match ann with
-        | None ->
-          Options.warning "unknown annotators `%s`" name
-        | Some(ann) ->
-          annotate_with ~id ~collect ann ast;
-          previousAnn := name :: !previousAnn
-      end
-    | Some s ->
-      Options.warning "Annotator '%s' ignored due to imcompatibility with a previous annotator %s" name s;
+      Options.warning "unknown annotators `%s`" name
+    | Some(ann) ->
+      annotate_with ~id ~collect ann ast
   in
   List.iter f names
 
@@ -124,17 +87,6 @@ let print_help fmt =
   let width = List.fold_left (fun acc ann -> max (String.length ann.name) acc) 0 annotators in
   let f ann = Format.fprintf fmt "%-*s @[%s@]@." width ann.name ann.help in
   List.iter f annotators
-
-let print_help_incomp fmt =
-  let incompList = Hashtbl.fold (fun k v acc -> (k,v) :: acc) incomp [] in
-  let incompList = List.sort (fun (ka,_) (kb,_) -> compare ka kb) incompList in
-  let incompList = List.map (fun (ka,a) ->
-      let na = String.concat " ; " a in
-      (ka,"["^na^"]")
-    ) incompList in
-  let width = List.fold_left (fun acc (ka,_) -> max (String.length ka) acc) 0 incompList in
-  let f (ka,a) = Format.fprintf fmt "%-*s @[%s@]@." width ka a in
-  List.iter f incompList
 
 let label_function_name = ref "pc_label"
 

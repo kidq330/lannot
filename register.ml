@@ -64,23 +64,21 @@ let annotate_on_project ann_names =
   let collect ann = annotations := ann :: !annotations in
   Annotators.annotate (compute_outfile (Options.Output.get ()) (Kernel.Files.get ())) ann_names ~collect (Ast.get ());
 
-  if not !Annotators.assertDone then begin
-    let annotations = !annotations in
-    (* output modified c file *)
-    Options.feedback "write modified C file (to %s)" filename;
-    let out = open_out filename in
-    let formatter = Format.formatter_of_out_channel out in
-    Utils.Printer.pp_file formatter (Ast.get ());
-    Format.pp_print_flush formatter ();
-    close_out out;
-    (* output label data *)
-    let data_filename = (Filename.chop_extension filename) ^ ".labels" in
-    Options.feedback "write label data (to %s)" data_filename;
-    let out = open_out data_filename in
-    store_label_data out annotations;
-    close_out out;
-    Options.feedback "finished"
-  end
+  let annotations = !annotations in
+  (* output modified c file *)
+  Options.feedback "write modified C file (to %s)" filename;
+  let out = open_out filename in
+  let formatter = Format.formatter_of_out_channel out in
+  Utils.Printer.pp_file formatter (Ast.get ());
+  Format.pp_print_flush formatter ();
+  close_out out;
+  (* output label data *)
+  let data_filename = (Filename.chop_extension filename) ^ ".labels" in
+  Options.feedback "write label data (to %s)" data_filename;
+  let out = open_out data_filename in
+  store_label_data out annotations;
+  close_out out;
+  Options.feedback "finished"
 
 let annotate ann_names =
   let base_project = Project.current () in
@@ -117,11 +115,6 @@ let run () =
   if Options.ListAnnotators.get () then
     begin
       Annotators.print_help Format.std_formatter;
-      exit 0;
-    end
-  else if Options.ListAnnotatorsIncomp.get () then
-    begin
-      Annotators.print_help_incomp Format.std_formatter;
       exit 0;
     end
   else if not (Options.Annotators.is_empty ()) then
