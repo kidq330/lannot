@@ -84,7 +84,7 @@ module Lval : sig
 end
 
 module Stmt : sig
-  val mk : ?ghost:bool -> ?valid_sid:bool -> stmtkind -> stmt
+  val mk : ?ghost:bool -> ?valid_sid:bool -> ?sattr:attributes  -> stmtkind -> stmt
   (** Make a block statement from a list of statements. *)
   val block : stmt list -> stmt
 end

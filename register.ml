@@ -19,6 +19,7 @@
 (*  details (enclosed in the file LICENSE).                               *)
 (*                                                                        *)
 (**************************************************************************)
+open Utils
 
 let store_label_data out annotations =
   (* TODO do that in its own module, ultimately shared with the other LTest-tools *)
@@ -26,9 +27,9 @@ let store_label_data out annotations =
   let formatter = Format.formatter_of_out_channel out in
   Format.fprintf formatter "# id, status, tag, origin_loc, current_loc, emitter, exec_time@.";
   let print_one (id, tags, cond, origin_loc) =
-    let l = Transitioning.String.split_on_char '/' ((fst origin_loc).Lexing.pos_fname) in
+    let l = Transitioning.String.split_on_char '/' (print_file_path origin_loc) in
     let origin_file = List.nth l ((List.length l)-1) in
-    let origin_line = (fst origin_loc).Lexing.pos_lnum in
+    let origin_line = (fst origin_loc).Filepath.pos_lnum in
     (* let us note obviously uncoverable labels as uncoverable
        (should only work when -lannot-simplify is on) *)
     let verdict = if Cil.isZero cond then "uncoverable" else "unknown" in

@@ -29,6 +29,7 @@ val extract_global_vars : file -> varinfo list
 val all_stmts : stmt list ref
 val get_stmt_loc : stmt -> location
 val get_stmt_loc_int : stmt -> int
+val print_file_path : Cil_types.location -> string
 val same_line : stmt -> stmt -> bool
 val mk_call :
   ?loc:location -> ?result:lval -> string -> exp list -> stmt

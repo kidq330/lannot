@@ -20,7 +20,6 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Lexing
 open Cil_types
 
 let print_std_includes fmt globs =
@@ -78,7 +77,9 @@ let all_stmts = ref ([]:stmt list)
 let get_stmt_loc = Cil_datatype.Stmt.loc
 
 (* val get_stmt_loc_int: stmt -> int *)
-let get_stmt_loc_int s = (fst (get_stmt_loc s)).pos_lnum
+let get_stmt_loc_int s = (fst (get_stmt_loc s)).Filepath.pos_lnum
+
+let print_file_path origine_loc = (Filepath.Normalized.to_pretty_string ((fst origine_loc).Filepath.pos_path))
 
 (* val same_line: stmt -> stmt -> bool *)
 let same_line s1 s2 = (get_stmt_loc_int s1) = (get_stmt_loc_int s2)
