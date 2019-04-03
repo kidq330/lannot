@@ -6,7 +6,7 @@
  */
 
 
-int main(int a, int b){
+int maintest(int a, int b){
 	if (a < b && a/b != 42){
 		return a%b;
 	}

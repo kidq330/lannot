@@ -7,7 +7,7 @@
  */
 
 
-int main(int a, int b, int c){
+int maintest(int a, int b, int c){
 	if (a == b)
 		a = a - b;
 

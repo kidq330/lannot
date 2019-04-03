@@ -8,7 +8,7 @@
 
 void donothing(){;}
 
-int main(int i){
+int maintest(int i){
 	while(1){;} //OK
 	while(1) donothing(); //OK
 	while(i < 10); //OK

@@ -6,6 +6,6 @@
  */
 
 
-int f(){
+int maintest(){
 	return 0;
 }
