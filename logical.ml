@@ -123,7 +123,7 @@ let couple_to_string c = String.concat "" [ "<l" ; (string_of_int (fst c)) ; ".l
 
 let store_hyperlabel_data out str =
   let formatter = Format.formatter_of_out_channel out in
-  Format.fprintf formatter "%s" str
+  Format.fprintf formatter "%s@." str
 
 let gen_hyperlabels_cacc = ref (fun () ->
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
