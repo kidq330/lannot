@@ -14,7 +14,7 @@
 #define pc_label_sequence_condition(...) do{}while(0)
 #endif
 
-int f(void)
+int maintest(void)
  {
    int __retres;
    pc_label(1,1,"FC");

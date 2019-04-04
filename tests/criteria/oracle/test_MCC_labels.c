@@ -14,7 +14,7 @@
 #define pc_label_sequence_condition(...) do{}while(0)
 #endif
 
-int main(int a, int b, int c, int d)
+int maintest(int a, int b, int c, int d)
  {
    int __retres;
    pc_label(a <= b && c >= b,1,"MCC");

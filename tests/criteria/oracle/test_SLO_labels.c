@@ -19,7 +19,7 @@ void donothing(void)
    return;
  }
 
-int main(int i)
+int maintest(int i)
 {
   int __retres;
   pc_label_sequence(1,1UL,1,2,"80",0);

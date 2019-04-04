@@ -14,7 +14,7 @@
 #define pc_label_sequence_condition(...) do{}while(0)
 #endif
 
-int main(int a, int b, int c)
+int maintest(int a, int b, int c)
  {
    int __retres;
    pc_label_bindings(a == b,1,"RACC",0);

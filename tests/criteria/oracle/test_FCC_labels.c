@@ -29,7 +29,7 @@ int g(int x)
   return tmp;
 }
 
-int main(void)
+int maintest(void)
 {
   int __retres;
   int tmp_1;

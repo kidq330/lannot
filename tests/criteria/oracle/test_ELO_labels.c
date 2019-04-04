@@ -19,7 +19,7 @@ void donothing(void)
    return;
  }
 
-int main(int i)
+int maintest(int i)
 {
   int __retres;
   while (1) pc_label(1,1,"ELO");

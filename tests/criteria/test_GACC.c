@@ -3,6 +3,7 @@
    LOG: @PTEST_NAME@_labels.labels
    LOG: @PTEST_NAME@_output.log
    EXECNOW: @frama-c@ -lannot=GACC @PTEST_DIR@/@PTEST_NAME@.c -lannot-o @PTEST_DIR@/result/@PTEST_NAME@_labels.c > @PTEST_DIR@/result/@PTEST_NAME@_output.log
+   OPT:
  */
 
 

@@ -14,7 +14,7 @@
 #define pc_label_sequence_condition(...) do{}while(0)
 #endif
 
-int main(int a, int b)
+int maintest(int a, int b)
  {
    int __retres;
    pc_label((a < b || a / b != 42) != (a < b && a / b != 42),1,"WM COR");

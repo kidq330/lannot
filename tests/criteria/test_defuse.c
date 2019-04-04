@@ -4,6 +4,7 @@
    LOG: @PTEST_NAME@_labels.hyperlabels
    LOG: @PTEST_NAME@_output.log
    EXECNOW: @frama-c@ -lannot=defuse @PTEST_DIR@/@PTEST_NAME@.c -lannot-o @PTEST_DIR@/result/@PTEST_NAME@_labels.c > @PTEST_DIR@/result/@PTEST_NAME@_output.log
+   OPT:
  */
 
 int f(){
