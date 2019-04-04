@@ -29,10 +29,7 @@ int maintest(int c)
   pc_label(1,3,"STMT");
   int a = 1;
   int b = 2;
-  test: {
-          pc_label(1,4,"STMT");
-          ;
-        }
+  test: pc_label(1,4,"STMT");
   if (a) {
     pc_label(1,5,"STMT");
     if (b) {
@@ -61,30 +58,18 @@ int maintest(int c)
       i ++;
     }
   }
-  test4: {
-           pc_label(1,13,"STMT");
-           ;
-         }
+  test4: pc_label(1,13,"STMT");
   switch (c) {
     int tmp;
-    test5: case 1: case 14: {
-                              pc_label(1,14,"STMT");
-                              ;
-                            }
+    test5: case 1: case 14: pc_label(1,14,"STMT");
     __retres = a + b;
     pc_label(1,15,"STMT");
     goto return_label;
-    case 12: case 13: {
-                        pc_label(1,16,"STMT");
-                        ;
-                      }
+    case 12: case 13: pc_label(1,16,"STMT");
     __retres = c;
     pc_label(1,17,"STMT");
     goto return_label;
-    default: {
-               pc_label(1,18,"STMT");
-               ;
-             }
+    default: pc_label(1,18,"STMT");
     if (c) {
       pc_label(1,19,"STMT");
       tmp = 0;
