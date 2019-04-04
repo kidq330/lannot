@@ -24,10 +24,10 @@ int f(void)
 int maintest(int c)
 {
   int __retres;
-  pc_label_sequence(1,4UL,1,2,"49",0);
-  pc_label_sequence(1,3UL,1,2,"49",0);
-  pc_label_sequence(1,2UL,1,2,"49",0);
   pc_label_sequence(1,1UL,1,2,"49",0);
+  pc_label_sequence(1,2UL,1,2,"49",0);
+  pc_label_sequence(1,3UL,1,2,"49",0);
+  pc_label_sequence(1,4UL,1,2,"49",0);
   pc_label_sequence_condition(0,"50");
   int a = 1;
   pc_label_sequence(1,5UL,1,2,"50",0);
