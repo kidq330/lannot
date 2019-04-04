@@ -152,9 +152,9 @@ class addLabels = object(self)
     let zeroExp = Exp.zero () in
     let newStmt = (Utils.mk_call "pc_label_sequence" ([oneExp;idExp;curr;slen;varExp;zeroExp])) in
     if nb = 1 (*Def*) then
-      labelDefs := newStmt :: !labelDefs
+      labelDefs := !labelDefs@[newStmt]
     else (* Use *)
-      labelUses := newStmt :: !labelUses
+      labelUses := !labelUses@[newStmt]
 
   (** Create a pc_label_sequence_condiion and store it in the corresponding list of labels *)
   method private mkCond (vid : int) : unit =
@@ -227,8 +227,6 @@ class addLabels = object(self)
           self#process_def v;
           (* if this statement is associated to one or more C labels, then sequences will be placed
              between this labels and the statement itself *)
-          labelUses := List.rev !labelUses;
-          labelDefs := List.rev !labelDefs;
           let res =
             if not lbl then
               Stmt.block (!labelUses @ !labelStops @ [stmt] @ !labelDefs)
@@ -242,14 +240,14 @@ class addLabels = object(self)
         )
     | If (ex,th,el,lo) ->
       ignore(Cil.visitCilExpr (self :> Cil.cilVisitor) ex);
-      (let lu = List.rev !labelUses in labelUses := [];
+      (let lu = !labelUses in labelUses := [];
        let thenb = (Cil.visitCilBlock (self :> Cil.cilVisitor) th) in
        let elseb = (Cil.visitCilBlock (self :> Cil.cilVisitor) el) in
        let newSt = (Block.mk (lu @ [Stmt.mk (If (ex,thenb,elseb,lo))])) in stmt.skind <- (Block newSt);
        Cil.ChangeTo stmt)
     | Switch (ex, b, stmtl, lo) ->
       ignore(Cil.visitCilExpr (self :> Cil.cilVisitor) ex);
-      (let lu = List.rev !labelUses in labelUses := [];
+      (let lu = !labelUses in labelUses := [];
        let nb = (Cil.visitCilBlock (self :> Cil.cilVisitor) b) in
        let newSt = (Block.mk (lu @ [Stmt.mk (Switch (ex,nb,stmtl,lo))])) in stmt.skind <- (Block newSt);
        Cil.ChangeTo stmt)
@@ -263,7 +261,6 @@ class addLabels = object(self)
     | _ ->
       Cil.DoChildrenPost (fun stmt ->
           let res =
-            labelUses := List.rev !labelUses;
             if not lbl then
               Stmt.block (!labelUses @ [stmt])
             else begin
