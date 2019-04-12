@@ -69,25 +69,22 @@ let gen_hyperlabels_callcov = ref (fun () ->
   output_string out (HL.fold (fun el str -> str ^ (compute_hl el) ^ "\n") !hyperlabels "");
   close_out out)
 
-
-let mk_call v func =
-  let id = Annotators.next () in
-  Hashtbl.add disjunctions (func,v.vname) id;
-  hyperlabels := (HL.add (func,v.vname) !hyperlabels);
-  let idExp = Exp.integer id in
-  let oneExp = Exp.one () in
-  let ccExp = Exp.string "FCC" in
-  let newStmt = (Utils.mk_call "pc_label" ([oneExp;idExp;ccExp])) in
-  newStmt
-
 (** Call Coverage Visitor **)
-class visitor = object(_)
+class visitor mk_label = object(self)
   inherit Visitor.frama_c_inplace
 
-  val mutable current_func = ""
+  val mutable fname = ""
+  val mutable floc = Cil_datatype.Location.unknown
+
+  method private mk_call v =
+    let newStmt = mk_label (Exp.one()) [] floc in
+    Hashtbl.add disjunctions (fname,v.vname) (Annotators.getCurrentLabelId());
+    hyperlabels := (HL.add (fname,v.vname) !hyperlabels);
+    newStmt
 
   method! vfunc dec =
-    current_func <- dec.svar.vname;
+    fname <- dec.svar.vname;
+    floc <- dec.svar.vdecl;
     Cil.DoChildren
 
   method! vstmt_aux stmt =
@@ -96,7 +93,7 @@ class visitor = object(_)
         begin match i with
           | Call (_,{eid = _;enode = Lval(Var v,_);eloc = _},_,_)
           | Local_init (_,ConsInit(v, _,_),_) ->
-            let newStmt = mk_call v current_func in
+            let newStmt = self#mk_call v in
             Cil.ChangeTo (Stmt.block [newStmt; stmt])
           | _ -> Cil.DoChildren
         end
@@ -112,8 +109,7 @@ module CallCov = Annotators.Register (struct
     let name = "FCC"
     let help = "Function Call Coverage"
     let apply mk_label file =
-      ignore mk_label;
-      Visitor.visitFramacFileSameGlobals (new visitor :> Visitor.frama_c_visitor) file;
+      Visitor.visitFramacFileSameGlobals (new visitor mk_label :> Visitor.frama_c_visitor) file;
       !gen_hyperlabels_callcov ()
   end)
 
