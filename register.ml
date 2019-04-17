@@ -33,7 +33,7 @@ let store_label_data out annotations =
     (* let us note obviously uncoverable labels as uncoverable
        (should only work when -lannot-simplify is on) *)
     let verdict = if Cil.isZero cond then "uncoverable" else "unknown" in
-    Format.fprintf formatter "%d,%s,%s,%s:%d,,lannot,0.@." id verdict tags origin_file origin_line
+    Format.fprintf formatter "%d, %s, %s, %s:%d, , lannot, 0.@." id verdict tags origin_file origin_line
   in
   List.iter print_one (List.rev annotations);
   Format.pp_print_flush formatter ()
