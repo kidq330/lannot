@@ -1,5 +1,5 @@
 # id, status, tag, origin_loc, current_loc, emitter, exec_time
-1,unknown,FCC,test_FCC.c:15,,lannot,0.
-2,unknown,FCC,test_FCC.c:19,,lannot,0.
-3,unknown,FCC,test_FCC.c:19,,lannot,0.
-4,unknown,FCC,test_FCC.c:19,,lannot,0.
+1, unknown, FCC, test_FCC.c:15, , lannot, 0.
+2, unknown, FCC, test_FCC.c:19, , lannot, 0.
+3, unknown, FCC, test_FCC.c:19, , lannot, 0.
+4, unknown, FCC, test_FCC.c:19, , lannot, 0.
