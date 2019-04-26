@@ -1,9 +1,9 @@
-# id, status, tag, origin_loc, current_loc, emitter, exec_time
-1, unknown, CACC, test_CACC.c:12, , lannot, 0.
-2, unknown, CACC, test_CACC.c:12, , lannot, 0.
-3, unknown, CACC, test_CACC.c:15, , lannot, 0.
-4, unknown, CACC, test_CACC.c:15, , lannot, 0.
-5, unknown, CACC, test_CACC.c:15, , lannot, 0.
-6, unknown, CACC, test_CACC.c:15, , lannot, 0.
-7, unknown, CACC, test_CACC.c:15, , lannot, 0.
-8, unknown, CACC, test_CACC.c:15, , lannot, 0.
+# id, status, tag, origin_loc, current_loc, emitter, drivers, exec_time
+1, unknown, CACC, test_CACC.c:12, , LAnnot, , 0.
+2, unknown, CACC, test_CACC.c:12, , LAnnot, , 0.
+3, unknown, CACC, test_CACC.c:15, , LAnnot, , 0.
+4, unknown, CACC, test_CACC.c:15, , LAnnot, , 0.
+5, unknown, CACC, test_CACC.c:15, , LAnnot, , 0.
+6, unknown, CACC, test_CACC.c:15, , LAnnot, , 0.
+7, unknown, CACC, test_CACC.c:15, , LAnnot, , 0.
+8, unknown, CACC, test_CACC.c:15, , LAnnot, , 0.
