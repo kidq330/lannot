@@ -25,7 +25,7 @@ let store_label_data out annotations =
   (* TODO do that in its own module, ultimately shared with the other LTest-tools *)
   (* TODO (later) do something better than csv *)
   let formatter = Format.formatter_of_out_channel out in
-  Format.fprintf formatter "# id, status, tag, origin_loc, current_loc, emitter, exec_time@.";
+  Format.fprintf formatter "# id, status, tag, origin_loc, current_loc, emitter, drivers, exec_time@.";
   let print_one (id, tags, cond, origin_loc) =
     let l = Transitioning.String.split_on_char '/' (print_file_path origin_loc) in
     let origin_file = List.nth l ((List.length l)-1) in
@@ -33,7 +33,7 @@ let store_label_data out annotations =
     (* let us note obviously uncoverable labels as uncoverable
        (should only work when -lannot-simplify is on) *)
     let verdict = if Cil.isZero cond then "uncoverable" else "unknown" in
-    Format.fprintf formatter "%d, %s, %s, %s:%d, , lannot, 0.@." id verdict tags origin_file origin_line
+    Format.fprintf formatter "%d, %s, %s, %s:%d, , LAnnot, , 0.@." id verdict tags origin_file origin_line
   in
   List.iter print_one (List.rev annotations);
   Format.pp_print_flush formatter ()
