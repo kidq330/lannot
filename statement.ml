@@ -55,7 +55,7 @@ let visitor mk_label = object(self)
       Cil.SkipChildren
 
   method! vstmt_aux stmt =
-    let lbl = List.length stmt.labels != 0 in
+    let lbl = List.length stmt.labels <> 0 in
     match stmt.skind with
     | Goto (_, loc)
     | Return (_, loc) ->

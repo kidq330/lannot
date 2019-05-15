@@ -217,7 +217,7 @@ class addLabels = object(self)
     end
 
   method! vstmt_aux (stmt : Cil_types.stmt) : Cil_types.stmt Cil.visitAction =
-    let lbl = List.length stmt.labels != 0 in
+    let lbl = List.length stmt.labels <> 0 in
     match stmt.skind with
     | Instr i when Utils.is_label i -> Cil.SkipChildren (* ignorer les labels *)
     | Instr (Set ((Var v,_),_,_))

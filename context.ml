@@ -242,7 +242,7 @@ class computeCombinations = object(self)
           try
             List.iter2 (fun (_,c1) (_,c2) ->
               ret := c1 - c2;
-              if !ret != 0 then raise Sorted
+              if !ret <> 0 then raise Sorted
               ) l1 l2; 0
           with Sorted -> !ret
         in
@@ -293,7 +293,7 @@ class addLabels = object(self)
     let varExp = Exp.string vid in
     let zeroExp = Exp.zero () in
     let newStmt = Utils.mk_call "pc_label_sequence" ([oneExp;idExp;curr;slen;varExp;zeroExp]) in
-    if sid != lid (*Def*) then
+    if sid <> lid (*Def*) then
       labelDefs := newStmt :: !labelDefs
     else (* Use *)
       labelUses := newStmt :: !labelUses
@@ -335,7 +335,7 @@ class addLabels = object(self)
     end
 
   method! vstmt_aux stmt =
-    let lbl = List.length stmt.labels != 0 in
+    let lbl = List.length stmt.labels <> 0 in
     match stmt.skind with
     | Instr i when Utils.is_label i -> Cil.SkipChildren (* Ignore labels *)
     | Instr (Set ((Var v,_),_,_))

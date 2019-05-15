@@ -153,7 +153,7 @@ let gen_labels_racc_for mk_label whole atoms part =
   let a_indep = Exp.binop LAnd (pos part) (Exp.copy indep) in
   let na_indep = Exp.binop LAnd (neg part) (Exp.copy indep) in
 
-  let atoms_without_current = List.filter (fun a -> part != a) atoms in
+  let atoms_without_current = List.filter (fun a -> part <> a) atoms in
   let l = mk_label a_indep (List.concat [[Exp.integer (List.length atoms_without_current)] ; List.fold_left handle_list_l [] atoms_without_current]) loc in
   let idl = Annotators.getCurrentLabelId () in
   let r = mk_label na_indep (List.concat [[Exp.integer (List.length atoms_without_current)] ; List.fold_left handle_list_r [] atoms_without_current]) loc in

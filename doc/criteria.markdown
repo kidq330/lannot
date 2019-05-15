@@ -51,7 +51,7 @@ for each label.
 
 This criterion supports the `-lannot-allbool` flag.
 
-### CC (Conditition Coverage)
+### CC (Condition Coverage)
 
 The following example:
 ```c

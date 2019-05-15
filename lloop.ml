@@ -75,7 +75,7 @@ let realloop = object(self)
                 | If (e,th,el,l) ->
                   (* If not found already && then is empty && else contains only break &&
                      (isn't the last stmt in the body, or we don't want to handle do..while..) *)
-                  if not !found && th.bstmts = [] && is_break_only el.bstmts && (id+1 != len || not (Options.HandleDoWhile.get())) then begin
+                  if not !found && th.bstmts = [] && is_break_only el.bstmts && (id+1 <> len || not (Options.HandleDoWhile.get())) then begin
                     s.skind <- (If (e,{th with bstmts = [labelThen]},{el with bstmts = [labelElse]@(el.bstmts)},l));
                     found := true
                   end;
@@ -125,7 +125,7 @@ let inner mk_label = object(_)
                 | If (e,th,el,l) ->
                   (* If not found already && then is empty && else contains only break &&
                      (isn't the last stmt in the body, or we don't want to handle do..while..) *)
-                  if not !found && th.bstmts = [] && is_break_only el.bstmts && (id+1 != len || not (Options.HandleDoWhile.get())) then begin
+                  if not !found && th.bstmts = [] && is_break_only el.bstmts && (id+1 <> len || not (Options.HandleDoWhile.get())) then begin
                     s.skind <- (If (e,{th with bstmts = [label]},el,l));
                     found := true
                   end;
@@ -195,7 +195,7 @@ let outter () = object(_)
                   (* If not found already && then is empty && else contains only break &&
                      (isn't the last stmt in the body, or we don't want to handle do..while..) *)
                   if not !found && th.bstmts = [] && is_break_only el.bstmts
-                     && (id+1 != len || not (Options.HandleDoWhile.get ())) then begin
+                     && (id+1 <> len || not (Options.HandleDoWhile.get ())) then begin
                     s.skind <- (If (e,{th with bstmts = [cond]},el,l));
                     found := true
                   end;
