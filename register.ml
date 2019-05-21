@@ -65,6 +65,9 @@ let annotate_on_project ann_names =
 
   let annotations = ref [] in
   let collect ann = annotations := ann :: !annotations in
+  let old_project = Project.current () in
+  let new_proj = Project.create_by_copy ~last:true "Lannotate_prj" in
+  Project.set_current new_proj;
   Annotators.annotate (compute_outfile (Options.Output.get ()) (Kernel.Files.get ())) ann_names ~collect (Ast.get ());
 
   let annotations = !annotations in
@@ -82,6 +85,7 @@ let annotate_on_project ann_names =
   store_label_data out annotations;
   close_out out;
   Kernel.LogicalOperators.set old_value;
+  Project.set_current old_project;
   Options.feedback "finished"
 
 let annotate ann_names =
