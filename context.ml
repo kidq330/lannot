@@ -452,7 +452,7 @@ let compute_hl () =
   in
   List.iter fill !idList;
   Hashtbl.fold (fun _ seqs str ->
-      List.fold_left (fun acc s -> acc ^ "<s" ^ string_of_int s ^"|; ;>,\n" ) str seqs
+      List.fold_left (fun acc s -> acc ^ Annotators.next_hl() ^") <s" ^ string_of_int s ^"|; ;>,\n" ) str seqs
     ) regroup ""
 
 let gen_hyperlabels () =

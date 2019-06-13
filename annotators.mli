@@ -77,3 +77,4 @@ val getCurrentLabelId : unit -> int
 val label_function_name : string ref
 
 val next : unit -> int
+val next_hl: unit -> string

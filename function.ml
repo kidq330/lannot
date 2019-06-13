@@ -60,7 +60,7 @@ let compute_hl caller_callee =
   let disj =
     String.concat "+" (List.rev (List.map (fun i -> "l" ^ string_of_int i) (Hashtbl.find_all disjunctions caller_callee)))
   in
-  "<" ^ disj ^ "|; ;>,"
+   Annotators.next_hl() ^ ") <" ^ disj ^ "|; ;>,"
 
 let gen_hyperlabels_callcov = ref (fun () ->
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in

@@ -232,7 +232,7 @@ let gen_hyperlabels_ASL () =
 
 (** Use idList to create all hyprlabels *)
 let compute_hl_SLO () : string =
-    List.fold_left (fun str ids -> "<s" ^ string_of_int ids ^"|; ;>,\n" ^ str) "" !idsListSLO
+    List.fold_left (fun str ids -> Annotators.next_hl() ^ ") <s" ^ string_of_int ids ^"|; ;>,\n" ^ str) "" !idsListSLO
 
 let gen_hyperlabels_SLO () =
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in

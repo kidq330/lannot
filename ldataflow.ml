@@ -316,11 +316,11 @@ let compute_hl () : string =
   List.iter fill !idList;
   if "-" = !symb then
     Hashtbl.fold (fun _ seqs str ->
-        List.fold_left (fun acc s -> "<s" ^ string_of_int s ^"|; ;>,\n" ^ acc ) str seqs
+        List.fold_left (fun acc s -> Annotators.next_hl() ^ ") <s" ^ string_of_int s ^"|; ;>,\n" ^ acc ) str seqs
       ) regroup ""
   else
     Hashtbl.fold (fun _ seqs str ->
-        str ^ "<" ^ (String.concat !symb (List.map (fun s -> "s" ^ string_of_int s) seqs)) ^ "|; ;>,\n"
+        str ^ Annotators.next_hl() ^ ") <" ^ (String.concat !symb (List.map (fun s -> "s" ^ string_of_int s) seqs)) ^ "|; ;>,\n"
       ) regroup ""
 
 let gen_hyperlabels () =

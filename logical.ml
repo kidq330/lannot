@@ -27,6 +27,8 @@ open Ast_const
 let pos atom = Exp.copy atom
 let neg atom = Exp.lnot (Exp.copy atom)
 
+let array_to_string l r = l ^ ",\n" ^ r
+
 (**
    Generate labels for n-CC coverage from a Boolean expression.
    And puts them all in a single block statement.
@@ -118,8 +120,7 @@ let gen_labels_cacc mk_label bexpr =
   Stmt.block (List.map (gen_labels_cacc_for mk_label bexpr) atoms)
 
 (** Generate CACC hyperlabels *)
-let array_to_string l r = String.concat "" [ l ; ",\n" ; r ]
-let couple_to_string c = String.concat "" [ "<l" ; (string_of_int (fst c)) ; ".l" ; (string_of_int (snd c)) ; "|;pa!=pb;>"]
+let couple_to_string c = Annotators.next_hl() ^ ") <l" ^ (string_of_int (fst c)) ^ ".l" ^ (string_of_int (snd c)) ^ "|;pa!=pb;>"
 
 let store_hyperlabel_data out str =
   let formatter = Format.formatter_of_out_channel out in
@@ -131,7 +132,6 @@ let gen_hyperlabels_cacc = ref (fun () ->
   let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
   store_hyperlabel_data out  (Array.fold_right array_to_string (Array.map couple_to_string !hlab_cacc) "");
   close_out out)
-
 
 
 
@@ -175,9 +175,7 @@ let rec generate_equalities i =
   | 1 -> "cA1 == cB1"
   | _ -> (generate_equalities (i-1)) ^ " && " ^ "cA" ^ (string_of_int i)  ^ "== cB" ^ (string_of_int i)
 
-let array_to_string l r = String.concat "" [ l ; ",\n" ; r ]
-
-let couple_to_string c = String.concat "" [ "<l" ; (string_of_int (fst c)) ; ".l" ; (string_of_int (fst (snd c))) ; "|;" ; generate_equalities (snd (snd c)) ; ";>"]
+let couple_to_string c = Annotators.next_hl() ^ ") <l" ^ (string_of_int (fst c)) ^ ".l" ^ (string_of_int (fst (snd c))) ^ "|;" ^ generate_equalities (snd (snd c)) ^ ";>"
 
 let gen_hyperlabels_racc = ref (fun () ->
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
@@ -185,9 +183,6 @@ let gen_hyperlabels_racc = ref (fun () ->
   let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
   store_hyperlabel_data out  (Array.fold_right array_to_string (Array.map couple_to_string !hlab_racc) "");
   close_out out)
-
-
-
 
 
 

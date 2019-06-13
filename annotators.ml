@@ -55,6 +55,7 @@ end
 let annotators = Hashtbl.create 10
 
 let nextId = ref 1
+let nextIdHl = ref 1
 
 let getCurrentLabelId () = !nextId - 1
 
@@ -62,6 +63,10 @@ let next () =
   let id = !nextId in
   incr nextId;
   id
+let next_hl () =
+  let id = !nextIdHl in
+  incr nextIdHl;
+  string_of_int id
 
 let nocollect _ = ()
 
