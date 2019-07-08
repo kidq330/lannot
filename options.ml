@@ -158,6 +158,11 @@ module MaxContextPath = Int (struct
     let default = 1024
   end)
 
+module CleanDataflow = True (struct
+    let option_name = "-lannot-clean"
+    let help = "Clean trivially infeasible sequence (WIP)"
+  end)
+
 (* There is no way to determine the original loop form after the CIL transformation.
    Since loops criterias depend on if we are in a while or do..while.. I added this option to
    tell to Lannotate if we support do..while.. or not. See doc/LOOPS.markdown for examples

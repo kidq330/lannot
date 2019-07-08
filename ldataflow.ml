@@ -39,6 +39,9 @@ let varLoopID : (int*int,int) Hashtbl.t  = Hashtbl.create 32
     a unique (for this variable) id *)
 let varDefUseID  : (int*int*int,int) Hashtbl.t = Hashtbl.create 32
 
+(** Map each pc_label_sequence to its stmt *)
+let seq_to_stmt = Hashtbl.create 32
+
 (** Store use labels *)
 let labelUses : (stmt list) ref = ref []
 (** Store def labels *)
@@ -151,6 +154,7 @@ class addLabels = object(self)
     let varExp = Exp.string (string_of_int vid) in
     let zeroExp = Exp.zero () in
     let newStmt = (Utils.mk_call "pc_label_sequence" ([oneExp;idExp;curr;slen;varExp;zeroExp])) in
+    Hashtbl.add seq_to_stmt ids newStmt.sid;
     if nb = 1 (*Def*) then
       labelDefs := !labelDefs@[newStmt]
     else (* Use *)
@@ -213,7 +217,7 @@ class addLabels = object(self)
       List.iter self#handle_param parList;
       let labelParams = !labelDefs in
       labelDefs := [];
-      Cil.DoChildrenPost (fun dec -> (dec.sbody.bstmts <- (labelParams @ dec.sbody.bstmts));  dec)
+      Cil.DoChildrenPost (fun dec -> dec.sbody.bstmts <- labelParams @ dec.sbody.bstmts; dec)
     end
 
   method! vstmt_aux (stmt : Cil_types.stmt) : Cil_types.stmt Cil.visitAction =
@@ -316,7 +320,7 @@ let compute_hl () : string =
   List.iter fill !idList;
   if "-" = !symb then
     Hashtbl.fold (fun _ seqs str ->
-        List.fold_left (fun acc s -> Annotators.next_hl() ^ ") <s" ^ string_of_int s ^"|; ;>,\n" ^ acc ) str seqs
+        List.fold_left (fun acc s -> acc ^ Annotators.next_hl() ^ ") <s" ^ string_of_int s ^"|; ;>,\n") str seqs
       ) regroup ""
   else
     Hashtbl.fold (fun _ seqs str ->
@@ -330,13 +334,20 @@ let gen_hyperlabels () =
   let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
   output_string out data;
   close_out out;
-  Options.feedback "Total number of sequences = %d" ((List.length !idList)*2)
+  Options.feedback "Total number of sequences = %d" (List.length !idList)
 
 
 (** Successively pass the 2 visitors *)
 let visite (file : Cil_types.file) : unit =
   Visitor.visitFramacFileSameGlobals (new countDefUse :> Visitor.frama_c_visitor) file;
-  Visitor.visitFramacFileSameGlobals (new addLabels :> Visitor.frama_c_visitor) file
+  Visitor.visitFramacFileSameGlobals (new addLabels :> Visitor.frama_c_visitor) file;
+  Ast.mark_as_changed ();
+  if Options.CleanDataflow.get() then begin
+    let old_length = List.length !idList in
+    Clean_dataflow.clean idList seq_to_stmt file;
+    Options.feedback "%d infeasible sequences were removed,\n use -lannot-no-clean to disable this feature" (old_length - (List.length !idList));
+  end
+
 
 (** All-defs annotator *)
 module AllDefs = Annotators.Register (struct
