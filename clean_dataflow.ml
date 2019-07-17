@@ -159,7 +159,7 @@ class remove_stmts data tbl = object(self)
       Printf.printf "    Number of sequences found infeasible in %s : %d\n" dec.svar.vname (List.length infeasible_list)
     end;
     data := List.filter (fun (_,_,ids) -> not (List.exists (fun id -> id = ids) infeasible_list)) !data;
-    fun_stmts <- List.concat @@ List.map (fun sid -> Hashtbl.find_all tbl sid) infeasible_list ;
+    fun_stmts <- Utils.concat @@ List.map (fun sid -> Hashtbl.find_all tbl sid) infeasible_list ;
     dec.sbody <- (Cil.visitCilBlock (self :> Cil.cilVisitor) dec.sbody)
 
   method! vfunc (dec : Cil_types.fundec) : Cil_types.fundec Cil.visitAction =
