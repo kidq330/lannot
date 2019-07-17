@@ -58,6 +58,7 @@ let nextId = ref 1
 let nextIdHl = ref 1
 
 let getCurrentLabelId () = !nextId - 1
+let getCurrentHLId () = !nextIdHl - 1
 
 let next () =
   let id = !nextId in

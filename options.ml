@@ -151,16 +151,32 @@ module InlineException = Kernel_function_set (struct
     let help = "if -lannot-inline is false, then this option allows to add exceptions and annotate some inline functions"
   end)
 
+let dataflow = add_group "Dataflow criterion-specific options"
+
+let () = Parameter_customize.set_group dataflow
+module CleanDataflow = True (struct
+    let option_name = "-lannot-clean"
+    let help = "Clean trivially infeasible sequence"
+  end)
+
+let () = Parameter_customize.set_group dataflow
+module FoldIndex = False (struct
+    let option_name = "-lannot-fold-index"
+    let help = "Reduce table index to an Int (constant) if possible before dataflow analysis"
+  end)
+
+let () = Parameter_customize.set_group dataflow
+module CleanExp = True (struct
+    let option_name = "-lannot-clean-exp"
+    let help = "Clean trivially infeasible sequence"
+  end)
+
+let () = Parameter_customize.set_group dataflow
 module MaxContextPath = Int (struct
     let option_name = "-lannot-maxpath"
     let arg_name = "NUM"
     let help = "set the maximum number of path for one expression with the context criteria (Default : 1024)"
     let default = 1024
-  end)
-
-module CleanDataflow = True (struct
-    let option_name = "-lannot-clean"
-    let help = "Clean trivially infeasible sequence (WIP)"
   end)
 
 (* There is no way to determine the original loop form after the CIL transformation.

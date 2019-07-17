@@ -149,7 +149,7 @@ class remove_stmts data tbl = object(self)
   inherit Visitor.frama_c_inplace
 
   val mutable to_remove = IntSet.empty
-  val mutable fun_stmts = []
+  val mutable fun_stmts : int list = []
 
   method private clean dec =
     to_remove <- IntSet.empty;
@@ -175,18 +175,19 @@ class remove_stmts data tbl = object(self)
         let rec aux acc = function
           | [] -> acc
           | s :: t ->
-            if IntSet.mem s.sid to_remove then
-              (to_remove <- IntSet.remove s.sid to_remove; aux acc t)
+            if List.exists (fun s' -> s' = s.sid) fun_stmts then
+              aux acc t
             else aux (s::acc) t
         in block.bstmts <- List.rev (aux [] block.bstmts);
         block
       )
 
-  method! vstmt_aux (stmt : Cil_types.stmt) : Cil_types.stmt Cil.visitAction =
-    if not (List.exists (fun id -> id = stmt.sid) fun_stmts) then
-      Cil.DoChildren
-    else
-      (to_remove <- IntSet.add stmt.sid to_remove; Cil.SkipChildren)
+    method! vstmt s =
+    match s.skind with
+    | UnspecifiedSequence v ->
+      s.skind <- Block (Cil.block_from_unspecified_sequence v); Cil.DoChildren
+    | _ -> Cil.DoChildren
+
 end
 
 let clean data tbl file =
