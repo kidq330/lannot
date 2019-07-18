@@ -2,10 +2,10 @@ open Cil_types
 open Ast_const
 
 type def = {
-  funId: int;    (* function id if this def is from a function's formals, -1 otherwise *)
+  funId: int;    (* (function id) if this def is from a function's formals, -1 otherwise *)
   varId: int;    (* id of the variable being defined *)
-  defId: int;    (* current definition of the variable (i.e. ((number of definition before) + 1*)
-  stmtDef: int;  (* Statement id, will be use to "attach" the sequence to it *)
+  defId: int;    (* current definition of the variable (i.e. (number of definition before) + 1 *)
+  stmtDef: int;  (* Statement id, will be use to "attach" the sequence to this statement at the end *)
 }
 
 module DefSet = Set.Make(struct type t = def let compare = compare end)
@@ -14,26 +14,29 @@ type t =
   | Bottom
   | NonBottom of DefSet.t
 
-(* bind each new sequence (def)  to its corresponding statement *)
+(* bind each new sequence (def) to its corresponding statement *)
 let to_add_defs : (int, int*stmt) Hashtbl.t = Hashtbl.create 32
 (* bind each new sequence (use)  to its corresponding statement *)
 let to_add_uses : (int, int*stmt) Hashtbl.t = Hashtbl.create 32
 (* bind each new sequence (cond) to its corresponding statement *)
 let to_add_cond : (int, stmt) Hashtbl.t = Hashtbl.create 32
-(* bind each new sequence (def) to its corresponding function (for function args) *)
+(* bind each new sequence (def) to its corresponding function (for function formals) *)
 let to_add_fun : (int, int*stmt) Hashtbl.t = Hashtbl.create 32
 
 (* For each variable, keep the number of assignment seen for this variable *)
 let def_id : (int, int) Hashtbl.t = Hashtbl.create 32
-(* bind a varinfo and its index (if any) to a new id  *)
+
+(* bind a variable id and an index to a new id  *)
 let index_vid : (int*int,int) Hashtbl.t = Hashtbl.create 32
+(* Used to find all indexes seen for a specific vid  *)
 let vid_to_index : (int,int) Hashtbl.t = Hashtbl.create 32
 
-(* For each expression (and parent statement), save the def already done
-   to avoid annotating it more than once since loop body are visited more than once *)
+(* since cil expr have no side effect, we do not need to create more than one sequence if
+ a lval is used more than once in an expr *)
 let done_expr : (int*int,DefSet.t) Hashtbl.t = Hashtbl.create 32
 
-(* each def (statement id) are registered to avoid creating them twice (or more) with a new def_id *)
+(* each def (statement id) are registered to avoid creating them twice (or more) with a new id
+   (for example, in loop, each statement will be computed at least 2 times to find a fixpoint) *)
 let seen_def : (int,def) Hashtbl.t = Hashtbl.create 32
 
 (* Used to create hyperlabels. key = (variable id, definition id), value = sequence id *)
@@ -63,7 +66,7 @@ let get_next_def_id (vid:int) : int  =
   else
     (Hashtbl.add def_id vid 1; 1)
 
-(* Given an id and its index, create/return the corresponding new id *)
+(* Given a variable id and its index, create/return the corresponding new id *)
 let get_index_vid (vid:int) (index:int) : int =
   if Hashtbl.mem index_vid (vid,index) then
     Hashtbl.find index_vid (vid,index)
@@ -74,11 +77,18 @@ let get_index_vid (vid:int) (index:int) : int =
     new_vid
   end
 
+(* Create a new def (not a function's formals) *)
+let make_def ?(funId = (-1)) (varId: int) (defId: int) (stmtDef: int) : def =
+  {funId;varId;defId;stmtDef}
+
+(* for a given variable id, returns all indexes seen so far for this id *)
 let get_all_index_vid (vid:int) : int list =
   let all_index = Hashtbl.find_all vid_to_index vid in
   List.map (fun i -> Hashtbl.find index_vid (vid,i)) all_index
 
-(* If index can be reduced to a constant, then create a new id and returns it, else return vid *)
+(* If 'index' can be reduced to a constant, then create a new id, associate it to the pair
+   (variable id, 'index') and returns it, else return vid.
+   If we can't recuce index, then return all seen indexes plus the current vid *)
 let extract_index (vid:int) (index:Cil_types.offset) : int list =
   if not (Options.FoldIndex.get ()) then [vid]
   else
@@ -154,31 +164,21 @@ class visit_exp (t:t) (sid:int) = object(self)
 
   (* Create for a given def the sequence def-use for the current LVal *)
   method private mkSeq eid def =
-    (* Create the sequence *)
     let ids = Annotators.next () in
     let sdef,suse = self#mkSeq_aux ids def.varId true, self#mkSeq_aux ids def.varId false in
-    (* If the def isn't from a parameter of the current function *)
     if def.funId = -1 then begin
-      (* Create the condition and binds it to the current statement *)
       if not (Hashtbl.mem to_add_cond def.stmtDef) then
         Hashtbl.add to_add_cond def.stmtDef (self#mkCond def.varId);
-      (* Create the condition and binds it to the current statement *)
-      if not (Hashtbl.mem to_add_cond def.stmtDef) then
-        Hashtbl.add to_add_cond def.stmtDef (self#mkCond def.varId);
-      (* bind the def to the current statement *)
       Hashtbl.add to_add_defs def.stmtDef (ids,sdef)
     end
-    else begin
-      (* bind the def to the current function *)
-      Hashtbl.add to_add_fun def.funId (ids,sdef)
-    end;
-    (* bind the use to the current statement *)
+    else
+      Hashtbl.add to_add_fun def.funId (ids,sdef);
     Hashtbl.add to_add_uses sid (ids,suse);
-
     add_to_hyperlabel (def.varId, def.defId) ids;
     set_done_set (sid,eid) def;
-    incr nb_seqs;
+    incr nb_seqs
 
+  (* Get all the definition of a Lval  *)
   method! vexpr expr =
     match t with
     | Bottom -> Cil.SkipChildren
@@ -189,16 +189,11 @@ class visit_exp (t:t) (sid:int) = object(self)
           let f vid =
             if self#should_instrument v vid then begin
               visited <- vid :: visited;
-              (* Get all definitions already done for this expr and statement *)
               let already_done = get_done_set (sid, expr.eid) in
-              (* Get all definitions of variable v in the state *)
-              let all_v_defs = DefSet.filter (fun def -> def.varId = vid) t in
-              (* Remove all defs that are already done *)
-              let all_v_defs_todo = DefSet.diff all_v_defs already_done in
-              (* For each definition, create the sequence, fills the hashtbls
-                 and adds it to complete_seqs *)
-              DefSet.iter (self#mkSeq expr.eid) all_v_defs_todo;
-            end;
+              let all_vid_defs = DefSet.filter (fun def -> def.varId = vid) t in
+              let all_vid_defs_todo = DefSet.diff all_vid_defs already_done in
+              DefSet.iter (self#mkSeq expr.eid) all_vid_defs_todo;
+            end
           in
           List.iter f vids;
           Cil.DoChildren
@@ -207,9 +202,6 @@ class visit_exp (t:t) (sid:int) = object(self)
 end
 
 module P() = struct
-
-  let make_def (varId: int) (defId: int) (stmtDef: int) : def =
-    {funId=(-1);varId;defId;stmtDef}
 
   let print_elt elt =
     Printf.printf "funId: %d / varId: %d / defId: %d / stmtDef: %d\n%!"
@@ -228,16 +220,16 @@ module P() = struct
   let remove_def vid s =
     DefSet.filter (fun v -> v.varId <> vid) s
 
-  let already_seen sid =
-    Hashtbl.mem seen_def sid
-
   type nonrec t = t
+
+  (* Function called to join 2 states *)
   let join a b =
     match a,b with
     | Bottom, x | x, Bottom -> x
     | NonBottom a, NonBottom b ->
       NonBottom (DefSet.union a b)
 
+  (* is the set a is a subset of b*)
   let is_included a b =
     match a,b with
     | Bottom, _ -> true
@@ -250,7 +242,6 @@ module P() = struct
 
   let bottom = Bottom
 
-
   let the = function None -> assert false | Some x -> x
 
   (* For each definition statement, change the current state by adding or not new definition,
@@ -260,17 +251,13 @@ module P() = struct
     | NonBottom t ->
       let vids = extract_index v.vid index in
       let f acc vid =
-        (* Depending on CleanDataflow option, removes (or not) older definitions. *)
         let removed_vid =
           if Options.CleanDataflow.get () then
             remove_def vid acc
           else
             acc
         in
-        (* if we already saw this definition, adds it to the state instead of creating a new one
-           so we can reach a fixpoint
-        *)
-        if already_seen sid then
+        if Hashtbl.mem seen_def sid then
           DefSet.add (Hashtbl.find seen_def sid) removed_vid
         else begin
           let defId = get_next_def_id vid in
@@ -281,8 +268,7 @@ module P() = struct
       in
       NonBottom (List.fold_left f t vids)
 
-(* Visit expressions to add sequences, then, if the statement is an asssignement
-   create a new definition *)
+  (* Function called for each stmt and propagating new states to each succs of stmt *)
   let transfer_stmt stmt t =
     match stmt.skind with
     | Instr i when not (Utils.is_label i) ->
@@ -312,31 +298,40 @@ module P() = struct
 
 end
 
+(* For each function, do a dataflow analysis and create sequences
+   Initial state contains def of each formal
+*)
 let do_function kf =
-  if Kernel_function.is_definition kf then begin
-    let module Fenv = (val Dataflows.function_env kf) in
-    let module Inst = P() in
-    let args = Kernel_function.get_formals kf in
-    let first_stmt = Kernel_function.find_first_stmt kf in
-    let init = ref DefSet.empty in
-    let f arg =
-      let defId = get_next_def_id arg.vid in
-      init := DefSet.add ({funId=Kernel_function.get_id kf;varId=arg.vid;defId;stmtDef=first_stmt.sid}) !init
-    in
-    List.iter f args;
-    let module Arg = struct
-      include Inst
-      let init =
-        [(first_stmt, NonBottom (!init))]
+  let module Fenv = (val Dataflows.function_env kf) in
+  let module Inst = P() in
+  let args = Kernel_function.get_formals kf in
+  let first_stmt = Kernel_function.find_first_stmt kf in
+  let init = ref DefSet.empty in
+  let f arg =
+    let defId = get_next_def_id arg.vid in
+    init := DefSet.add (make_def ~funId:(Kernel_function.get_id kf) arg.vid defId first_stmt.sid) !init
+  in
+  List.iter f args;
+  let module Arg = struct
+    include Inst
+    let init =
+      [(first_stmt, NonBottom (!init))]
 
-    end in
-    let module Analysis = Dataflows.Simple_forward(Fenv)(Arg) in
-    ()
-  end
+  end in
+  let module Analysis = Dataflows.Simple_forward(Fenv)(Arg) in
+  ()
 
+(* This visitor will, for each function :
+   - Do the dataflows analysis and fill hashtbls
+   - Then visit the body of the function, add add all sequences to where
+   they belong.
+   - Clean all hashtbls and do the next function (if any)
+*)
 class addSequences= object(self)
   inherit Visitor.frama_c_inplace
 
+  (* get all sequences, sort defs and uses by sequence ID, and returns
+  a pair of list (before,after) with sequences to add before & after the current statement *)
   method private get_seqs_sorted sid =
     let defs = Hashtbl.find_all to_add_defs sid in
     let uses = Hashtbl.find_all to_add_uses sid in
@@ -346,14 +341,13 @@ class addSequences= object(self)
     List.map (fun (_,s) -> s) defs, (List.map (fun (_,s) -> s) uses) @ cond
 
   method! vfunc (dec : Cil_types.fundec) : Cil_types.fundec Cil.visitAction =
-    if not (Annotators.shouldInstrument dec.svar) then
-      Cil.SkipChildren
-    else begin
+    let kf = Extlib.the self#current_kf in
+    if Kernel_function.is_definition kf && Annotators.shouldInstrument dec.svar then begin
       Cfg.clearCFGinfo ~clear_id:false dec;
       Cfg.cfgFun dec;
-      do_function (Extlib.the self#current_kf);
+      do_function kf;
       Cil.DoChildrenPost (fun f ->
-          let id = Kernel_function.get_id (Extlib.the self#current_kf) in
+          let id = dec.svar.vid in
           let defs = List.sort compare (Hashtbl.find_all to_add_fun id) in
           let params = List.map (fun (_,s) -> s) defs in
           f.sbody.bstmts <- params @ f.sbody.bstmts;
@@ -361,6 +355,7 @@ class addSequences= object(self)
           f
         )
     end
+    else Cil.SkipChildren
 
   method! vblock _ =
     Cil.DoChildrenPost (fun block ->
@@ -369,6 +364,8 @@ class addSequences= object(self)
           | [] -> acc
           | s :: t ->
             let after,before = self#get_seqs_sorted s.sid in
+            (* if the statement has 1 or more labels, then moves it to
+               the first statement of before if it exists *)
             if s.labels <> [] && before <> [] then begin
               let lbl = s.labels in
               s.labels <- [];
