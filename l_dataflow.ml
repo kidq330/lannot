@@ -143,12 +143,13 @@ class countDefUse = object(self)
       Cil.DoChildren
     end
 
-  method private should_instrument v vid sid =
-    not v.vglob
-    && not (v.vname = "__retres")
-    && not v.vtemp
-    && (not (Options.CleanExp.get())
-        || not (Hashtbl.mem visited (sid,vid)))
+  method private should_instrument v vid =
+    if not v.vglob && not (v.vname = "__retres") && not v.vtemp then
+      let sid = (Extlib.the self#current_stmt).sid in
+      if (not (Options.CleanExp.get()) || not (Hashtbl.mem visited (sid,vid))) then
+        Some(sid)
+      else None
+    else None
 
   method! vstmt_aux (stmt : Cil_types.stmt) : Cil_types.stmt Cil.visitAction =
     match stmt.skind with
@@ -183,16 +184,15 @@ class countDefUse = object(self)
     match expr.enode with
     | Lval (Var v,index) ->
       let vids = extract_index v.vid index in
-      let s = Extlib.the self#current_stmt in
       let f vid =
-        if self#should_instrument v vid s.sid then begin
-          Hashtbl.add visited (s.sid,vid) vid;
+        match self#should_instrument v vid with
+        | None -> ()
+        | Some(sid) ->
+          Hashtbl.add visited (sid,vid) vid;
           self#fill_tbl nBVarUses currentUse vid
-        end
       in
       List.iter f vids;
-      if v.vtemp then Cil.SkipChildren else
-      Cil.DoChildren
+      if v.vtemp then Cil.SkipChildren else Cil.DoChildren
     | _ -> Cil.DoChildren
 end
 
@@ -353,21 +353,23 @@ class addLabels = object(self)
           labelUses := []; res
         )
 
-  method private should_instrument v vid sid =
-    not v.vglob
-    && not (v.vname = "__retres")
-    && not v.vtemp
-    && (not (Options.CleanExp.get())
-        || not (Hashtbl.mem visited (sid,vid)))
+  method private should_instrument v vid =
+    if not v.vglob && not (v.vname = "__retres") && not v.vtemp && Hashtbl.mem nBVarDefs vid then
+      let sid = (Extlib.the self#current_stmt).sid in
+      if (not (Options.CleanExp.get()) || not (Hashtbl.mem visited (sid,vid))) then
+        Some(sid)
+      else None
+    else None
 
   method! vexpr (expr : Cil_types.exp) : Cil_types.exp Cil.visitAction =
     match expr.enode with
     | Lval (Var v, index) ->
-      let s = Extlib.the self#current_stmt in
       let vids = extract_index v.vid index in
       let f vid =
-        if self#should_instrument v vid s.sid && Hashtbl.mem nBVarDefs vid then begin
-          Hashtbl.add visited (s.sid,vid) vid;
+        match self#should_instrument v vid with
+        | None -> ()
+        | Some(sid) ->
+          Hashtbl.add visited (sid,vid) vid;
           let j = (Hashtbl.find currentUse vid) in
           (* For each preceding Def *)
           for i = 1 to (Hashtbl.find currentDef vid) - 1  do
@@ -389,8 +391,7 @@ class addLabels = object(self)
               done;
               Hashtbl.replace currentUse nvid (j + 1)
             end
-          end;
-        end
+          end
       in
       List.iter f vids;
       Cil.DoChildren
