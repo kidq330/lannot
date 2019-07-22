@@ -366,12 +366,13 @@ class addSequences= object(self)
             let after,before = self#get_seqs_sorted s.sid in
             (* if the statement has 1 or more labels, then moves it to
                the first statement of before if it exists *)
+
             if s.labels <> [] && before <> [] then begin
-              let lbl = s.labels in
-              s.labels <- [];
-              (List.hd before).labels <- lbl
-            end;
-            aux t (acc @ before @ [s] @ after)
+              s.skind <- Block (Block.mk (before @ [Stmt.mk s.skind]));
+              aux t (acc @ [s] @ after)
+            end
+            else
+              aux t (acc @ before @ [s] @ after)
         in block.bstmts <- aux block.bstmts [];
         block
       )
