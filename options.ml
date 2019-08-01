@@ -166,9 +166,9 @@ module FoldIndex = False (struct
   end)
 
 let () = Parameter_customize.set_group dataflow
-module CleanExp = True (struct
-    let option_name = "-lannot-clean-exp"
-    let help = "Clean trivially infeasible sequence"
+module CleanDuplicate = True (struct
+    let option_name = "-lannot-clean-duplicate"
+    let help = "Annotate lval only once per expr"
   end)
 
 let () = Parameter_customize.set_group dataflow

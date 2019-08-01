@@ -146,7 +146,7 @@ class countDefUse = object(self)
   method private should_instrument v vid =
     if not v.vglob && not (v.vname = "__retres") && not v.vtemp then
       let sid = (Extlib.the self#current_stmt).sid in
-      if (not (Options.CleanExp.get()) || not (Hashtbl.mem visited (sid,vid))) then
+      if (not (Options.CleanDuplicate.get()) || not (Hashtbl.mem visited (sid,vid))) then
         Some(sid)
       else None
     else None
@@ -356,7 +356,7 @@ class addLabels = object(self)
   method private should_instrument v vid =
     if not v.vglob && not (v.vname = "__retres") && not v.vtemp && Hashtbl.mem nBVarDefs vid then
       let sid = (Extlib.the self#current_stmt).sid in
-      if (not (Options.CleanExp.get()) || not (Hashtbl.mem visited (sid,vid))) then
+      if (not (Options.CleanDuplicate.get()) || not (Hashtbl.mem visited (sid,vid))) then
         Some(sid)
       else None
     else None
@@ -421,7 +421,7 @@ let gen_hyperlabels () =
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
   let data = compute_hl () in
-  let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
+  let out = open_out_gen [Open_creat; Open_append] 0o644 data_filename in
   output_string out data;
   close_out out;
   Options.feedback "Total number of sequences = %d" (List.length !idList);

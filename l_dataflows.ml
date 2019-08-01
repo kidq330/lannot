@@ -143,7 +143,7 @@ class visit_exp (t:t) (sid:int) = object(self)
     not v.vglob
     && not (v.vname = "__retres")
     && not v.vtemp
-    && (not (Options.CleanExp.get())
+    && (not (Options.CleanDuplicate.get())
         || not (List.exists (fun vid' -> vid' = vid) visited))
 
   (* Create a condition which will break sequences for this variable *)
@@ -392,6 +392,7 @@ let symb : string ref = ref ""
 let compute_hl () : string =
   if "-" = !symb then
     Hashtbl.fold (fun _ seqs str ->
+        let seqs = List.sort compare seqs in
         List.fold_left (fun acc s -> acc ^ Annotators.next_hl() ^ ") <s" ^ string_of_int s ^"|; ;>,\n") str seqs
       ) hyperlabels ""
   else
@@ -403,7 +404,7 @@ let gen_hyperlabels () =
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
   let data = compute_hl () in
-  let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
+  let out = open_out_gen [Open_creat; Open_append] 0o644 data_filename in
   output_string out data;
   close_out out;
   Options.feedback "Total number of sequences = %d" !nb_seqs;
@@ -417,8 +418,8 @@ let visite (file : Cil_types.file) : unit =
   Ast.mark_as_changed ();
 
   (** All-defs annotator *)
-module AllDefs = Annotators.Register (struct
-    let name = "alldefs2"
+module ADC = Annotators.Register (struct
+    let name = "ADC"
     let help = "All-Definitions Coverage"
     let apply _ file =
       visite file;
@@ -428,8 +429,8 @@ module AllDefs = Annotators.Register (struct
 
 
 (** All-uses annotator *)
-module AllUses = Annotators.Register (struct
-    let name = "alluses2"
+module AUC = Annotators.Register (struct
+    let name = "AUC"
     let help = "All-Uses Coverage"
     let apply _ file =
       visite file;
@@ -438,8 +439,8 @@ module AllUses = Annotators.Register (struct
   end)
 
 (** Def-Use annotator *)
-module Defuse = Annotators.Register (struct
-    let name = "defuse2"
+module DUC = Annotators.Register (struct
+    let name = "DUC"
     let help = "Definition-Use Coverage"
     let apply _ file =
       visite file;

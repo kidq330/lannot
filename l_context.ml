@@ -459,7 +459,7 @@ let gen_hyperlabels () =
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
   let data = compute_hl () in
-  let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
+  let out = open_out_gen [Open_creat; Open_append] 0o644 data_filename in
   output_string out data;
   close_out out;
   Options.feedback "Total number of labels = %d" !totalLabels;

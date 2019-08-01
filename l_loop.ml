@@ -225,20 +225,21 @@ let gen_hyperlabels_ASL () =
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
   let data = compute_hl_ASL () in
-  let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
+  let out = open_out_gen [Open_creat; Open_append] 0o644 data_filename in
   output_string out data;
   close_out out;
   Options.feedback "Total number of labels = %d" ((List.length !idsListASL)*2)*)
 
 (** Use idList to create all hyprlabels *)
 let compute_hl_SLO () : string =
-    List.fold_left (fun str ids -> Annotators.next_hl() ^ ") <s" ^ string_of_int ids ^"|; ;>,\n" ^ str) "" !idsListSLO
+  idsListSLO := List.sort compare !idsListSLO;
+  List.fold_left (fun str ids -> str ^ Annotators.next_hl() ^ ") <s" ^ string_of_int ids ^"|; ;>,\n") "" !idsListSLO
 
 let gen_hyperlabels_SLO () =
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
   let data = compute_hl_SLO () in
-  let out = open_out_gen [Open_creat; Open_append] 0o640 data_filename in
+  let out = open_out_gen [Open_creat; Open_append] 0o644 data_filename in
   output_string out data;
   close_out out;
   Options.feedback "Total number of labels = %d" ((List.length !idsListSLO)*3)
