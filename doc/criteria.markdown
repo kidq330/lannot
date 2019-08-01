@@ -298,7 +298,7 @@ variable :
 * 1 : Always 0 (Useless?)
 * 2 : Variable ID
 
-in Defuse/Alldefs/Alluses, since sequences length is always 2,
+in DUC/ADC/AUC, since sequences length is always 2,
 `pc_label_sequence(1,ID,1,2,ID,0)` means it is a Definition, and
 `pc_label_sequence(1,ID,2,2,ID,0)` means it is a Use.
 
@@ -307,7 +307,7 @@ in hyperlabels:
 * `+` means `\/` (logical or)
 
 
-### Defuse (DU-pairs coverage)
+### DUC (DU-pairs coverage)
 
 ```
 v: variable
@@ -350,7 +350,7 @@ and hyperlabels:
 <s906|; ;>,
 ```
 
-### Alldefs (All-definitions coverage)
+### ADC (All-definitions coverage)
 
 ```
 v: variable
@@ -392,7 +392,7 @@ and hyperlabels:
 <s906|; ;>,
 ```
 
-### Alluses (All-uses coverage)
+### AUC (All-uses coverage)
 
 ```
 v: variable
