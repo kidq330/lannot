@@ -198,7 +198,7 @@ class computeCombinations = object(self)
   (** This method will, for each expression :
       1. Get its number of Lvals, if this number is > to 1 then procceed to next steps
       2. For each variable, get its current definition
-      3. Unroll each variable, [(x,3);(y,1)] becames [[(x,1);(x,2);(x,3)];[(y,1)]]
+      3. Unroll each variable, [(x,3);(y,1)] becomes [[(x,1);(x,2);(x,3)];[(y,1)]]
          If x appears in a loop, then add it with an offset
       4. Calculate cartesian product size of this list of lists,
          if it's to big then warn the user and skip this expression
@@ -270,7 +270,7 @@ class computeCombinations = object(self)
       end
       else begin
         Options.warning "Expression ignored in file %a, too many paths (%d)" Printer.pp_location expr.eloc taille_prod;
-        ignoredLabels := (List.length lvalIds) * taille_prod + !ignoredLabels
+        ignoredLabels := (List.length lvalIds + 1) * taille_prod + !ignoredLabels
       end
     end;
     Cil.SkipChildren
@@ -476,7 +476,7 @@ let visite file =
 (**
    Context criteria annotator
 *)
-module Context = Annotators.Register (struct
+module Context2 = Annotators.Register (struct
     let name = "context"
     let help = "Context Coverage"
     let apply _ file =
