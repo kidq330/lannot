@@ -215,7 +215,7 @@ class visit_defuse (t:t) (sid:int) = object(self)
   method private mkSeq eid def =
     let ids = Annotators.next () in
     let sdef = mkSeq_aux ids (string_of_int def.varId) 1 2 in
-    let suse = mkSeq_aux ids (string_of_int def.varId) 1 2 in
+    let suse = mkSeq_aux ids (string_of_int def.varId) 2 2 in
     if def.funId = -1 then begin
       if not (Hashtbl.mem to_add_cond def.stmtDef) then
         Hashtbl.add to_add_cond def.stmtDef (mkCond def.varId);
