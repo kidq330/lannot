@@ -27,7 +27,7 @@ let store_label_data out annotations =
   let formatter = Format.formatter_of_out_channel out in
   Format.fprintf formatter "# id, status, tag, origin_loc, current_loc, emitter, drivers, exec_time@.";
   let print_one (id, tags, cond, origin_loc) =
-    let l = Transitioning.String.split_on_char '/' (print_file_path origin_loc) in
+    let l = String.split_on_char '/' (print_file_path origin_loc) in
     let origin_file = List.nth l ((List.length l)-1) in
     let origin_line = (fst origin_loc).Filepath.pos_lnum in
     (* let us note obviously uncoverable labels as uncoverable
@@ -43,7 +43,7 @@ let compute_outfile opt files =
     if files = [] then
       "a_labels.out"
     else
-      let base = List.hd files in
+      let base = Filepath.Normalized.to_pretty_string (List.hd files) in
       (* TODO check if it's not better to take the last filename *)
       let prefix = Filename.chop_extension base in
       let len_prefix = String.length prefix in
