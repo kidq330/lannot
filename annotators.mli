@@ -73,9 +73,11 @@ val shouldInstrument : Cil_types.varinfo -> bool
 val print_help : Format.formatter -> unit
 
 val getCurrentLabelId : unit -> int
+val getCurrentBindingId: unit -> int
 val getCurrentHLId: unit -> int
 
 val label_function_name : string ref
 
 val next : unit -> int
 val next_hl: unit -> string
+val next_binding: unit -> int

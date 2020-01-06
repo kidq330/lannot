@@ -99,15 +99,17 @@ let gen_labels_cacc_for mk_label whole part =
   let w0 = Exp.replace whole part (Exp.one ()) in
   let w1 = Exp.replace whole part (Exp.zero ()) in
 
+  let binding_id = Annotators.next_binding () in
+
   (* rather than to test w0 != w1, do (w0 && !w1) || (!w0 && w1) *)
   let indep = Exp.niff w0 w1 in
 
   let a_indep = Exp.binop LAnd (pos part) (Exp.copy indep) in
   let na_indep = Exp.binop LAnd (neg part) (Exp.copy indep) in
 
-  let l = mk_label a_indep [Exp.integer 1 ; Exp.mk (Const (CStr "pa")) ; whole] loc in
+  let l = mk_label a_indep [Exp.integer binding_id; Exp.integer 1 ; Exp.mk (Const (CStr "pa")) ; whole] loc in
   let idl = Annotators.getCurrentLabelId () in
-  let r = mk_label na_indep [Exp.integer 1 ; Exp.mk (Const (CStr "pb")) ; whole] loc in
+  let r = mk_label na_indep [Exp.integer binding_id; Exp.integer 1 ; Exp.mk (Const (CStr "pb")) ; whole] loc in
   let idr = Annotators.getCurrentLabelId () in
 
   hlab_cacc := Array.append !hlab_cacc [| (idl,idr) |];
@@ -147,6 +149,8 @@ let gen_labels_racc_for mk_label whole atoms part =
   let w0 = Exp.replace whole part (Exp.one ()) in
   let w1 = Exp.replace whole part (Exp.zero ()) in
 
+  let binding_id = Annotators.next_binding () in
+
   (* rather than to test w0 != w1, do (w0 && !w1) || (!w0 && w1) *)
   let indep = Exp.niff w0 w1 in
 
@@ -154,9 +158,9 @@ let gen_labels_racc_for mk_label whole atoms part =
   let na_indep = Exp.binop LAnd (neg part) (Exp.copy indep) in
 
   let atoms_without_current = List.filter (fun a -> part <> a) atoms in
-  let l = mk_label a_indep (List.concat [[Exp.integer (List.length atoms_without_current)] ; List.fold_left handle_list_l [] atoms_without_current]) loc in
+  let l = mk_label a_indep (List.concat [[Exp.integer binding_id; Exp.integer (List.length atoms_without_current)] ; List.fold_left handle_list_l [] atoms_without_current]) loc in
   let idl = Annotators.getCurrentLabelId () in
-  let r = mk_label na_indep (List.concat [[Exp.integer (List.length atoms_without_current)] ; List.fold_left handle_list_r [] atoms_without_current]) loc in
+  let r = mk_label na_indep (List.concat [[Exp.integer binding_id; Exp.integer (List.length atoms_without_current)] ; List.fold_left handle_list_r [] atoms_without_current]) loc in
   let idr = Annotators.getCurrentLabelId () in
 
   hlab_racc := Array.append !hlab_racc [| (idl,(idr,(List.length atoms_without_current))) |];

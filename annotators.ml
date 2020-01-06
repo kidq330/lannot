@@ -55,14 +55,20 @@ end
 let annotators = Hashtbl.create 10
 
 let nextId = ref 1
+let nextBindingId = ref 1
 let nextIdHl = ref 1
 
 let getCurrentLabelId () = !nextId - 1
+let getCurrentBindingId () = !nextBindingId - 1
 let getCurrentHLId () = !nextIdHl - 1
 
 let next () =
   let id = !nextId in
   incr nextId;
+  id
+let next_binding () =
+  let id = !nextBindingId in
+  incr nextBindingId;
   id
 let next_hl () =
   let id = !nextIdHl in
