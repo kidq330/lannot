@@ -17,20 +17,20 @@
 int maintest(int a, int b, int c)
  {
    int __retres;
-   pc_label_bindings(a == b,1,"RACC",0);
-   pc_label_bindings(! (a == b),2,"RACC",0);
+   pc_label_bindings(a == b,1,"RACC",1,0);
+   pc_label_bindings(! (a == b),2,"RACC",1,0);
    if (a == b) a -= b;
-   pc_label_bindings(a && ((! (b || c) && c) || ((b || c) && ! c)),3,"RACC",
-                     2,"cA1",b,"cA2",c);
-   pc_label_bindings(! a && ((! (b || c) && c) || ((b || c) && ! c)),4,
-                     "RACC",2,"cB1",b,"cB2",c);
-   pc_label_bindings(b && ((! (a || c) && c) || ((a || c) && ! c)),5,"RACC",
-                     2,"cA1",a,"cA2",c);
-   pc_label_bindings(! b && ((! (a || c) && c) || ((a || c) && ! c)),6,
-                     "RACC",2,"cB1",a,"cB2",c);
-   pc_label_bindings(c && ! (a && b),7,"RACC",2,"cA1",a,"cA2",b);
-   pc_label_bindings(! c && ! (a && b),8,"RACC",2,"cB1",a,"cB2",b);
-   if ((a && b) || c) {
+   pc_label_bindings(a && (! (b || c) && c || (b || c) && ! c),3,"RACC",2,2,
+                     "cA1",b,"cA2",c);
+   pc_label_bindings(! a && (! (b || c) && c || (b || c) && ! c),4,"RACC",2,
+                     2,"cB1",b,"cB2",c);
+   pc_label_bindings(b && (! (a || c) && c || (a || c) && ! c),5,"RACC",3,2,
+                     "cA1",a,"cA2",c);
+   pc_label_bindings(! b && (! (a || c) && c || (a || c) && ! c),6,"RACC",3,
+                     2,"cB1",a,"cB2",c);
+   pc_label_bindings(c && ! (a && b),7,"RACC",4,2,"cA1",a,"cA2",b);
+   pc_label_bindings(! c && ! (a && b),8,"RACC",4,2,"cB1",a,"cB2",b);
+   if (a && b || c) {
      __retres = 0;
      goto return_label;
    }

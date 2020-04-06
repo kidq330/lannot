@@ -6,4 +6,5 @@
 [lannot] Total number of labels = 36
 [lannot] write modified C file (to tests/criteria/result/test_SLO_labels.c)
 [lannot] write label data (to tests/criteria/result/test_SLO_labels.labels)
+[lannot] 12 labels/sequences created
 [lannot] finished

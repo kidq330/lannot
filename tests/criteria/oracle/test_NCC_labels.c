@@ -29,7 +29,7 @@ int maintest(int a, int b, int c)
    pc_label(b && ! c,10,"NCC");
    pc_label(! b && c,11,"NCC");
    pc_label(! b && ! c,12,"NCC");
-   if ((a && b) || c) {
+   if (a && b || c) {
      __retres = 0;
      goto return_label;
    }

@@ -3,4 +3,5 @@
 [lannot] apply annotations for GACC
 [lannot] write modified C file (to tests/criteria/result/test_GACC_labels.c)
 [lannot] write label data (to tests/criteria/result/test_GACC_labels.labels)
+[lannot] 6 labels/sequences created
 [lannot] finished

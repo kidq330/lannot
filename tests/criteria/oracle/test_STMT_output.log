@@ -3,4 +3,5 @@
 [lannot] apply annotations for STMT
 [lannot] write modified C file (to tests/criteria/result/test_STMT_labels.c)
 [lannot] write label data (to tests/criteria/result/test_STMT_labels.labels)
+[lannot] 22 labels/sequences created
 [lannot] finished

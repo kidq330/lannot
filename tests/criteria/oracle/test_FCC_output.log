@@ -4,4 +4,5 @@
 [lannot] write hyperlabel data (to tests/criteria/result/test_FCC_labels.hyperlabels)
 [lannot] write modified C file (to tests/criteria/result/test_FCC_labels.c)
 [lannot] write label data (to tests/criteria/result/test_FCC_labels.labels)
+[lannot] 4 labels/sequences created
 [lannot] finished

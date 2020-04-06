@@ -18,26 +18,26 @@ int maintest(int a, int b, int c)
  {
    int __retres;
    pc_label((a && ((! (b || c) || (b || c)) && (! (b || c) || (b || c)))) && (
-            (a && b) || c),1,"GICC");
+            a && b || c),1,"GICC");
    pc_label((a && ((! (b || c) || (b || c)) && (! (b || c) || (b || c)))) && ! (
-            (a && b) || c),2,"GICC");
+            a && b || c),2,"GICC");
    pc_label((! a && ((! (b || c) || (b || c)) && (! (b || c) || (b || c)))) && (
-            (a && b) || c),3,"GICC");
+            a && b || c),3,"GICC");
    pc_label((! a && ((! (b || c) || (b || c)) && (! (b || c) || (b || c)))) && ! (
-            (a && b) || c),4,"GICC");
+            a && b || c),4,"GICC");
    pc_label((b && ((! (a || c) || (a || c)) && (! (a || c) || (a || c)))) && (
-            (a && b) || c),5,"GICC");
+            a && b || c),5,"GICC");
    pc_label((b && ((! (a || c) || (a || c)) && (! (a || c) || (a || c)))) && ! (
-            (a && b) || c),6,"GICC");
+            a && b || c),6,"GICC");
    pc_label((! b && ((! (a || c) || (a || c)) && (! (a || c) || (a || c)))) && (
-            (a && b) || c),7,"GICC");
+            a && b || c),7,"GICC");
    pc_label((! b && ((! (a || c) || (a || c)) && (! (a || c) || (a || c)))) && ! (
-            (a && b) || c),8,"GICC");
-   pc_label(c && ((a && b) || c),9,"GICC");
-   pc_label(c && ! ((a && b) || c),10,"GICC");
-   pc_label(! c && ((a && b) || c),11,"GICC");
-   pc_label(! c && ! ((a && b) || c),12,"GICC");
-   if ((a && b) || c) {
+            a && b || c),8,"GICC");
+   pc_label(c && (a && b || c),9,"GICC");
+   pc_label(c && ! (a && b || c),10,"GICC");
+   pc_label(! c && (a && b || c),11,"GICC");
+   pc_label(! c && ! (a && b || c),12,"GICC");
+   if (a && b || c) {
      __retres = 0;
      goto return_label;
    }

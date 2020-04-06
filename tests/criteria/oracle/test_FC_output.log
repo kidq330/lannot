@@ -3,4 +3,5 @@
 [lannot] apply annotations for FC
 [lannot] write modified C file (to tests/criteria/result/test_FC_labels.c)
 [lannot] write label data (to tests/criteria/result/test_FC_labels.labels)
+[lannot] 1 labels/sequences created
 [lannot] finished

@@ -3,4 +3,5 @@
 [lannot] apply annotations for DC
 [lannot] write modified C file (to tests/criteria/result/test_DC_labels.c)
 [lannot] write label data (to tests/criteria/result/test_DC_labels.labels)
+[lannot] 2 labels/sequences created
 [lannot] finished

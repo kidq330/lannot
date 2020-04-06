@@ -17,20 +17,20 @@
 int maintest(int a, int b, int c)
  {
    int __retres;
-   pc_label_bindings(a == b,1,"CACC",1,"pa",a == b);
-   pc_label_bindings(! (a == b),2,"CACC",1,"pb",a == b);
+   pc_label_bindings(a == b,1,"CACC",1,1,"pa",a == b);
+   pc_label_bindings(! (a == b),2,"CACC",1,1,"pb",a == b);
    if (a == b) a -= b;
-   pc_label_bindings(a && ((! (b || c) && c) || ((b || c) && ! c)),3,"CACC",
-                     1,"pa",(a && b) || c);
-   pc_label_bindings(! a && ((! (b || c) && c) || ((b || c) && ! c)),4,
-                     "CACC",1,"pb",(a && b) || c);
-   pc_label_bindings(b && ((! (a || c) && c) || ((a || c) && ! c)),5,"CACC",
-                     1,"pa",(a && b) || c);
-   pc_label_bindings(! b && ((! (a || c) && c) || ((a || c) && ! c)),6,
-                     "CACC",1,"pb",(a && b) || c);
-   pc_label_bindings(c && ! (a && b),7,"CACC",1,"pa",(a && b) || c);
-   pc_label_bindings(! c && ! (a && b),8,"CACC",1,"pb",(a && b) || c);
-   if ((a && b) || c) {
+   pc_label_bindings(a && (! (b || c) && c || (b || c) && ! c),3,"CACC",2,1,
+                     "pa",a && b || c);
+   pc_label_bindings(! a && (! (b || c) && c || (b || c) && ! c),4,"CACC",2,
+                     1,"pb",a && b || c);
+   pc_label_bindings(b && (! (a || c) && c || (a || c) && ! c),5,"CACC",3,1,
+                     "pa",a && b || c);
+   pc_label_bindings(! b && (! (a || c) && c || (a || c) && ! c),6,"CACC",3,
+                     1,"pb",a && b || c);
+   pc_label_bindings(c && ! (a && b),7,"CACC",4,1,"pa",a && b || c);
+   pc_label_bindings(! c && ! (a && b),8,"CACC",4,1,"pb",a && b || c);
+   if (a && b || c) {
      __retres = 0;
      goto return_label;
    }

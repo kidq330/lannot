@@ -24,8 +24,9 @@ int checkPrimeNumber(int n);
     assigns \result, __fc_stdout->__fc_FILE_data;
     assigns \result
       \from (indirect: __fc_stdout->__fc_FILE_id),
-            __fc_stdout->__fc_FILE_data, (indirect: *(format + (0 ..))),
-            param1, param0;
+            (indirect: __fc_stdout->__fc_FILE_data),
+            (indirect: *(format + (0 ..))), (indirect: param1),
+            (indirect: param0);
     assigns __fc_stdout->__fc_FILE_data
       \from (indirect: __fc_stdout->__fc_FILE_id),
             __fc_stdout->__fc_FILE_data, (indirect: *(format + (0 ..))),
@@ -37,8 +38,8 @@ int printf_va_1(char const * __restrict format, int param0, int param1);
     assigns \result, __fc_stdout->__fc_FILE_data;
     assigns \result
       \from (indirect: __fc_stdout->__fc_FILE_id),
-            __fc_stdout->__fc_FILE_data, (indirect: *(format + (0 ..))),
-            param0;
+            (indirect: __fc_stdout->__fc_FILE_data),
+            (indirect: *(format + (0 ..))), (indirect: param0);
     assigns __fc_stdout->__fc_FILE_data
       \from (indirect: __fc_stdout->__fc_FILE_id),
             __fc_stdout->__fc_FILE_data, (indirect: *(format + (0 ..))),
@@ -51,44 +52,44 @@ int main(int n1, int n2)
   int __retres;
   int i;
   int flag;
-  pc_label_sequence(1,1UL,1,2,"1816",0);
-  pc_label_sequence(1,2UL,1,2,"1817",0);
-  pc_label_sequence(1,3UL,1,2,"1816",0);
-  pc_label_sequence(1,5UL,1,2,"1817",0);
-  pc_label_sequence(1,1UL,2,2,"1816",0);
-  pc_label_sequence(1,2UL,2,2,"1817",0);
+  pc_label_sequence(1,1UL,1,2,"1923",0);
+  pc_label_sequence(1,2UL,1,2,"1924",0);
+  pc_label_sequence(1,3UL,1,2,"1923",0);
+  pc_label_sequence(1,5UL,1,2,"1924",0);
+  pc_label_sequence(1,1UL,2,2,"1923",0);
+  pc_label_sequence(1,2UL,2,2,"1924",0);
   printf_va_1("Prime numbers between %d and %d are: ",n1,n2);
-  pc_label_sequence(1,3UL,2,2,"1816",0);
-  pc_label_sequence_condition(0,"1818");
+  pc_label_sequence(1,3UL,2,2,"1923",0);
+  pc_label_sequence_condition(0,"1925");
   i = n1 + 1;
-  pc_label_sequence(1,4UL,1,2,"1818",0);
-  pc_label_sequence(1,6UL,1,2,"1818",0);
-  pc_label_sequence(1,8UL,1,2,"1818",0);
-  pc_label_sequence(1,9UL,1,2,"1818",0);
+  pc_label_sequence(1,4UL,1,2,"1925",0);
+  pc_label_sequence(1,6UL,1,2,"1925",0);
+  pc_label_sequence(1,8UL,1,2,"1925",0);
+  pc_label_sequence(1,9UL,1,2,"1925",0);
   while (1) {
-    pc_label_sequence(1,4UL,2,2,"1818",0);
-    pc_label_sequence(1,5UL,2,2,"1817",0);
-    pc_label_sequence(1,10UL,2,2,"1818",0);
+    pc_label_sequence(1,4UL,2,2,"1925",0);
+    pc_label_sequence(1,5UL,2,2,"1924",0);
+    pc_label_sequence(1,10UL,2,2,"1925",0);
     if (! (i < n2)) break;
-    pc_label_sequence(1,6UL,2,2,"1818",0);
-    pc_label_sequence(1,11UL,2,2,"1818",0);
-    pc_label_sequence_condition(0,"1819");
+    pc_label_sequence(1,6UL,2,2,"1925",0);
+    pc_label_sequence(1,11UL,2,2,"1925",0);
+    pc_label_sequence_condition(0,"1926");
     flag = checkPrimeNumber(i);
-    pc_label_sequence(1,7UL,1,2,"1819",0);
-    pc_label_sequence(1,7UL,2,2,"1819",0);
+    pc_label_sequence(1,7UL,1,2,"1926",0);
+    pc_label_sequence(1,7UL,2,2,"1926",0);
     if (flag == 1) {
-      pc_label_sequence(1,8UL,2,2,"1818",0);
-      pc_label_sequence(1,12UL,2,2,"1818",0);
+      pc_label_sequence(1,8UL,2,2,"1925",0);
+      pc_label_sequence(1,12UL,2,2,"1925",0);
       printf_va_2("%d ",i);
     }
-    pc_label_sequence(1,9UL,2,2,"1818",0);
-    pc_label_sequence(1,13UL,2,2,"1818",0);
-    pc_label_sequence_condition(0,"1818");
+    pc_label_sequence(1,9UL,2,2,"1925",0);
+    pc_label_sequence(1,13UL,2,2,"1925",0);
+    pc_label_sequence_condition(0,"1925");
     i ++;
-    pc_label_sequence(1,10UL,1,2,"1818",0);
-    pc_label_sequence(1,11UL,1,2,"1818",0);
-    pc_label_sequence(1,12UL,1,2,"1818",0);
-    pc_label_sequence(1,13UL,1,2,"1818",0);
+    pc_label_sequence(1,10UL,1,2,"1925",0);
+    pc_label_sequence(1,11UL,1,2,"1925",0);
+    pc_label_sequence(1,12UL,1,2,"1925",0);
+    pc_label_sequence(1,13UL,1,2,"1925",0);
   }
   __retres = 0;
   return __retres;
@@ -97,40 +98,40 @@ int main(int n1, int n2)
 int checkPrimeNumber(int n)
 {
   int j;
-  pc_label_sequence(1,15UL,1,2,"1822",0);
-  pc_label_sequence(1,16UL,1,2,"1822",0);
-  pc_label_sequence_condition(0,"1824");
+  pc_label_sequence(1,15UL,1,2,"1929",0);
+  pc_label_sequence(1,16UL,1,2,"1929",0);
+  pc_label_sequence_condition(0,"1931");
   int flag = 1;
-  pc_label_sequence(1,22UL,1,2,"1824",0);
-  pc_label_sequence_condition(0,"1823");
+  pc_label_sequence(1,22UL,1,2,"1931",0);
+  pc_label_sequence_condition(0,"1930");
   j = 2;
-  pc_label_sequence(1,14UL,1,2,"1823",0);
-  pc_label_sequence(1,17UL,1,2,"1823",0);
-  pc_label_sequence(1,18UL,1,2,"1823",0);
+  pc_label_sequence(1,14UL,1,2,"1930",0);
+  pc_label_sequence(1,17UL,1,2,"1930",0);
+  pc_label_sequence(1,18UL,1,2,"1930",0);
   while (1) {
-    pc_label_sequence(1,14UL,2,2,"1823",0);
-    pc_label_sequence(1,15UL,2,2,"1822",0);
-    pc_label_sequence(1,19UL,2,2,"1823",0);
+    pc_label_sequence(1,14UL,2,2,"1930",0);
+    pc_label_sequence(1,15UL,2,2,"1929",0);
+    pc_label_sequence(1,19UL,2,2,"1930",0);
     if (! (j <= n / 2)) break;
-    pc_label_sequence(1,16UL,2,2,"1822",0);
-    pc_label_sequence(1,17UL,2,2,"1823",0);
-    pc_label_sequence(1,20UL,2,2,"1823",0);
+    pc_label_sequence(1,16UL,2,2,"1929",0);
+    pc_label_sequence(1,17UL,2,2,"1930",0);
+    pc_label_sequence(1,20UL,2,2,"1930",0);
     if (n % j == 0) {
-      pc_label_sequence_condition(0,"1824");
+      pc_label_sequence_condition(0,"1931");
       flag = 0;
-      pc_label_sequence(1,23UL,1,2,"1824",0);
+      pc_label_sequence(1,23UL,1,2,"1931",0);
       break;
     }
-    pc_label_sequence(1,18UL,2,2,"1823",0);
-    pc_label_sequence(1,21UL,2,2,"1823",0);
-    pc_label_sequence_condition(0,"1823");
+    pc_label_sequence(1,18UL,2,2,"1930",0);
+    pc_label_sequence(1,21UL,2,2,"1930",0);
+    pc_label_sequence_condition(0,"1930");
     j ++;
-    pc_label_sequence(1,19UL,1,2,"1823",0);
-    pc_label_sequence(1,20UL,1,2,"1823",0);
-    pc_label_sequence(1,21UL,1,2,"1823",0);
+    pc_label_sequence(1,19UL,1,2,"1930",0);
+    pc_label_sequence(1,20UL,1,2,"1930",0);
+    pc_label_sequence(1,21UL,1,2,"1930",0);
   }
-  pc_label_sequence(1,22UL,2,2,"1824",0);
-  pc_label_sequence(1,23UL,2,2,"1824",0);
+  pc_label_sequence(1,22UL,2,2,"1931",0);
+  pc_label_sequence(1,23UL,2,2,"1931",0);
   return flag;
 }
 

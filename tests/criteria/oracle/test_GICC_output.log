@@ -3,4 +3,5 @@
 [lannot] apply annotations for GICC
 [lannot] write modified C file (to tests/criteria/result/test_GICC_labels.c)
 [lannot] write label data (to tests/criteria/result/test_GICC_labels.labels)
+[lannot] 12 labels/sequences created
 [lannot] finished

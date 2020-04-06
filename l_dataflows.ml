@@ -16,13 +16,13 @@ type t =
   | NonBottom of DefSet.t
 
 (* bind each new sequence (def) to its corresponding statement *)
-let to_add_defs : (int, int*stmt) Hashtbl.t = Hashtbl.create 32
+let to_add_defs : (int, (int*stmt) list) Hashtbl.t = Hashtbl.create 32
 (* bind each new sequence (use)  to its corresponding statement *)
-let to_add_uses : (int, int*stmt) Hashtbl.t = Hashtbl.create 32
+let to_add_uses : (int, (int*stmt) list) Hashtbl.t = Hashtbl.create 32
 (* bind each new sequence (cond) to its corresponding statement *)
 let to_add_cond : (int, stmt) Hashtbl.t = Hashtbl.create 32
 (* bind each new sequence (def) to its corresponding function (for function formals) *)
-let to_add_fun : (int, int*stmt) Hashtbl.t = Hashtbl.create 32
+let to_add_fun : (int, (int*stmt) list) Hashtbl.t = Hashtbl.create 32
 
 (* For each variable, keep the number of assignment seen for this variable *)
 let def_id : (int, int) Hashtbl.t = Hashtbl.create 32
@@ -30,7 +30,7 @@ let def_id : (int, int) Hashtbl.t = Hashtbl.create 32
 (* bind a variable id and an index to a new id  *)
 let index_vid : (int*int,int) Hashtbl.t = Hashtbl.create 32
 (* Used to find all indexes seen for a specific vid  *)
-let vid_to_index : (int,int) Hashtbl.t = Hashtbl.create 32
+let vid_to_index : (int,int list) Hashtbl.t = Hashtbl.create 32
 
 (* since cil expr have no side effect, we do not need to create more than one sequence if
  a lval is used more than once in an expr *)
@@ -69,6 +69,14 @@ let reset_all () : unit =
   Hashtbl.reset seen_def;
   count_def := 0
 
+let replace_or_add_list tbl key value =
+  if Hashtbl.mem tbl key then begin
+    let old = Hashtbl.find tbl key in
+    Hashtbl.replace tbl key (value::old)
+  end
+  else
+    Hashtbl.add tbl key [value]
+
 (* Given a variable id, increment the number of defs seen, and returns it *)
 let get_next_def_id (vid:int) : int  =
   if Hashtbl.mem def_id vid then begin
@@ -85,7 +93,7 @@ let get_index_vid (vid:int) (index:int) : int =
     Hashtbl.find index_vid (vid,index)
   else begin
     let new_vid =  Cil_const.new_raw_id () in
-    Hashtbl.add vid_to_index vid index;
+    replace_or_add_list vid_to_index vid index;
     Hashtbl.add index_vid (vid,index) new_vid;
     new_vid
   end
@@ -96,8 +104,11 @@ let make_def ?(funId = (-1)) (varId: int) (defId: int) (stmtDef: int) : def =
 
 (* for a given variable id, returns all indexes seen so far for this id *)
 let get_all_index_vid (vid:int) : int list =
-  let all_index = Hashtbl.find_all vid_to_index vid in
-  List.map (fun i -> Hashtbl.find index_vid (vid,i)) all_index
+  if Hashtbl.mem vid_to_index vid then begin
+    let all_index = Hashtbl.find vid_to_index vid in
+    List.map (fun i -> Hashtbl.find index_vid (vid,i)) all_index
+  end
+  else []
 
 (* If 'index' can be reduced to a constant, then create a new id, associate it to the pair
    (variable id, 'index') and returns it, else return vid.
@@ -119,11 +130,7 @@ let extract_index (vid:int) (index:Cil_types.offset) : int list =
 
 (* Add a sequence id to its corresponding hyperlabel *)
 let add_to_hyperlabel (key:int*int) (ids:int) : unit =
-  if Hashtbl.mem hyperlabels key then
-    let old = Hashtbl.find hyperlabels key in
-    Hashtbl.replace hyperlabels key (ids::old)
-  else
-    Hashtbl.add hyperlabels key [ids]
+  replace_or_add_list hyperlabels key ids
 
 (* Given a pair (stmt id, expr id), returns all defs already done for this expr *)
 let get_done_set (key:int*int) : DefSet.t =
@@ -191,7 +198,6 @@ let mkCond (vid: int) : Cil_types.stmt =
   let ccExp = Exp.string (string_of_int vid) in
   Utils.mk_call "pc_label_sequence_condition" ([zeroExp;ccExp])
 
-
 (* Since expr (and inside of instr) don't have any side effect,
    we can create only one sequence per lval inside it,
    even if they are used more than once*)
@@ -219,11 +225,11 @@ class visit_defuse (t:t) (sid:int) = object(self)
     if def.funId = -1 then begin
       if not (Hashtbl.mem to_add_cond def.stmtDef) then
         Hashtbl.add to_add_cond def.stmtDef (mkCond def.varId);
-      Hashtbl.add to_add_defs def.stmtDef (ids,sdef)
+      replace_or_add_list to_add_defs def.stmtDef (ids,sdef)
     end
     else
-      Hashtbl.add to_add_fun def.funId (ids,sdef);
-    Hashtbl.add to_add_uses sid (ids,suse);
+      replace_or_add_list to_add_fun def.funId (ids,sdef);
+    replace_or_add_list to_add_uses sid (ids,suse);
     add_to_hyperlabel (def.varId, def.defId) ids;
     add_to_done_set (sid,eid) def;
     incr nb_seqs
@@ -283,14 +289,14 @@ class visit_context (t:t) (sid:int) = object(self)
       if def.funId = -1 then begin
         if not (Hashtbl.mem to_add_cond def.stmtDef) then
           Hashtbl.add to_add_cond def.stmtDef (mkCond def.varId);
-        Hashtbl.add to_add_defs def.stmtDef (ids,s)
+        replace_or_add_list to_add_defs def.stmtDef (ids,s)
       end
       else
-        Hashtbl.add to_add_fun def.funId (ids,s);
+        replace_or_add_list to_add_fun def.funId (ids,s)
     in
     List.iteri f (DefSet.elements defs);
     let u = mkSeq_aux ids "N/A" max max in
-    Hashtbl.add to_add_uses sid (ids,u);
+    replace_or_add_list to_add_uses sid (ids,u);
     add_to_hyperlabel (eid, 0) ids;
     incr nb_seqs
 
@@ -464,9 +470,21 @@ class addSequences defuse= object(self)
   (* get all sequences, sort defs and uses by sequence ID, and returns
   a pair of list (before,after) with sequences to add before & after the current statement *)
   method private get_seqs_sorted sid =
-    let defs = Hashtbl.find_all to_add_defs sid in
-    let uses = Hashtbl.find_all to_add_uses sid in
-    let cond = List.rev (Hashtbl.find_all to_add_cond sid) in
+    let defs =
+      if Hashtbl.mem to_add_defs sid then
+        Hashtbl.find to_add_defs sid
+      else []
+    in
+    let uses =
+      if Hashtbl.mem to_add_uses sid then
+        Hashtbl.find to_add_uses sid
+      else []
+    in
+    let cond =
+      if Hashtbl.mem to_add_cond sid then
+        [Hashtbl.find to_add_cond sid]
+      else []
+    in
     let compare (id1,_) (id2,_) = compare id1 id2 in
     let defs,uses = List.sort compare defs, List.sort compare uses in
     List.map (fun (_,s) -> s) defs, (List.map (fun (_,s) -> s) uses) @ cond
@@ -479,7 +497,11 @@ class addSequences defuse= object(self)
       do_function kf defuse;
       Cil.DoChildrenPost (fun f ->
           let id = dec.svar.vid in
-          let defs = List.sort compare (Hashtbl.find_all to_add_fun id) in
+          let defs = List.sort compare (
+              if Hashtbl.mem to_add_fun id then
+                Hashtbl.find to_add_fun id
+              else [])
+          in
           let params = List.map (fun (_,s) -> s) defs in
           f.sbody.bstmts <- params @ f.sbody.bstmts;
           reset_all ();

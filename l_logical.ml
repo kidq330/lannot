@@ -179,7 +179,13 @@ let rec generate_equalities i =
   | 1 -> "cA1 == cB1"
   | _ -> (generate_equalities (i-1)) ^ " && " ^ "cA" ^ (string_of_int i)  ^ "== cB" ^ (string_of_int i)
 
-let couple_to_string c = Annotators.next_hl() ^ ") <l" ^ (string_of_int (fst c)) ^ ".l" ^ (string_of_int (fst (snd c))) ^ "|;" ^ generate_equalities (snd (snd c)) ^ ";>"
+let couple_to_string c =
+  Annotators.next_hl() ^ ") <l"
+  ^ (string_of_int (fst c)) ^ ".l"
+  ^ (string_of_int (fst (snd c)))
+  ^ "|;"
+  ^ generate_equalities (snd (snd c))
+  ^ ";>"
 
 let gen_hyperlabels_racc = ref (fun () ->
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
