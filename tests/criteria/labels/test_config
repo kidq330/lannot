@@ -1,0 +1,4 @@
+LOG: @PTEST_NAME@_labels.c
+LOG: @PTEST_NAME@_labels.labels
+CMD: @frama-c@ @PTEST_FILE@ -lannot-o @PTEST_DIR@/result/@PTEST_NAME@_labels.c
+OPT:

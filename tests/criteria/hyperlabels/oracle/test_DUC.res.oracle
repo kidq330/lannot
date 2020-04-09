@@ -1,0 +1,11 @@
+[kernel] Parsing tests/criteria/hyperlabels/test_DUC.c (with preprocessing)
+[kernel] Parsing tests/criteria/hyperlabels/test_DUC.c (with preprocessing)
+[lannot] apply annotations for DUC
+[lannot] write hyperlabel data (to tests/criteria/hyperlabels/result/test_DUC_labels.hyperlabels)
+[lannot] Number of ignored labels 0
+[lannot] Total number of sequences = 22
+[lannot] Total number of hyperlabels = 22
+[lannot] write modified C file (to tests/criteria/hyperlabels/result/test_DUC_labels.c)
+[lannot] write label data (to tests/criteria/hyperlabels/result/test_DUC_labels.labels)
+[lannot] 22 labels/sequences created
+[lannot] finished

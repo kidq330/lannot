@@ -1,0 +1,11 @@
+[kernel] Parsing tests/criteria/hyperlabels/test_ADC.c (with preprocessing)
+[kernel] Parsing tests/criteria/hyperlabels/test_ADC.c (with preprocessing)
+[lannot] apply annotations for ADC
+[lannot] write hyperlabel data (to tests/criteria/hyperlabels/result/test_ADC_labels.hyperlabels)
+[lannot] Number of ignored labels 0
+[lannot] Total number of sequences = 39
+[lannot] Total number of hyperlabels = 15
+[lannot] write modified C file (to tests/criteria/hyperlabels/result/test_ADC_labels.c)
+[lannot] write label data (to tests/criteria/hyperlabels/result/test_ADC_labels.labels)
+[lannot] 39 labels/sequences created
+[lannot] finished
