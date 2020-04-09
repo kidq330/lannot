@@ -44,8 +44,7 @@ PLUGIN_CMO:= options utils ast_const bes simplify annotators \
 
 PLUGIN_DISTRIBUTED:=$(PLUGIN_ENABLE)
 PLUGIN_DISTRIB_EXTERNAL:= Makefile.in configure.ac configure
-PLUGIN_TESTS_DIRS:= options/labels options/hyperlabels criteria/labels \
-                    criteria/hyperlabels
+PLUGIN_TESTS_DIRS:= labels hyperlabels
 
 ################
 # Generic part #
