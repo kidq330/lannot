@@ -54,6 +54,8 @@ let compute_outfile opt files =
 
 
 let annotate_on_project ann_names =
+  let old_value = Kernel.LogicalOperators.get () in
+  Kernel.LogicalOperators.on (); (* invalidate the Ast if any *)
   let filename = compute_outfile (Options.Output.get ()) (Kernel.Files.get ()) in
 
   (* Remove .hyperlabels file if exists *)
@@ -83,6 +85,7 @@ let annotate_on_project ann_names =
   let out = open_out data_filename in
   store_label_data out annotations;
   close_out out;
+  Kernel.LogicalOperators.set old_value;
   Project.set_current old_project;
   Options.feedback "finished"
 
@@ -104,7 +107,6 @@ let setupMutatorOptions () =
   in
   Options.Mutators.iter f
 
-let old_value = Kernel.LogicalOperators.get ()
 
 (* ENTRY POINT *)
 let run () =
@@ -125,9 +127,7 @@ let run () =
       exit 0;
     end
   else if not (Options.Annotators.is_empty ()) then
-    (run ();
-     Kernel.LogicalOperators.set old_value)
+    run ()
 
 let () =
-  Kernel.LogicalOperators.on (); (* invalidate the Ast if any *)
   Db.Main.extend run
