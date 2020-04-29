@@ -120,14 +120,17 @@ let run () =
   | Dynamic.Incompatible_type(s) -> Options.fatal "%s incompatible" s
   | Failure s -> Options.fatal "unexpected failure: %s" s
 
-let run () =
-  if Options.ListAnnotators.get () then
-    begin
-      Annotators.print_help Format.std_formatter;
-      exit 0;
-    end
-  else if not (Options.Annotators.is_empty ()) then
-    run ()
+let run_once, _ = State_builder.apply_once "LAnnotate.run" [Ast.self] run
+
+let help () =
+  if Options.ListAnnotators.get () then begin
+    Annotators.print_help Format.std_formatter;
+    raise Cmdline.Exit
+  end
+let () = Cmdline.run_after_configuring_stage help
+
+let main () =
+  if not (Options.Annotators.is_empty ()) then run_once ()
 
 let () =
-  Db.Main.extend run
+  Db.Main.extend main

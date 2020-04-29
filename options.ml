@@ -36,7 +36,7 @@ let rec string_list l =
 module Annotators = String_set (struct
     let option_name = "-lannot"
     let arg_name = "criteria"
-    let help = "generate labels for each criterion (comma-separated \
+    let help = "enable annotation and generate labels for each criterion (comma-separated \
                 list of criteria, see -lannot-list)"
   end)
 let () = Annotators.add_aliases ["-lannotate"]
