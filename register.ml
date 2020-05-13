@@ -21,6 +21,9 @@
 (**************************************************************************)
 open Utils
 
+let old_value = ref (Kernel.LogicalOperators.get ())
+
+
 let store_label_data out annotations =
   (* TODO do that in its own module, ultimately shared with the other LTest-tools *)
   (* TODO (later) do something better than csv *)
@@ -54,9 +57,6 @@ let compute_outfile opt files =
 
 
 let annotate_on_project ann_names =
-  let old_value = Kernel.LogicalOperators.get () in
-  Kernel.LogicalOperators.on (); (* invalidate the Ast if any *)
-
   let filename = compute_outfile (Options.Output.get ()) (Kernel.Files.get ()) in
   let basename = Filename.chop_extension filename in
   (* Remove .hyperlabels file if exists *)
@@ -83,7 +83,6 @@ let annotate_on_project ann_names =
   let out = open_out data_filename in
   store_label_data out annotations;
   close_out out;
-  Kernel.LogicalOperators.set old_value;
   Options.feedback "finished"
 
 let annotate ann_names =
@@ -109,7 +108,8 @@ let setupMutatorOptions () =
 let run () =
   try
     setupMutatorOptions ();
-    annotate (Datatype.String.Set.elements (Options.Annotators.get ()))
+    annotate (Datatype.String.Set.elements (Options.Annotators.get ()));
+    Kernel.LogicalOperators.set !old_value
   with
   | Globals.No_such_entry_point _ ->
     Options.abort "`-main` parameter missing"
@@ -126,8 +126,14 @@ let help () =
   end
 let () = Cmdline.run_after_configuring_stage help
 
-let main () =
+let run () =
   if not (Options.Annotators.is_empty ()) then run_once ()
 
-let () =
-  Db.Main.extend main
+let setup_run () =
+  if not (Options.Annotators.is_empty ()) then begin
+    Kernel.LogicalOperators.on () (* invalidate the Ast if any *)
+  end
+
+let () = Cmdline.run_after_extended_stage setup_run
+
+let () = Db.Main.extend run
