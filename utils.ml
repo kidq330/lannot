@@ -30,9 +30,7 @@ let print_std_includes fmt globs =
     in
     let add_file acc g =
       let attrs = Cil_datatype.Global.attr g in
-      match Cil.findAttribute "fc_stdlib" attrs with
-      | [ arg ] -> extract_file acc arg
-      | _ -> acc
+      List.fold_left extract_file acc (Cil.findAttribute "fc_stdlib" attrs)
     in
     let includes = List.fold_left add_file Datatype.String.Set.empty globs in
     let print_one_include s = Format.fprintf fmt "#include \"%s\"@." s in
