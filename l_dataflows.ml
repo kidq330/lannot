@@ -455,7 +455,7 @@ let do_function kf defuse =
       [(first_stmt, NonBottom (!init))]
 
   end in
-  let module Analysis = Dataflows.Simple_forward(Fenv)(Arg) in
+  let module _ = Dataflows.Simple_forward(Fenv)(Arg) in
   ()
 
 (* This visitor will, for each function :

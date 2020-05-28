@@ -141,7 +141,7 @@ let do_function kf =
         [(Kernel_function.find_first_stmt kf, initial_value)]
 
     end in
-    let module Analysis = Dataflows.Simple_forward(Fenv)(Arg) in
+    let module _ = Dataflows.Simple_forward(Fenv)(Arg) in
     IntSet.elements @@ IntSet.diff !Inst.seq_seen !Inst.seq_complete
   end else []
 
