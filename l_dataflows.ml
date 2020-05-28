@@ -46,6 +46,8 @@ let hyperlabels : (int*int, int list) Hashtbl.t = Hashtbl.create 32
 (* count the number of sequences *)
 let nb_seqs = ref 0
 
+let nb_duplicate = ref 0
+
 (* def's ID, used to know the order of seen def during dataflow analysis *)
 let count_def = ref 1
 let next () =
@@ -207,11 +209,12 @@ let visited : int list ref = ref []
    or if it's the first time we saw it in the current expr/instr
    (except if CleanExp is true) *)
 let should_instrument v vid =
-  not v.vglob
-  && not (v.vname = "__retres")
-  && not v.vtemp
-  && (not (Options.CleanDuplicate.get())
-      || not (List.exists (fun vid' -> vid' = vid) !visited))
+  if  not v.vglob && not (v.vname = "__retres") && not v.vtemp then begin
+    let tmp = List.exists (fun vid' -> vid' = vid) !visited in
+    if tmp && not (Options.CleanDuplicate.get()) then incr nb_duplicate;
+    (not tmp || (not (Options.CleanDuplicate.get())))
+  end
+  else false
 
 (* This visitor visits each LVal to create sequences if the state t contains defs for this LVal *)
 class visit_defuse (t:t) (sid:int) = object(self)
@@ -563,6 +566,7 @@ let gen_hyperlabels () =
   close_out out;
   Options.feedback "Number of ignored labels %d" !ignoredLabels;
   Options.feedback "Total number of sequences = %d" !nb_seqs;
+  Options.feedback "Total number of duplicated sequences = %d" !nb_duplicate;
   Options.feedback "Total number of hyperlabels = %d" (Annotators.getCurrentHLId())
 
 (** Successively pass the 2 visitors *)
