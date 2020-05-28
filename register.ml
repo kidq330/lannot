@@ -134,6 +134,6 @@ let setup_run () =
     Kernel.LogicalOperators.on () (* invalidate the Ast if any *)
   end
 
-let () = Cmdline.run_after_extended_stage setup_run
+let () = Cmdline.run_after_configuring_stage setup_run
 
 let () = Db.Main.extend run
