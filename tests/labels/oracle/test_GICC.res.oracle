@@ -1,5 +1,4 @@
 [kernel] Parsing tests/labels/test_GICC.c (with preprocessing)
-[kernel] Parsing tests/labels/test_GICC.c (with preprocessing)
 [lannot] apply annotations for GICC
 [lannot] write modified C file (to tests/labels/result/test_GICC_labels.c)
 [lannot] write label data (to tests/labels/result/test_GICC_labels.labels)

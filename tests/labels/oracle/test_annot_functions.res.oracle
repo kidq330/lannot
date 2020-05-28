@@ -1,6 +1,5 @@
 [kernel] Parsing tests/labels/test_annot_functions.c (with preprocessing)
 [lannot] start project default_labels
-[kernel] Parsing tests/labels/test_annot_functions.c (with preprocessing)
 [lannot] apply annotations for CC
 [lannot] n-Condition Coverage config: n=1, all booleans=false
 [lannot] 1 atoms in a >= b

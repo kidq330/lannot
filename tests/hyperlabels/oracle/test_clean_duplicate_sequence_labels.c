@@ -17,28 +17,28 @@
 int main(int x)
  {
    int __retres;
-   pc_label_sequence(1,1UL,1,2,"53",0);
-   pc_label_sequence(1,2UL,1,2,"53",0);
-   pc_label_sequence(1,1UL,2,2,"53",0);
-   pc_label_sequence(1,2UL,2,2,"53",0);
-   pc_label_sequence_condition(0,"54");
+   pc_label_sequence(1,1UL,1,2,"25",0);
+   pc_label_sequence(1,2UL,1,2,"25",0);
+   pc_label_sequence(1,1UL,2,2,"25",0);
+   pc_label_sequence(1,2UL,2,2,"25",0);
+   pc_label_sequence_condition(0,"26");
    int a = x - x;
-   pc_label_sequence(1,3UL,1,2,"54",0);
-   pc_label_sequence(1,4UL,1,2,"54",0);
-   pc_label_sequence(1,5UL,1,2,"54",0);
-   pc_label_sequence(1,8UL,1,2,"54",0);
-   pc_label_sequence(1,9UL,1,2,"54",0);
-   pc_label_sequence(1,3UL,2,2,"54",0);
-   pc_label_sequence(1,4UL,2,2,"54",0);
-   pc_label_sequence(1,5UL,2,2,"54",0);
-   pc_label_sequence_condition(0,"55");
+   pc_label_sequence(1,3UL,1,2,"26",0);
+   pc_label_sequence(1,4UL,1,2,"26",0);
+   pc_label_sequence(1,5UL,1,2,"26",0);
+   pc_label_sequence(1,8UL,1,2,"26",0);
+   pc_label_sequence(1,9UL,1,2,"26",0);
+   pc_label_sequence(1,3UL,2,2,"26",0);
+   pc_label_sequence(1,4UL,2,2,"26",0);
+   pc_label_sequence(1,5UL,2,2,"26",0);
+   pc_label_sequence_condition(0,"27");
    int b = (a - a) * a;
-   pc_label_sequence(1,6UL,1,2,"55",0);
-   pc_label_sequence(1,7UL,1,2,"55",0);
-   pc_label_sequence(1,6UL,2,2,"55",0);
-   pc_label_sequence(1,7UL,2,2,"55",0);
-   pc_label_sequence(1,8UL,2,2,"54",0);
-   pc_label_sequence(1,9UL,2,2,"54",0);
+   pc_label_sequence(1,6UL,1,2,"27",0);
+   pc_label_sequence(1,7UL,1,2,"27",0);
+   pc_label_sequence(1,6UL,2,2,"27",0);
+   pc_label_sequence(1,7UL,2,2,"27",0);
+   pc_label_sequence(1,8UL,2,2,"26",0);
+   pc_label_sequence(1,9UL,2,2,"26",0);
    __retres = b * b + a * a;
    return __retres;
  }

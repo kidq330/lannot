@@ -17,34 +17,34 @@
 int maintest(int c)
  {
    int __retres;
-   pc_label_sequence(1,1UL,1,3,"53",0);
-   pc_label_sequence(1,2UL,1,3,"53",0);
-   pc_label_sequence(1,3UL,1,4,"53",0);
-   pc_label_sequence(1,4UL,1,4,"53",0);
-   pc_label_sequence(1,5UL,1,4,"53",0);
-   pc_label_sequence(1,6UL,1,4,"53",0);
-   pc_label_sequence_condition(0,"54");
+   pc_label_sequence(1,1UL,1,3,"25",0);
+   pc_label_sequence(1,2UL,1,3,"25",0);
+   pc_label_sequence(1,3UL,1,4,"25",0);
+   pc_label_sequence(1,4UL,1,4,"25",0);
+   pc_label_sequence(1,5UL,1,4,"25",0);
+   pc_label_sequence(1,6UL,1,4,"25",0);
+   pc_label_sequence_condition(0,"26");
    int a = 1;
-   pc_label_sequence(1,1UL,2,3,"54",0);
-   pc_label_sequence(1,3UL,2,4,"54",0);
-   pc_label_sequence(1,5UL,2,4,"54",0);
-   pc_label_sequence_condition(0,"55");
+   pc_label_sequence(1,1UL,2,3,"26",0);
+   pc_label_sequence(1,3UL,2,4,"26",0);
+   pc_label_sequence(1,5UL,2,4,"26",0);
+   pc_label_sequence_condition(0,"27");
    int b = 2;
-   pc_label_sequence(1,3UL,3,4,"55",0);
-   pc_label_sequence(1,4UL,2,4,"55",0);
+   pc_label_sequence(1,3UL,3,4,"27",0);
+   pc_label_sequence(1,4UL,2,4,"27",0);
    while (1) {
      if (! c) break;
      pc_label_sequence(1,1UL,3,3,"N/A",0);
      pc_label_sequence(1,2UL,3,3,"N/A",0);
-     pc_label_sequence_condition(0,"55");
+     pc_label_sequence_condition(0,"27");
      b = a + c;
-     pc_label_sequence(1,5UL,3,4,"55",0);
-     pc_label_sequence(1,6UL,2,4,"55",0);
-     pc_label_sequence_condition(0,"54");
+     pc_label_sequence(1,5UL,3,4,"27",0);
+     pc_label_sequence(1,6UL,2,4,"27",0);
+     pc_label_sequence_condition(0,"26");
      a = 2;
-     pc_label_sequence(1,2UL,2,3,"54",0);
-     pc_label_sequence(1,4UL,3,4,"54",0);
-     pc_label_sequence(1,6UL,3,4,"54",0);
+     pc_label_sequence(1,2UL,2,3,"26",0);
+     pc_label_sequence(1,4UL,3,4,"26",0);
+     pc_label_sequence(1,6UL,3,4,"26",0);
    }
    pc_label_sequence(1,3UL,4,4,"N/A",0);
    pc_label_sequence(1,4UL,4,4,"N/A",0);

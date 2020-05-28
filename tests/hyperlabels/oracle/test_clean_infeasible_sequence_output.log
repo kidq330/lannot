@@ -1,9 +1,9 @@
 [kernel] Parsing tests/hyperlabels/test_clean_infeasible_sequence.c (with preprocessing)
-[kernel] Parsing tests/hyperlabels/test_clean_infeasible_sequence.c (with preprocessing)
 [lannot] apply annotations for ADC
 [lannot] write hyperlabel data (to tests/hyperlabels/result/test_clean_infeasible_sequence_labels.hyperlabels)
 [lannot] Number of ignored labels 0
 [lannot] Total number of sequences = 7
+[lannot] Total number of duplicated sequences = 0
 [lannot] Total number of hyperlabels = 7
 [lannot] write modified C file (to tests/hyperlabels/result/test_clean_infeasible_sequence_labels.c)
 [lannot] write label data (to tests/hyperlabels/result/test_clean_infeasible_sequence_labels.labels)
