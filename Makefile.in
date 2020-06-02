@@ -38,9 +38,8 @@ PLUGIN_ENABLE:=@ENABLE_LANNOTATE@
 PLUGIN_NAME:=LAnnotate
 
 PLUGIN_CMO:= options utils ast_const bes simplify annotators \
-             l_wm l_logical l_partition clean_dataflow l_dataflow \
-             l_dataflows l_context l_function l_statement l_loop \
-             register
+             l_wm l_logical l_partition l_dataflows l_context \
+             l_function l_statement l_loop register
 
 PLUGIN_DISTRIBUTED:=$(PLUGIN_ENABLE)
 PLUGIN_DISTRIB_EXTERNAL:= Makefile.in configure.ac configure
