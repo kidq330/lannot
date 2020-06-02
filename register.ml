@@ -108,8 +108,8 @@ let setupMutatorOptions () =
 let run () =
   try
     setupMutatorOptions ();
-    annotate (Datatype.String.Set.elements (Options.Annotators.get ()));
-    Kernel.LogicalOperators.set !old_value
+    annotate (Datatype.String.Set.elements (Options.Annotators.get ()))
+    (* Kernel.LogicalOperators.set !old_value *)
   with
   | Globals.No_such_entry_point _ ->
     Options.abort "`-main` parameter missing"
