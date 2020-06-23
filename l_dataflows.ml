@@ -426,16 +426,16 @@ let do_function kf defuse =
   let module Inst = P(V) in
   let args = Kernel_function.get_formals kf in
   let first_stmt = Kernel_function.find_first_stmt kf in
-  let init = ref DefSet.empty in
-  let f arg =
+  let funId = Kernel_function.get_id kf in
+  let f acc arg =
     let defId = get_next_def_id arg.vid in
-    init := DefSet.add (make_def ~funId:(Kernel_function.get_id kf) arg.vid defId first_stmt.sid) !init
+    DefSet.add (make_def ~funId arg.vid defId first_stmt.sid) acc
   in
-  List.iter f args;
+  let init = List.fold_left f DefSet.empty args in
   let module Arg = struct
     include Inst
     let init =
-      [(first_stmt, NonBottom (!init))]
+      [(first_stmt, NonBottom init)]
 
   end in
   let module _ = Dataflows.Simple_forward(Fenv)(Arg) in
