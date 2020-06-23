@@ -38,6 +38,7 @@ let done_set : (int*int,DefSet.t) Hashtbl.t = Hashtbl.create 32
 let seen_def : (int,def) Hashtbl.t = Hashtbl.create 32
 
 (* Used to create hyperlabels. key = (variable id, definition id), value = sequence id *)
+let equivalent_tbl : (int*block,DefSet.t) Hashtbl.t = Hashtbl.create 32
 let hyperlabels : (int*int, int list) Hashtbl.t = Hashtbl.create 32
 
 (* count the number of sequences *)
@@ -62,6 +63,7 @@ let reset_all () : unit =
   Hashtbl.reset to_add_fun;
   Hashtbl.reset def_id;
   Hashtbl.reset offset_id;
+  Hashtbl.reset equivalent_tbl;
   Hashtbl.reset done_set;
   Hashtbl.reset seen_def;
   count_def := 0
@@ -194,15 +196,29 @@ let visited : int list ref = ref []
 (* Test if a LVal shoudl be instrumented, i.e. it's not a global, a temp variable
    or if it's the first time we saw it in the current expr/instr
    (except if CleanExp is true) *)
-let should_instrument v vid =
-  if  not v.vglob && not (v.vname = "__retres") && not v.vtemp then begin
-    let tmp = List.exists (fun vid' -> vid' = vid) !visited in
-    (not tmp || (not (Options.CleanDuplicate.get())))
-  end
+let is_duplicate_triv (vid:int) : bool =
+  List.exists (fun vid' -> vid' = vid) !visited
+
+let is_equivalent (vid:int) (b:block) (st:DefSet.t) : bool =
+  if Hashtbl.mem equivalent_tbl (vid,b) then
+    let st' = Hashtbl.find equivalent_tbl (vid,b) in
+    DefSet.equal st st'
   else false
 
-(* This visitor visits each LVal to create sequences if the state t contains defs for this LVal *)
-class visit_defuse (t:t) (sid:int) = object(self)
+let should_instrument (v:varinfo) (vid:int) : bool =
+  not v.vglob && not (v.vname = "__retres") && not v.vtemp &&
+  (not (is_duplicate_triv vid) || not (Options.CleanDuplicate.get ()))
+
+let clean_equivalent_tbl all_b =
+  let f (vid,b) _ =
+    if List.exists (fun b' -> Cil_datatype.Block.equal b b') all_b then
+      Hashtbl.remove equivalent_tbl (vid,b)
+  in
+  Hashtbl.iter f equivalent_tbl
+
+(* This visitor visits each LVal to create sequences if the state t contains
+   defs for theses LVals *)
+class visit_defuse (t:t) (current_stmt:stmt) = object(self)
   inherit Visitor.frama_c_inplace
 
   (* Create for a given def the sequence def-use for the current LVal *)
@@ -210,6 +226,8 @@ class visit_defuse (t:t) (sid:int) = object(self)
     let ids = Annotators.next () in
     let sdef = mkSeq_aux ids (string_of_int def.varId) 1 2 in
     let suse = mkSeq_aux ids (string_of_int def.varId) 2 2 in
+  val current_block : block = Kernel_function.find_enclosing_block current_stmt
+  val sid : int = current_stmt.sid
     if def.funId = -1 then begin
       if not (Hashtbl.mem to_add_cond def.stmtDef) then
         Hashtbl.add to_add_cond def.stmtDef (mkCond def.varId);
@@ -235,6 +253,9 @@ class visit_defuse (t:t) (sid:int) = object(self)
             let already_done = get_done_set (sid, expr.eid) in
             let all_vid_defs = DefSet.filter (fun def -> def.varId = vid) t in
             let all_vid_defs_todo = DefSet.diff all_vid_defs already_done in
+            let is_eq = is_equivalent vid current_block all_vid_defs_todo in
+            Hashtbl.replace  equivalent_tbl (vid,current_block) all_vid_defs_todo;
+            if not is_eq || not (Options.CleanDuplicate.get ()) then
               DefSet.iter (self#mkSeq expr.eid) all_vid_defs_todo;
           end;
           Cil.DoChildren
@@ -261,8 +282,10 @@ end
 
 
 (* This visitor visits each LVal to create sequences if the state t contains defs for this LVal *)
-class visit_context (t:t) (sid:int) = object(self)
+class visit_context (t:t) (current_stmt:stmt) = object(self)
   inherit Visitor.frama_c_inplace
+
+  val sid = current_stmt.sid
 
   (* Create for a given def the sequence def-use for the current LVal *)
   method private mkComb eid defs =
@@ -307,17 +330,17 @@ class visit_context (t:t) (sid:int) = object(self)
 end
 
 module type V_type = sig
-  val make : t -> int -> Cil.cilVisitor
+  val make : t -> stmt -> Cil.cilVisitor
 end
 
 let get_v b =
   if b then
     (module struct
-      let make state sid = (new visit_defuse state sid :> Cil.cilVisitor)
+      let make state stmt = (new visit_defuse state stmt :> Cil.cilVisitor)
     end: V_type)
   else
     (module struct
-      let make state sid = (new visit_context state sid :> Cil.cilVisitor)
+      let make state stmt = (new visit_context state stmt :> Cil.cilVisitor)
     end: V_type)
 
 module P(V : V_type) = struct
@@ -363,10 +386,10 @@ module P(V : V_type) = struct
 
   (* For each definition statement, change the current state by
      adding or not new definition, removing older ones etc... *)
-  let do_def v offset sid = function
+  let do_def vid offset sid = function
     | Bottom -> Bottom
     | NonBottom t ->
-      let vid = get_vid_with_field v.vid offset in
+      let vid = get_vid_with_field vid offset in
       let t_clean =
         if Options.CleanDataflow.get () then
           remove_def vid t
@@ -390,28 +413,33 @@ module P(V : V_type) = struct
     match stmt.skind with
     | Instr i when not (Utils.is_label i) ->
       visited := [];
-      ignore(Cil.visitCilInstr (V.make state stmt.sid) i);
+      ignore(Cil.visitCilInstr (V.make state stmt) i);
       begin match i with
         | Set ((Var v,offset),_,_)
         | Call (Some (Var v,offset),_,_,_) ->
           if not (v.vname = "__retres") && not v.vtemp then begin
-            let res = do_def v offset stmt.sid state in
+            let res = do_def v.vid offset stmt.sid state in
             List.map (fun x -> (x,res)) stmt.succs
           end
           else List.map (fun x -> (x,state)) stmt.succs
         | Local_init (v,_,_) ->
           if not (v.vname = "__retres") && not v.vtemp then begin
-            let res = do_def v NoOffset stmt.sid state in
+            let res = do_def v.vid NoOffset stmt.sid state in
             List.map (fun x -> (x,res)) stmt.succs
           end
           else List.map (fun x -> (x,state)) stmt.succs
         | _ -> List.map (fun x -> (x,state)) stmt.succs
       end
-    | Return (Some e,_)
+    | Return (Some e,_) ->
+      visited := [];
+      ignore(Cil.visitCilExpr (V.make state stmt) e);
+      List.map (fun x -> (x,state)) stmt.succs
     | If (e,_,_,_)
     | Switch (e,_,_,_) ->
       visited := [];
-      ignore(Cil.visitCilExpr (V.make state stmt.sid) e);
+      ignore(Cil.visitCilExpr (V.make state stmt) e);
+      let all_b = Kernel_function.find_all_enclosing_blocks stmt in
+      clean_equivalent_tbl all_b;
       List.map (fun x -> (x,state)) stmt.succs
     | _ -> List.map (fun x -> (x,state)) stmt.succs
 
