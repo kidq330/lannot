@@ -26,21 +26,11 @@ type t =
   | Bottom
   | NonBottom of DefSet.t
 
-(* bind each new sequence (def) to its corresponding statement, sequence id is
-   used to sort them at the end
-   key : statement id
-   value : (sequence id * statement) list
-*)
-let to_add_defs : (int, (int*stmt) list) Hashtbl.t = Hashtbl.create 32
-(* bind each new sequence (use)  to its corresponding statement *)
-let to_add_uses : (int, (int*stmt) list) Hashtbl.t = Hashtbl.create 32
-(* bind each new sequence (cond) to its corresponding statement *)
-let to_add_cond : (int, stmt) Hashtbl.t = Hashtbl.create 32
-(* bind each new sequence (def) to its corresponding function (for formals)
-   key : function id
-   value : (sequence id * statement) list
-*)
-let to_add_fun : (int, (int*stmt) list) Hashtbl.t = Hashtbl.create 32
+(* Count the number of sequences. *)
+let nb_seqs = ref 0
+
+(* Def's ID, used to know the order of seen def during dataflow analysis. *)
+let count_def = ref 1
 
 (* For each variable, keep the number of assignment seen for this variable
    key : variable id
@@ -72,24 +62,33 @@ let seen_def : (int,def) Hashtbl.t = Hashtbl.create 32
 *)
 let equivalent_tbl : (int*block,DefSet.t) Hashtbl.t = Hashtbl.create 32
 
+(* bind each new sequence (def) to its corresponding statement, sequence id is
+   used to sort them at the end
+   key : statement id
+   value : (sequence id * statement) list
+*)
+let to_add_defs : (int, (int*stmt) list) Hashtbl.t = Hashtbl.create 32
+(* bind each new sequence (use)  to its corresponding statement *)
+let to_add_uses : (int, (int*stmt) list) Hashtbl.t = Hashtbl.create 32
+(* bind each new sequence (cond) to its corresponding statement *)
+let to_add_cond : (int, stmt) Hashtbl.t = Hashtbl.create 32
+(* bind each new sequence (def) to its corresponding function (for formals)
+   key : function id
+   value : (sequence id * statement) list
+*)
+let to_add_fun : (int, (int*stmt) list) Hashtbl.t = Hashtbl.create 32
+
 (* Used to create hyperlabels
    key : variable id * definition id
    value : (sequence id) list
 *)
 let hyperlabels : (int*int, int list) Hashtbl.t = Hashtbl.create 32
 
-(* Count the number of sequences. *)
-let nb_seqs = ref 0
-
-(* Def's ID, used to know the order of seen def during dataflow analysis. *)
-let count_def = ref 1
+(* Increments count_def and returns the old value *)
 let next () =
   let tmp = !count_def in
   incr count_def;
   tmp
-
-(* Used for context criteria, count the number of labels avoided due to MaxContextPath option*)
-let ignoredLabels = ref 0
 
 (* Clear all hashtbl and reset counter after each function in addSequences *)
 let reset_all () : unit =
@@ -115,17 +114,6 @@ let replace_or_add_list (tbl:('a,'b list) Hashtbl.t) (key:'a) (elt:'b) =
   else
     Hashtbl.add tbl key [elt]
 
-(* Given a variable id, increment the number of defs seen
-   and returns it. If it is the first return 1. *)
-let get_next_def_id (vid:int) : int  =
-  if Hashtbl.mem def_id vid then begin
-    let n = (Hashtbl.find def_id vid) + 1 in
-    Hashtbl.replace def_id vid n;
-    n
-  end
-  else
-    (Hashtbl.add def_id vid 1; 1)
-
 (* Create a new def. *)
 let make_def ?(funId = (-1)) (varId: int) (defId: int) (stmtDef: int) : def =
   {id=next();funId;varId;defId;stmtDef}
@@ -142,20 +130,24 @@ let get_done_set (key:int*int) : DefSet.t =
   else
     DefSet.empty
 
-(* Given a pair (stmt id, expr id), returns all defs already done for this expr *)
-let get_all_done_set (key:int*int) : DefSet.t list =
-  Hashtbl.find_all done_set key
-
 (* Add the given def to the set of done_def for the corresponding key *)
-let add_to_done_set (key:int*int) (def:def) : unit =
+let add_done_set (key:int*int) (def:def) : unit =
   if Hashtbl.mem done_set key then
     let old = Hashtbl.find done_set key in
     Hashtbl.replace done_set key (DefSet.add def old)
   else
     Hashtbl.add done_set key (DefSet.singleton def)
 
-let add_done_set (key:int*int) (set:DefSet.t) : unit =
-  Hashtbl.add done_set key set
+(* Given a variable id, increment the number of defs seen
+   and returns it. If it is the first return 1. *)
+let get_next_def_id (vid:int) : int  =
+  if Hashtbl.mem def_id vid then begin
+    let n = (Hashtbl.find def_id vid) + 1 in
+    Hashtbl.replace def_id vid n;
+    n
+  end
+  else
+    (Hashtbl.add def_id vid 1; 1)
 
 (* For a given vid and field name, returns their unique id *)
 let get_offset_id (vid:int) (field_name:string) : int =
@@ -184,55 +176,6 @@ let rec get_vid_with_field (vid:int) (offset:offset) : int =
   else
     vid
 
-(** Return the cartesian product between all lists of def given in parameters
-    [[a;b];[c;d]] -> [[a;c];[a;d];[b;c];[b;d]] ...
-*)
-let rec n_cartesian_product (ll : def list list) : def list list =
-  match ll with
-  | [] -> assert false
-  | [l] -> List.fold_left (fun acc i -> [i]::acc) [] l
-  | h :: t ->
-    let rest = n_cartesian_product t in
-    List.concat
-      (List.fold_left (fun acc i -> acc@[List.fold_left (fun acc2 r -> (i :: r)::acc2) [] rest]) [] h)
-
-(* Given a list of def list (For each variable, each definitions), returns all possible combinations
-of those definitions that were not already computed before *)
-let make_combs expr sid (combs: def list list) : DefSet.t list =
-  let prod_size = List.fold_left (fun acc l -> acc * (List.length l)) 1 combs in
-  if prod_size <= Options.MaxContextPath.get () then begin
-    let all_cases = n_cartesian_product combs in
-    let all_cases = List.map (fun dl -> DefSet.of_list dl) all_cases in
-    let already_done_combs = get_all_done_set (sid, expr.eid) in
-    let all_cases = List.filter (fun c1 -> not (List.exists (fun c2 -> DefSet.equal c1 c2) already_done_combs)) all_cases in
-    all_cases
-  end
-  else
-    (ignoredLabels := (List.length combs + 1) * prod_size + !ignoredLabels;
-     Options.warning "Expression ignored in file %a, too many paths (%d)"
-       Printer.pp_location expr.eloc prod_size; [])
-
-(* Create a sequence member
-   ids : sequence id
-   vid : variable id
-   id : position of this member (ex. 1=def and 2=use for def-use pairs
-   max : size of the sequence (2 for def-use pairs)
- *)
-let  mkSeq_aux (ids: int) (vid: string) (id:int) (max:int) : stmt =
-  let idExp = Exp.kinteger IULong ids in
-  let oneExp = Exp.one () in
-  let curr = Exp.integer id in
-  let slen = Exp.integer max in
-  let varExp = Exp.string vid in
-  let zeroExp = Exp.zero () in
-  Utils.mk_call "pc_label_sequence" ([oneExp;idExp;curr;slen;varExp;zeroExp])
-
-(* Create a condition which will break sequences for the variable vid *)
-let mkCond (vid: int) : stmt =
-  let zeroExp = Exp.zero () in
-  let ccExp = Exp.string (string_of_int vid) in
-  Utils.mk_call "pc_label_sequence_condition" ([zeroExp;ccExp])
-
 (* Remember variable processed to allow the possibility
    of removing trivially duplicated sequence*)
 let visited : int list ref = ref []
@@ -256,12 +199,34 @@ let should_instrument (v:varinfo) (vid:int) : bool =
   not v.vglob && not (v.vname = "__retres") && not v.vtemp &&
   (not (is_duplicate_triv vid) || not (Options.CleanDuplicate.get ()))
 
-let clean_equivalent_tbl all_b =
+(* Remove all bindings which use these blocks *)
+let clean_equivalent_tbl (all_b:block list) : unit =
   let f (vid,b) _ =
     if List.exists (fun b' -> Cil_datatype.Block.equal b b') all_b then
       Hashtbl.remove equivalent_tbl (vid,b)
   in
   Hashtbl.iter f equivalent_tbl
+
+(* Create a sequence member
+   ids : sequence id
+   vid : variable id
+   id : position of this member (ex. 1=def and 2=use for def-use pairs
+   max : size of the sequence (2 for def-use pairs)
+ *)
+let  mkSeq_aux (ids: int) (vid: string) (id:int) (max:int) : stmt =
+  let idExp = Exp.kinteger IULong ids in
+  let oneExp = Exp.one () in
+  let curr = Exp.integer id in
+  let slen = Exp.integer max in
+  let varExp = Exp.string vid in
+  let zeroExp = Exp.zero () in
+  Utils.mk_call "pc_label_sequence" ([oneExp;idExp;curr;slen;varExp;zeroExp])
+
+(* Create a condition which will break sequences for the variable vid *)
+let mkCond (vid: int) : stmt =
+  let zeroExp = Exp.zero () in
+  let ccExp = Exp.string (string_of_int vid) in
+  Utils.mk_call "pc_label_sequence_condition" ([zeroExp;ccExp])
 
 (***********************************)
 (********* Defuse Criteria *********)
@@ -276,7 +241,7 @@ class visit_defuse (t:t) (current_stmt:stmt) = object(self)
   val sid : int = current_stmt.sid
 
   (* Create a def-use sequence for the given def *)
-  method private mkSeq (eid:int) (def:def) =
+  method private mkSeq (eid:int) (def:def) : unit =
     let ids = Annotators.next () in (* sequence id *)
     let sdef = mkSeq_aux ids (string_of_int def.varId) 1 2 in (* def part *)
     let suse = mkSeq_aux ids (string_of_int def.varId) 2 2 in (* use part *)
@@ -294,7 +259,7 @@ class visit_defuse (t:t) (current_stmt:stmt) = object(self)
     (* Register this sequence to its hyperlabel *)
     add_to_hyperlabel (def.varId, def.defId) ids;
     (* Remember this def as done *)
-    add_to_done_set (sid,eid) def;
+    add_done_set (sid,eid) def;
     incr nb_seqs
 
   (* Visit all expressions and sub expressions to find lvals *)
@@ -327,6 +292,38 @@ end
 (******** Context Criterion ********)
 (***********************************)
 
+(* Used for context criteria, count the number of labels avoided due
+   to MaxContextPath option *)
+let ignoredLabels = ref 0
+
+(** Return the cartesian product between all lists of def given in parameters
+    [[a;b];[c;d]] -> [[a;c];[a;d];[b;c];[b;d]] ...
+*)
+let rec n_cartesian_product (ll : def list list) : def list list =
+  match ll with
+  | [] -> assert false
+  | [l] -> List.fold_left (fun acc i -> [i]::acc) [] l
+  | h :: t ->
+    let rest = n_cartesian_product t in
+    List.concat
+      (List.fold_left (fun acc i -> acc@[List.fold_left (fun acc2 r -> (i :: r)::acc2) [] rest]) [] h)
+
+(* Given a list of def list (For each variable, each definitions), returns all possible combinations
+of those definitions that were not already computed before *)
+let make_combs expr sid (combs: def list list) : DefSet.t list =
+  let prod_size = List.fold_left (fun acc l -> acc * (List.length l)) 1 combs in
+  if prod_size <= Options.MaxContextPath.get () then begin
+    let all_cases = n_cartesian_product combs in
+    let all_cases = List.map (fun dl -> DefSet.of_list dl) all_cases in
+    let already_done_combs = Hashtbl.find_all done_set (sid, expr.eid) in
+    let all_cases = List.filter (fun c1 -> not (List.exists (fun c2 -> DefSet.equal c1 c2) already_done_combs)) all_cases in
+    all_cases
+  end
+  else
+    (ignoredLabels := (List.length combs + 1) * prod_size + !ignoredLabels;
+     Options.warning "Expression ignored in file %a, too many paths (%d)"
+       Printer.pp_location expr.eloc prod_size; [])
+
 (** Count the number of LVals in an expression *)
 class countLvalExp = object(_)
   inherit Visitor.frama_c_inplace
@@ -354,7 +351,7 @@ class visit_context (t:t) (current_stmt:stmt) = object(self)
   method private mkComb eid defs =
     let ids = Annotators.next () in
     let max = DefSet.cardinal defs + 1 in
-    add_done_set (sid, eid) defs;
+    Hashtbl.add done_set (sid, eid) defs;
     let f i def =
       let s = mkSeq_aux ids (string_of_int def.varId) (i+1) max in
       if def.funId = -1 then begin
