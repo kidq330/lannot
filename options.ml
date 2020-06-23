@@ -160,12 +160,6 @@ module CleanDataflow = True (struct
   end)
 
 let () = Parameter_customize.set_group dataflow
-module FoldIndex = False (struct
-    let option_name = "-lannot-fold-index"
-    let help = "Reduce table index to an Int (constant) if possible before dataflow analysis"
-  end)
-
-let () = Parameter_customize.set_group dataflow
 module CleanDuplicate = True (struct
     let option_name = "-lannot-clean-duplicate"
     let help = "Annotate lval only once per expr"

@@ -27,10 +27,6 @@ let to_add_fun : (int, (int*stmt) list) Hashtbl.t = Hashtbl.create 32
 (* For each variable, keep the number of assignment seen for this variable *)
 let def_id : (int, int) Hashtbl.t = Hashtbl.create 32
 
-(* bind a variable id and an index to a new id  *)
-let index_vid : (int*int,int) Hashtbl.t = Hashtbl.create 32
-(* Used to find all indexes seen for a specific vid  *)
-let vid_to_index : (int,int list) Hashtbl.t = Hashtbl.create 32
 
 (* since cil expr have no side effect, we do not need to create more than one sequence if
  a lval is used more than once in an expr *)
@@ -64,7 +60,6 @@ let reset_all () : unit =
   Hashtbl.reset to_add_cond;
   Hashtbl.reset to_add_fun;
   Hashtbl.reset def_id;
-  Hashtbl.reset index_vid;
   Hashtbl.reset done_set;
   Hashtbl.reset seen_def;
   count_def := 0
@@ -87,46 +82,10 @@ let get_next_def_id (vid:int) : int  =
   else
     (Hashtbl.add def_id vid 1; 1)
 
-(* Given a variable id and its index, create/return the corresponding new id *)
-let get_index_vid (vid:int) (index:int) : int =
-  if Hashtbl.mem index_vid (vid,index) then
-    Hashtbl.find index_vid (vid,index)
-  else begin
-    let new_vid =  Cil_const.new_raw_id () in
-    replace_or_add_list vid_to_index vid index;
-    Hashtbl.add index_vid (vid,index) new_vid;
-    new_vid
-  end
-
 (* Create a new def *)
 let make_def ?(funId = (-1)) (varId: int) (defId: int) (stmtDef: int) : def =
   {id=next();funId;varId;defId;stmtDef}
 
-(* for a given variable id, returns all indexes seen so far for this id *)
-let get_all_index_vid (vid:int) : int list =
-  if Hashtbl.mem vid_to_index vid then begin
-    let all_index = Hashtbl.find vid_to_index vid in
-    List.map (fun i -> Hashtbl.find index_vid (vid,i)) all_index
-  end
-  else []
-
-(* If 'index' can be reduced to a constant, then create a new id, associate it to the pair
-   (variable id, 'index') and returns it, else return vid.
-   If we can't recuce index, then return all seen indexes plus the current vid *)
-let extract_index (vid:int) (index:Cil_types.offset) : int list =
-  if not (Options.FoldIndex.get ()) then [vid]
-  else
-    match index with
-    | Index(index,NoOffset) ->
-      begin match Cil.constFoldToInt index with
-        | None ->
-          vid :: get_all_index_vid vid
-        | Some i ->
-          let i = Integer.to_int i in
-          [get_index_vid vid i]
-      end
-    | _ ->
-      [vid]
 
 (* Add a sequence id to its corresponding hyperlabel *)
 let add_to_hyperlabel (key:int*int) (ids:int) : unit =
@@ -240,18 +199,15 @@ class visit_defuse (t:t) (sid:int) = object(self)
     | Bottom -> Cil.SkipChildren
     | NonBottom t ->
       begin match expr.enode with
-        | Lval (Var v, index) ->
-          let vids = extract_index v.vid index in
-          let f vid =
-            if should_instrument v vid then begin
-              visited := vid :: !visited;
-              let already_done = get_done_set (sid, expr.eid) in
-              let all_vid_defs = DefSet.filter (fun def -> def.varId = vid) t in
-              let all_vid_defs_todo = DefSet.diff all_vid_defs already_done in
+        | Lval (Var v, _) ->
+          let vid = v.vid in
+          if should_instrument v vid then begin
+            visited := vid :: !visited;
+            let already_done = get_done_set (sid, expr.eid) in
+            let all_vid_defs = DefSet.filter (fun def -> def.varId = vid) t in
+            let all_vid_defs_todo = DefSet.diff all_vid_defs already_done in
               DefSet.iter (self#mkSeq expr.eid) all_vid_defs_todo;
-            end
-          in
-          List.iter f vids;
+          end;
           Cil.DoChildren
         | _ -> Cil.DoChildren
       end
@@ -376,29 +332,28 @@ module P(V : V_type) = struct
 
   let bottom = Bottom
 
-  (* For each definition statement, change the current state by adding or not new definition,
-  removing older ones etc... *)
-  let do_def ?(index=NoOffset) v sid = function
+  (* For each definition statement, change the current state by
+     adding or not new definition, removing older ones etc... *)
+  let do_def v sid = function
     | Bottom -> Bottom
     | NonBottom t ->
-      let vids = extract_index v.vid index in
-      let f acc vid =
-        let removed_vid =
-          if Options.CleanDataflow.get () then
-            remove_def vid acc
-          else
-            acc
-        in
+      let t_clean =
+        if Options.CleanDataflow.get () then
+          remove_def vid t
+        else
+          t
+      in
+      let new_t =
         if Hashtbl.mem seen_def sid then
-          DefSet.add (Hashtbl.find seen_def sid) removed_vid
+          DefSet.add (Hashtbl.find seen_def sid) t_clean
         else begin
           let defId = get_next_def_id vid in
           let new_def = make_def vid defId sid in
           Hashtbl.add seen_def sid new_def;
-          DefSet.add new_def removed_vid
+          DefSet.add new_def t_clean
         end
       in
-      NonBottom (List.fold_left f t vids)
+      NonBottom new_t
 
   (* Function called for each stmt and propagating new states to each succs of stmt *)
   let transfer_stmt stmt state =
@@ -407,10 +362,10 @@ module P(V : V_type) = struct
       visited := [];
       ignore(Cil.visitCilInstr (V.make state stmt.sid) i);
       begin match i with
-        | Set ((Var v,index),_,_)
-        | Call (Some (Var v,index),_,_,_) ->
+        | Set ((Var v,_),_,_)
+        | Call (Some (Var v,_),_,_,_) ->
           if not (v.vname = "__retres") && not v.vtemp then begin
-            let res = do_def ~index v stmt.sid state in
+            let res = do_def v stmt.sid state in
             List.map (fun x -> (x,res)) stmt.succs
           end
           else List.map (fun x -> (x,state)) stmt.succs
