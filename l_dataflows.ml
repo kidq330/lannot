@@ -27,6 +27,7 @@ let to_add_fun : (int, (int*stmt) list) Hashtbl.t = Hashtbl.create 32
 (* For each variable, keep the number of assignment seen for this variable *)
 let def_id : (int, int) Hashtbl.t = Hashtbl.create 32
 
+let offset_id : (int*string, int) Hashtbl.t = Hashtbl.create 32
 
 (* since cil expr have no side effect, we do not need to create more than one sequence if
  a lval is used more than once in an expr *)
@@ -60,6 +61,7 @@ let reset_all () : unit =
   Hashtbl.reset to_add_cond;
   Hashtbl.reset to_add_fun;
   Hashtbl.reset def_id;
+  Hashtbl.reset offset_id;
   Hashtbl.reset done_set;
   Hashtbl.reset seen_def;
   count_def := 0
@@ -112,6 +114,33 @@ let add_to_done_set (key:int*int) (def:def) : unit =
 
 let add_done_set (key:int*int) (set:DefSet.t) : unit =
   Hashtbl.add done_set key set
+
+(* For a given vid and field name, returns their unique id *)
+let get_offset_id (vid:int) (field_name:string) : int =
+  if Hashtbl.mem offset_id (vid,field_name) then
+    Hashtbl.find offset_id (vid,field_name)
+  else begin
+    let new_id = Cil_const.new_raw_id () in
+    Hashtbl.add offset_id (vid,field_name) new_id;
+    new_id
+  end
+
+(* Recursively create new unique id for each field used with the variable.
+   Exemple :
+   A_struct.field1.field2id will be :
+   create new_vid  for (A_struct.vid, field1)
+   create new_vid2 for (new_vid     ,field2)
+   returns new_vid2
+*)
+let rec get_vid_with_field (vid:int) (offset:offset) : int =
+  if Options.HandleStruct.get () then
+    match offset with
+    | Field (f_info,offset') ->
+      let new_id = get_offset_id vid f_info.fname in
+      get_vid_with_field new_id offset'
+    | _ -> vid
+  else
+    vid
 
 (** Return the cartesian product between all lists of def given in parameters
     [[a;b];[c;d]] -> [[a;c];[a;d];[b;c];[b;d]] ...
@@ -199,8 +228,8 @@ class visit_defuse (t:t) (sid:int) = object(self)
     | Bottom -> Cil.SkipChildren
     | NonBottom t ->
       begin match expr.enode with
-        | Lval (Var v, _) ->
-          let vid = v.vid in
+        | Lval (Var v, offset) ->
+          let vid = get_vid_with_field v.vid offset in
           if should_instrument v vid then begin
             visited := vid :: !visited;
             let already_done = get_done_set (sid, expr.eid) in
@@ -334,9 +363,10 @@ module P(V : V_type) = struct
 
   (* For each definition statement, change the current state by
      adding or not new definition, removing older ones etc... *)
-  let do_def v sid = function
+  let do_def v offset sid = function
     | Bottom -> Bottom
     | NonBottom t ->
+      let vid = get_vid_with_field v.vid offset in
       let t_clean =
         if Options.CleanDataflow.get () then
           remove_def vid t
@@ -362,16 +392,16 @@ module P(V : V_type) = struct
       visited := [];
       ignore(Cil.visitCilInstr (V.make state stmt.sid) i);
       begin match i with
-        | Set ((Var v,_),_,_)
-        | Call (Some (Var v,_),_,_,_) ->
+        | Set ((Var v,offset),_,_)
+        | Call (Some (Var v,offset),_,_,_) ->
           if not (v.vname = "__retres") && not v.vtemp then begin
-            let res = do_def v stmt.sid state in
+            let res = do_def v offset stmt.sid state in
             List.map (fun x -> (x,res)) stmt.succs
           end
           else List.map (fun x -> (x,state)) stmt.succs
         | Local_init (v,_,_) ->
           if not (v.vname = "__retres") && not v.vtemp then begin
-            let res = do_def v stmt.sid state in
+            let res = do_def v NoOffset stmt.sid state in
             List.map (fun x -> (x,res)) stmt.succs
           end
           else List.map (fun x -> (x,state)) stmt.succs
