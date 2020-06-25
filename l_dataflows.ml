@@ -56,11 +56,11 @@ let done_set : (int*int,DefSet.t) Hashtbl.t = Hashtbl.create 32
 *)
 let seen_def : (int,def) Hashtbl.t = Hashtbl.create 32
 
-(* WIP: for each couple vid (variable used) and block, save the state...
+(* WIP: equivalents
    key : variable id * block
    value : state at this point
 *)
-let equivalent_tbl : (int*block,DefSet.t) Hashtbl.t = Hashtbl.create 32
+let equivalent_tbl : (int,(stmt*DefSet.t) list) Hashtbl.t= Hashtbl.create 32
 
 (* bind each new sequence (def) to its corresponding statement, sequence id is
    used to sort them at the end
@@ -90,6 +90,20 @@ let next () =
   incr count_def;
   tmp
 
+
+let print_elt elt =
+  Printf.printf "funId: %d / varId: %d / defId: %d / stmtDef: %d\n%!"
+    elt.funId elt.varId elt.defId elt.stmtDef
+
+let print_defs set =
+  DefSet.iter (fun elt -> Printf.printf "    %!"; print_elt elt) set
+
+let pretty _ = function
+  | Bottom -> Printf.printf "Bottom\n%!"
+  | NonBottom t ->
+    Printf.printf "NonBottom : \n%!";
+    print_defs t
+
 (* Clear all hashtbl and reset counter after each function in addSequences *)
 let reset_all () : unit =
   Hashtbl.reset to_add_defs;
@@ -104,9 +118,9 @@ let reset_all () : unit =
   count_def := 0
 
 (* generic function for Hashtbl which use list as values.
-   If the binding key exists, adds elt to its list,
+   If the binding key exists, adds elt at the beginning of the list,
    else create a new binding. *)
-let replace_or_add_list (tbl:('a,'b list) Hashtbl.t) (key:'a) (elt:'b) =
+let replace_or_add_list_front (tbl:('a,'b list) Hashtbl.t) (key:'a) (elt:'b) =
   if Hashtbl.mem tbl key then begin
     let old = Hashtbl.find tbl key in
     Hashtbl.replace tbl key (elt::old)
@@ -114,13 +128,37 @@ let replace_or_add_list (tbl:('a,'b list) Hashtbl.t) (key:'a) (elt:'b) =
   else
     Hashtbl.add tbl key [elt]
 
+(* generic function for Hashtbl which use list as values.
+   If the binding key exists, adds elt at the end of the list,
+   else create a new binding. *)
+let replace_or_add_list_back (tbl:('a,'b list) Hashtbl.t) (key:'a) (elt:'b) =
+  if Hashtbl.mem tbl key then begin
+    let old = Hashtbl.find tbl key in
+    Hashtbl.replace tbl key (old@[elt])
+  end
+  else
+    Hashtbl.add tbl key [elt]
+
+
+let remove_from_list (tbl:('a,'b list) Hashtbl.t) (key:'a) ((stmt,st):stmt*DefSet.t) =
+  if Hashtbl.mem tbl key then
+    let old = Hashtbl.find tbl key in
+    let removed_elt = List.rev @@ List.fold_left (fun acc ((stmt',st') as elt') ->
+        if Cil_datatype.Stmt.equal stmt stmt' && st = st' then
+          acc else
+          (elt' :: acc)
+      ) [] old
+    in
+    Hashtbl.replace tbl key removed_elt
+
+
 (* Create a new def. *)
 let make_def ?(funId = (-1)) (varId: int) (defId: int) (stmtDef: int) : def =
   {id=next();funId;varId;defId;stmtDef}
 
 (* Add a sequence id to its corresponding hyperlabel *)
 let add_to_hyperlabel (key:int*int) (ids:int) : unit =
-  replace_or_add_list hyperlabels key ids
+  replace_or_add_list_front hyperlabels key ids
 
 (* Returns all defs already done for this expression and statement
    Returns empty set if it does not exist *)
@@ -176,36 +214,47 @@ let rec get_vid_with_field (vid:int) (offset:offset) : int =
   else
     vid
 
-(* Remember variable processed to allow the possibility
-   of removing trivially duplicated sequence*)
-let visited : int list ref = ref []
+let has_dom_and_post_dom kf all_stmt stmt2 _st2 =
+  try
+    let tmp =
+      List.filter (fun (stmt1,_) ->
+          Dominators.dominates stmt1 stmt2 &&
+          !Db.Postdominators.is_postdominator kf ~opening:stmt1 ~closing:stmt2
+        ) all_stmt
+    in
+    (* Est-ce que c'ets normal ça ? *)
+    if List.length tmp > 0 then
+      Some (List.hd tmp) else None
+  with
+    Not_found -> None
 
-(* Returns true if the given variable id has been processed before *)
-let is_duplicate_triv (vid:int) : bool =
-  List.exists (fun vid' -> vid' = vid) !visited
-
-(* For a given variable id and block, returns true if we have seen
-   the same state before *)
-let is_equivalent (vid:int) (b:block) (st:DefSet.t) : bool =
-  if Hashtbl.mem equivalent_tbl (vid,b) then
-    let st' = Hashtbl.find equivalent_tbl (vid,b) in
-    DefSet.equal st st'
-  else false
+let is_equivalent kf vid stmt st =
+  if Hashtbl.mem equivalent_tbl vid then begin
+    let all_stmt = Hashtbl.find equivalent_tbl vid in
+    match has_dom_and_post_dom kf all_stmt stmt st with
+    | None ->
+      replace_or_add_list_back equivalent_tbl vid (stmt,st);
+      false
+    | Some (stmt',st') ->
+      if DefSet.equal st st' then
+        true
+      else begin
+        (* if Cil_datatype.Stmt.equal stmt stmt' then *)
+        remove_from_list equivalent_tbl vid (stmt',st');
+        replace_or_add_list_back equivalent_tbl vid (stmt,st);
+        false
+      end
+  end
+  else begin
+    replace_or_add_list_back equivalent_tbl vid (stmt,st);
+    false
+  end
 
 (* Test if a LVal should be instrumented, i.e. it's not a global,
    a temp variable or if it's the first time we see it in the current
    expr/instr (except if CleanDuplicate is true) *)
-let should_instrument (v:varinfo) (vid:int) : bool =
-  not v.vglob && not (v.vname = "__retres") && not v.vtemp &&
-  (not (is_duplicate_triv vid) || not (Options.CleanDuplicate.get ()))
-
-(* Remove all bindings which use these blocks *)
-let clean_equivalent_tbl (all_b:block list) : unit =
-  let f (vid,b) _ =
-    if List.exists (fun b' -> Cil_datatype.Block.equal b b') all_b then
-      Hashtbl.remove equivalent_tbl (vid,b)
-  in
-  Hashtbl.iter f equivalent_tbl
+let should_instrument (v:varinfo) : bool =
+  not v.vglob && not (v.vname = "__retres") && not v.vtemp
 
 (* Create a sequence member
    ids : sequence id
@@ -234,7 +283,7 @@ let mkCond (vid: int) : stmt =
 
 (* This visitor visits each LVal to create sequences if the state t contains
    defs for theses LVals *)
-class visit_defuse (t:t) (current_stmt:stmt) = object(self)
+class visit_defuse (t:t) (current_stmt:stmt) current_kf = object(self)
   inherit Visitor.frama_c_inplace
 
   val current_block : block = Kernel_function.find_enclosing_block current_stmt
@@ -250,12 +299,12 @@ class visit_defuse (t:t) (current_stmt:stmt) = object(self)
       (* Add a cond label for this def *)
       if not (Hashtbl.mem to_add_cond def.stmtDef) then
         Hashtbl.add to_add_cond def.stmtDef (mkCond def.varId);
-      replace_or_add_list to_add_defs def.stmtDef (ids,sdef)
+      replace_or_add_list_front to_add_defs def.stmtDef (ids,sdef)
     end
     else
-      replace_or_add_list to_add_fun def.funId (ids,sdef);
+      replace_or_add_list_front to_add_fun def.funId (ids,sdef);
     (* Add the use *)
-    replace_or_add_list to_add_uses sid (ids,suse);
+    replace_or_add_list_front to_add_uses sid (ids,suse);
     (* Register this sequence to its hyperlabel *)
     add_to_hyperlabel (def.varId, def.defId) ids;
     (* Remember this def as done *)
@@ -270,18 +319,20 @@ class visit_defuse (t:t) (current_stmt:stmt) = object(self)
       begin match expr.enode with
         | Lval (Var v, offset) ->
           let vid = get_vid_with_field v.vid offset in
-          if should_instrument v vid then begin
-            visited := vid :: !visited;
+          if should_instrument v then begin
             (* Get def already done for this lval *)
             let already_done = get_done_set (sid, expr.eid) in
             (* Get all def in our state which correspond to this variable *)
             let all_vid_defs = DefSet.filter (fun def -> def.varId = vid) t in
             (* Keep only those not already done *)
-            let all_vid_defs_todo = DefSet.diff all_vid_defs already_done in
-            let is_eq = is_equivalent vid current_block all_vid_defs_todo in
-            Hashtbl.replace  equivalent_tbl (vid,current_block) all_vid_defs_todo;
-            if not is_eq || not (Options.CleanDuplicate.get ()) then
-              DefSet.iter (self#mkSeq expr.eid) all_vid_defs_todo;
+            let remaining = DefSet.diff all_vid_defs already_done in
+            if not (DefSet.equal DefSet.empty remaining) then begin
+              if Options.CleanEquiv.get ()
+              && is_equivalent current_kf vid current_stmt remaining then
+                DefSet.iter (fun def -> add_done_set (sid,expr.eid) def) remaining
+              else
+                DefSet.iter (self#mkSeq expr.eid) remaining;
+            end
           end;
           Cil.DoChildren
         | _ -> Cil.DoChildren
@@ -325,17 +376,19 @@ let make_combs expr sid (combs: def list list) : DefSet.t list =
        Printer.pp_location expr.eloc prod_size; [])
 
 (** Count the number of LVals in an expression *)
-class countLvalExp = object(_)
+class countLvalExp  = object(_)
   inherit Visitor.frama_c_inplace
 
-  method get_LVals () = !visited
+  val mutable visited = []
+  method get_LVals () = visited
 
   method! vlval lval =
     match lval with
     | Var v,_ ->
       (** If the Lval is previously defined, and not already in the list *)
-      if should_instrument v v.vid then
-        visited := v.vid :: !visited;
+      if should_instrument v
+      && not (List.exists (fun vid' -> v.vid = vid') visited) then
+        visited <- v.vid :: visited;
       Cil.SkipChildren
     | _ -> Cil.SkipChildren
 end
@@ -357,14 +410,14 @@ class visit_context (t:t) (current_stmt:stmt) = object(self)
       if def.funId = -1 then begin
         if not (Hashtbl.mem to_add_cond def.stmtDef) then
           Hashtbl.add to_add_cond def.stmtDef (mkCond def.varId);
-        replace_or_add_list to_add_defs def.stmtDef (ids,s)
+        replace_or_add_list_front to_add_defs def.stmtDef (ids,s)
       end
       else
-        replace_or_add_list to_add_fun def.funId (ids,s)
+        replace_or_add_list_front to_add_fun def.funId (ids,s)
     in
     List.iteri f (DefSet.elements defs);
     let u = mkSeq_aux ids "N/A" max max in
-    replace_or_add_list to_add_uses sid (ids,u);
+    replace_or_add_list_front to_add_uses sid (ids,u);
     add_to_hyperlabel (eid, 0) ids;
     incr nb_seqs
 
@@ -398,10 +451,10 @@ module type V_type = sig
   val make : t -> stmt -> Cil.cilVisitor
 end
 
-let get_v b =
+let get_v b kf =
   if b then
     (module struct
-      let make state stmt = (new visit_defuse state stmt :> Cil.cilVisitor)
+      let make state stmt = (new visit_defuse state stmt kf :> Cil.cilVisitor)
     end: V_type)
   else
     (module struct
@@ -410,18 +463,11 @@ let get_v b =
 
 module P(V : V_type) = struct
 
-  let print_elt elt =
-    Printf.printf "funId: %d / varId: %d / defId: %d / stmtDef: %d\n%!"
-      elt.funId elt.varId elt.defId elt.stmtDef
+  let print_elt = print_elt
 
-  let print_defs set =
-    DefSet.iter (fun elt -> Printf.printf "    %!"; print_elt elt) set
+  let print_defs = print_defs
 
-  let pretty _ = function
-    | Bottom -> Printf.printf "Bottom\n%!"
-    | NonBottom t ->
-      Printf.printf "NonBottom : \n%!";
-      print_defs t
+  let pretty = pretty
 
   (* Return a new set after removing all definitions of a variable *)
   let remove_def vid s =
@@ -477,7 +523,6 @@ module P(V : V_type) = struct
   let transfer_stmt stmt state =
     match stmt.skind with
     | Instr i when not (Utils.is_label i) ->
-      visited := [];
       ignore(Cil.visitCilInstr (V.make state stmt) i);
       begin match i with
         | Set ((Var v,offset),_,_)
@@ -495,16 +540,10 @@ module P(V : V_type) = struct
           else List.map (fun x -> (x,state)) stmt.succs
         | _ -> List.map (fun x -> (x,state)) stmt.succs
       end
-    | Return (Some e,_) ->
-      visited := [];
-      ignore(Cil.visitCilExpr (V.make state stmt) e);
-      List.map (fun x -> (x,state)) stmt.succs
+    | Return (Some e,_)
     | If (e,_,_,_)
     | Switch (e,_,_,_) ->
-      visited := [];
       ignore(Cil.visitCilExpr (V.make state stmt) e);
-      let all_b = Kernel_function.find_all_enclosing_blocks stmt in
-      clean_equivalent_tbl all_b;
       List.map (fun x -> (x,state)) stmt.succs
     | _ -> List.map (fun x -> (x,state)) stmt.succs
 
@@ -515,7 +554,7 @@ end
 *)
 let do_function kf defuse =
   let module Fenv = (val Dataflows.function_env kf) in
-  let module V = (val (get_v defuse)) in
+  let module V = (val (get_v defuse kf)) in
   let module Inst = P(V) in
   let args = Kernel_function.get_formals kf in
   let first_stmt = Kernel_function.find_first_stmt kf in

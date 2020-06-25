@@ -160,9 +160,9 @@ module CleanDataflow = True (struct
   end)
 
 let () = Parameter_customize.set_group dataflow
-module CleanDuplicate = True (struct
-    let option_name = "-lannot-clean-duplicate"
-    let help = "Annotate lval only once per expr"
+module CleanEquiv = True (struct
+    let option_name = "-lannot-clean-equiv"
+    let help = "Remove equivalent sequences and annotate lval only once per expr"
   end)
 
 let () = Parameter_customize.set_group dataflow
