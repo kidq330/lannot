@@ -60,7 +60,7 @@ let seen_def : (int,def) Hashtbl.t = Hashtbl.create 32
    key : variable id * block
    value : state at this point
 *)
-let equivalent_tbl : (int,(stmt*DefSet.t) list) Hashtbl.t= Hashtbl.create 32
+let equivalent_tbl : (int,(DefSet.t,stmt list) Hashtbl.t) Hashtbl.t = Hashtbl.create 32
 
 (* bind each new sequence (def) to its corresponding statement, sequence id is
    used to sort them at the end
@@ -139,19 +139,6 @@ let replace_or_add_list_back (tbl:('a,'b list) Hashtbl.t) (key:'a) (elt:'b) =
   else
     Hashtbl.add tbl key [elt]
 
-
-let remove_from_list (tbl:('a,'b list) Hashtbl.t) (key:'a) ((stmt,st):stmt*DefSet.t) =
-  if Hashtbl.mem tbl key then
-    let old = Hashtbl.find tbl key in
-    let removed_elt = List.rev @@ List.fold_left (fun acc ((stmt',st') as elt') ->
-        if Cil_datatype.Stmt.equal stmt stmt' && st = st' then
-          acc else
-          (elt' :: acc)
-      ) [] old
-    in
-    Hashtbl.replace tbl key removed_elt
-
-
 (* Create a new def. *)
 let make_def ?(funId = (-1)) (varId: int) (defId: int) (stmtDef: int) : def =
   {id=next();funId;varId;defId;stmtDef}
@@ -214,40 +201,36 @@ let rec get_vid_with_field (vid:int) (offset:offset) : int =
   else
     vid
 
-let has_dom_and_post_dom kf all_stmt stmt2 _st2 =
-  try
-    let tmp =
-      List.filter (fun (stmt1,_) ->
-          Dominators.dominates stmt1 stmt2 &&
-          !Db.Postdominators.is_postdominator kf ~opening:stmt1 ~closing:stmt2
+(* Returns true if at leats one statement stmt' exists so that
+   stmt' dominate stmt and stmt post-dominate stmt'*)
+let has_dom_and_post_dom kf all_stmt stmt =
+  List.exists (fun stmt' ->
+          Dominators.dominates stmt' stmt &&
+          !Db.Postdominators.is_postdominator
+              kf ~opening:stmt' ~closing:stmt
         ) all_stmt
-    in
-    (* Est-ce que c'ets normal ça ? *)
-    if List.length tmp > 0 then
-      Some (List.hd tmp) else None
-  with
-    Not_found -> None
 
 let is_equivalent kf vid stmt st =
-  if Hashtbl.mem equivalent_tbl vid then begin
-    let all_stmt = Hashtbl.find equivalent_tbl vid in
-    match has_dom_and_post_dom kf all_stmt stmt st with
-    | None ->
-      replace_or_add_list_back equivalent_tbl vid (stmt,st);
-      false
-    | Some (stmt',st') ->
-      if DefSet.equal st st' then
-        true
-      else begin
-        (* if Cil_datatype.Stmt.equal stmt stmt' then *)
-        remove_from_list equivalent_tbl vid (stmt',st');
-        replace_or_add_list_back equivalent_tbl vid (stmt,st);
-        false
-      end
+  if not (Hashtbl.mem equivalent_tbl vid) then begin
+    let vid_tbl = Hashtbl.create 1 in
+    Hashtbl.add vid_tbl st [stmt];
+    Hashtbl.add equivalent_tbl vid vid_tbl;
+    false
   end
   else begin
-    replace_or_add_list_back equivalent_tbl vid (stmt,st);
-    false
+    let vid_tbl = Hashtbl.find equivalent_tbl vid in
+    if Hashtbl.mem vid_tbl st then begin
+      if has_dom_and_post_dom kf (Hashtbl.find vid_tbl st) stmt then
+        true
+      else begin
+        replace_or_add_list_back vid_tbl st stmt;
+        false
+      end;
+    end
+    else begin
+      Hashtbl.add vid_tbl st [stmt];
+      false
+    end
   end
 
 (* Test if a LVal should be instrumented, i.e. it's not a global,
