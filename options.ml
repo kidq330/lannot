@@ -182,7 +182,7 @@ module HandleDoWhile = True (struct
     let help = "Do..While.. will be supported in loops criterias, but empty loops will also be considered as Do..While.. (default: true)"
   end)
 
-module HandleStruct = False (struct
+module HandleStruct = True (struct
     let option_name = "-lannot-handle-struct"
     let help = "WIP: for def-use analysis (default: false)"
   end)
