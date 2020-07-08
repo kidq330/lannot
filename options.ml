@@ -53,9 +53,16 @@ module Simplify = False (struct
     let help = "enable the simplification of boolean expressions before annotations"
   end)
 
-module FunctionNames = Kernel_function_set (struct
+module DoFunctionNames = Kernel_function_set (struct
     let arg_name = "funs"
     let option_name = "-lannot-functions"
+    let help = "filter by function names (disabled by default)"
+  end)
+
+
+module SkipFunctionNames = Kernel_function_set (struct
+    let arg_name = "funs"
+    let option_name = "-lannot-skip-functions"
     let help = "filter by function names (disabled by default)"
   end)
 
@@ -143,12 +150,6 @@ module LimitDelta = Int (struct
 module Inline = True (struct
     let option_name = "-lannot-inline"
     let help = "Annotate inline functions (Default : true)"
-  end)
-
-module InlineException = Kernel_function_set (struct
-    let option_name = "-lannot-inline-functions"
-    let arg_name = "funs"
-    let help = "if -lannot-inline is false, then this option allows to add exceptions and annotate some inline functions"
   end)
 
 let dataflow = add_group "Dataflow criterion-specific options"

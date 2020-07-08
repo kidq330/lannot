@@ -140,23 +140,14 @@ module RegisterWithExtraTags (A : ANNOTATOR_WITH_EXTRA_TAGS) = struct
 end
 
 let shouldInstrument fun_varinfo =
-  let names = Options.FunctionNames.get () in
+  let do_names = Options.DoFunctionNames.get () in
+  let skip_names = Options.SkipFunctionNames.get () in
   let f (kf : Cil_datatype.Kf.Set.elt ) =
     (Cil_datatype.Kf.vi kf).vname =  fun_varinfo.vname
   in
+  not (Cil_datatype.Kf.Set.exists f skip_names) &&
   (* TODO filter builtin functions *)
-  (*Cil_datatype.Kf.Set.is_empty names || Cil_datatype.Kf.Set.exists f names*)
-  (* Modif pour polarSSL *)
-  let inlineNames = Options.InlineException.get () in
-  if  Cil_datatype.Kf.Set.is_empty names then begin
-    if (not fun_varinfo.vinline || Options.Inline.get ()) then
-      true
-    else begin
-      if Cil_datatype.Kf.Set.is_empty inlineNames then
-        false
-      else
-        Cil_datatype.Kf.Set.exists f inlineNames
-    end
-  end
+  if  Cil_datatype.Kf.Set.is_empty do_names then
+    not (fun_varinfo.vinline) || Options.Inline.get ()
   else
-    Cil_datatype.Kf.Set.exists f names
+    Cil_datatype.Kf.Set.exists f do_names
