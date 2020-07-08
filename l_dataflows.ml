@@ -63,13 +63,6 @@ let offset_id : (int*string, int) Hashtbl.t = Hashtbl.create 32
    value : def
 *)
 let seen_def : (int,def) Hashtbl.t = Hashtbl.create 32
-let seen_use : (int,use) Hashtbl.t = Hashtbl.create 32
-
-(* WIP: equivalents
-   key : variable id * block
-   value : state at this point
-*)
-let equivalent_tbl : (int,(DefSet.t,stmt list) Hashtbl.t) Hashtbl.t = Hashtbl.create 32
 
 (* bind each new sequence (def) to its corresponding statement, sequence id is
    used to sort them at the end
@@ -130,7 +123,6 @@ let reset_all () : unit =
   Hashtbl.reset to_add_fun;
   Hashtbl.reset def_id;
   Hashtbl.reset offset_id;
-  Hashtbl.reset equivalent_tbl;
   Hashtbl.reset seen_def;
   count_def := 0
 
@@ -159,10 +151,6 @@ let replace_or_add_list_back (tbl:('a,'b list) Hashtbl.t) (key:'a) (elt:'b) =
 (* Create a new def. *)
 let make_def ?(funId = (-1)) (varId_def: int) (defId: int) (stmtDef: int) : def =
   {id=next();funId;varId_def;defId;stmtDef}
-
-(* Create a new def. *)
-let make_use (varId_use: int) (stmtUse: stmt) : use =
-  {varId_use;stmtUse}
 
 (* Add a sequence id to its corresponding hyperlabel *)
 let add_to_hyperlabel (key:int*int) (ids:int) : unit =
@@ -206,6 +194,7 @@ let rec get_vid_with_field (vid:int) (offset:offset) : int =
   else
     vid
 
+(* Try to find a use in state wich dom/post-dom current use  *)
 let is_equivalent vid stmt kf uses =
   UseSet.exists (fun use ->
       use.varId_use = vid &&
@@ -214,6 +203,7 @@ let is_equivalent vid stmt kf uses =
         kf ~opening:use.stmtUse ~closing:stmt
     ) uses
 
+(* Annot use in expression only once  *)
 let is_triv_equiv vid visited =
   Options.CleanEquiv.get() &&
   List.exists (fun vid' -> vid' = vid) visited
@@ -281,10 +271,11 @@ class visit_defuse ((defs_set,uses_set):DefSet.t*UseSet.t) current_stmt kf = obj
     match expr.enode with
     | Lval (Var v, offset) ->
       let vid = get_vid_with_field v.vid offset in
+      (* Keeps defs related to this variable *)
       let all_vid_defs = DefSet.filter (fun def -> def.varId_def = vid) defs_set in
       if should_instrument v vid visited then begin
         visited <- vid :: visited;
-        if not (DefSet.equal DefSet.empty all_vid_defs) then
+        if not (DefSet.is_empty all_vid_defs) then
           if not (Options.CleanEquiv.get ())
           || not (is_equivalent vid current_stmt kf uses_set) then
             DefSet.iter self#mkSeq all_vid_defs;
@@ -311,7 +302,7 @@ class visit_use state stmt = object(_)
         let vid = get_vid_with_field v.vid offset in
         if should_instrument v vid visited then begin
           visited <- vid :: visited;
-          let new_uses = UseSet.add (make_use vid stmt) uses in
+          let new_uses = UseSet.add {varId_use=vid;stmtUse=stmt} uses in
           state := NonBottom (defs, new_uses);
         end;
         Cil.DoChildren
