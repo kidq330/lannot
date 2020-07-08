@@ -52,44 +52,36 @@ int main(int n1, int n2)
   int __retres;
   int i;
   int flag;
-  pc_label_sequence(1,1UL,1,2,"882",0);
-  pc_label_sequence(1,2UL,1,2,"883",0);
-  pc_label_sequence(1,3UL,1,2,"882",0);
-  pc_label_sequence(1,5UL,1,2,"883",0);
-  pc_label_sequence(1,1UL,2,2,"882",0);
-  pc_label_sequence(1,2UL,2,2,"883",0);
+  pc_label_sequence(1,1UL,1,2,"881",0);
+  pc_label_sequence(1,2UL,1,2,"882",0);
+  pc_label_sequence(1,1UL,2,2,"881",0);
+  pc_label_sequence(1,2UL,2,2,"882",0);
   printf_va_1("Prime numbers between %d and %d are: ",n1,n2);
-  pc_label_sequence(1,3UL,2,2,"882",0);
-  pc_label_sequence_condition(0,"884");
+  pc_label_sequence_condition(0,"883");
   i = n1 + 1;
-  pc_label_sequence(1,4UL,1,2,"884",0);
-  pc_label_sequence(1,6UL,1,2,"884",0);
-  pc_label_sequence(1,8UL,1,2,"884",0);
-  pc_label_sequence(1,9UL,1,2,"884",0);
+  pc_label_sequence(1,3UL,1,2,"883",0);
+  pc_label_sequence(1,5UL,1,2,"883",0);
+  pc_label_sequence(1,8UL,1,2,"883",0);
   while (1) {
-    pc_label_sequence(1,4UL,2,2,"884",0);
-    pc_label_sequence(1,5UL,2,2,"883",0);
-    pc_label_sequence(1,10UL,2,2,"884",0);
+    pc_label_sequence(1,3UL,2,2,"883",0);
+    pc_label_sequence(1,4UL,2,2,"883",0);
     if (! (i < n2)) break;
-    pc_label_sequence(1,6UL,2,2,"884",0);
-    pc_label_sequence(1,11UL,2,2,"884",0);
-    pc_label_sequence_condition(0,"885");
+    pc_label_sequence(1,5UL,2,2,"883",0);
+    pc_label_sequence(1,6UL,2,2,"883",0);
+    pc_label_sequence_condition(0,"884");
     flag = checkPrimeNumber(i);
-    pc_label_sequence(1,7UL,1,2,"885",0);
-    pc_label_sequence(1,7UL,2,2,"885",0);
+    pc_label_sequence(1,7UL,1,2,"884",0);
+    pc_label_sequence(1,7UL,2,2,"884",0);
     if (flag == 1) {
-      pc_label_sequence(1,8UL,2,2,"884",0);
-      pc_label_sequence(1,12UL,2,2,"884",0);
+      pc_label_sequence(1,8UL,2,2,"883",0);
+      pc_label_sequence(1,9UL,2,2,"883",0);
       printf_va_2("%d ",i);
     }
-    pc_label_sequence(1,9UL,2,2,"884",0);
-    pc_label_sequence(1,13UL,2,2,"884",0);
-    pc_label_sequence_condition(0,"884");
+    pc_label_sequence_condition(0,"883");
     i ++;
-    pc_label_sequence(1,10UL,1,2,"884",0);
-    pc_label_sequence(1,11UL,1,2,"884",0);
-    pc_label_sequence(1,12UL,1,2,"884",0);
-    pc_label_sequence(1,13UL,1,2,"884",0);
+    pc_label_sequence(1,4UL,1,2,"883",0);
+    pc_label_sequence(1,6UL,1,2,"883",0);
+    pc_label_sequence(1,9UL,1,2,"883",0);
   }
   __retres = 0;
   return __retres;
@@ -98,40 +90,40 @@ int main(int n1, int n2)
 int checkPrimeNumber(int n)
 {
   int j;
-  pc_label_sequence(1,15UL,1,2,"888",0);
-  pc_label_sequence(1,16UL,1,2,"888",0);
-  pc_label_sequence_condition(0,"890");
-  int flag = 1;
-  pc_label_sequence(1,22UL,1,2,"890",0);
+  pc_label_sequence(1,12UL,1,2,"887",0);
+  pc_label_sequence(1,13UL,1,2,"887",0);
   pc_label_sequence_condition(0,"889");
-  j = 2;
-  pc_label_sequence(1,14UL,1,2,"889",0);
-  pc_label_sequence(1,17UL,1,2,"889",0);
+  int flag = 1;
   pc_label_sequence(1,18UL,1,2,"889",0);
+  pc_label_sequence_condition(0,"888");
+  j = 2;
+  pc_label_sequence(1,10UL,1,2,"888",0);
+  pc_label_sequence(1,14UL,1,2,"888",0);
+  pc_label_sequence(1,16UL,1,2,"888",0);
   while (1) {
-    pc_label_sequence(1,14UL,2,2,"889",0);
-    pc_label_sequence(1,15UL,2,2,"888",0);
-    pc_label_sequence(1,19UL,2,2,"889",0);
+    pc_label_sequence(1,10UL,2,2,"888",0);
+    pc_label_sequence(1,11UL,2,2,"888",0);
+    pc_label_sequence(1,12UL,2,2,"887",0);
     if (! (j <= n / 2)) break;
-    pc_label_sequence(1,16UL,2,2,"888",0);
-    pc_label_sequence(1,17UL,2,2,"889",0);
-    pc_label_sequence(1,20UL,2,2,"889",0);
+    pc_label_sequence(1,13UL,2,2,"887",0);
+    pc_label_sequence(1,14UL,2,2,"888",0);
+    pc_label_sequence(1,15UL,2,2,"888",0);
     if (n % j == 0) {
-      pc_label_sequence_condition(0,"890");
+      pc_label_sequence_condition(0,"889");
       flag = 0;
-      pc_label_sequence(1,23UL,1,2,"890",0);
+      pc_label_sequence(1,19UL,1,2,"889",0);
       break;
     }
-    pc_label_sequence(1,18UL,2,2,"889",0);
-    pc_label_sequence(1,21UL,2,2,"889",0);
-    pc_label_sequence_condition(0,"889");
+    pc_label_sequence(1,16UL,2,2,"888",0);
+    pc_label_sequence(1,17UL,2,2,"888",0);
+    pc_label_sequence_condition(0,"888");
     j ++;
-    pc_label_sequence(1,19UL,1,2,"889",0);
-    pc_label_sequence(1,20UL,1,2,"889",0);
-    pc_label_sequence(1,21UL,1,2,"889",0);
+    pc_label_sequence(1,11UL,1,2,"888",0);
+    pc_label_sequence(1,15UL,1,2,"888",0);
+    pc_label_sequence(1,17UL,1,2,"888",0);
   }
-  pc_label_sequence(1,22UL,2,2,"890",0);
-  pc_label_sequence(1,23UL,2,2,"890",0);
+  pc_label_sequence(1,18UL,2,2,"889",0);
+  pc_label_sequence(1,19UL,2,2,"889",0);
   return flag;
 }
 
