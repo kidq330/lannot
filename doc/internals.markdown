@@ -60,9 +60,6 @@ NB : Only works if StaDy is installed
 ### `Dataflow`
 implements the dataflow criterias: all-defs, all-uses & def-use
 
-### `Context`
-implements the dataflow criteria: context
-
 ### `Statement`
 implements the statement criteria: STMT
 

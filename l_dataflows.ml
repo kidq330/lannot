@@ -1,75 +1,163 @@
 open Cil_types
 open Ast_const
 
+(* Main type used for dataflow analysis *)
 type def = {
-  id: int;       (* Unique ID for each def, in increasing order *)
-  funId: int;    (* (function id) if this def is from a function's formals, -1 otherwise *)
-  varId: int;    (* id of the variable being defined *)
-  defId: int;    (* current definition of the variable (i.e. (number of definition before) + 1 *)
-  stmtDef: int;  (* Statement id, will be use to "attach" the sequence to this statement at the end *)
+  (* Unique ID for each def, in increasing order. *)
+  id: int;
+  (* (function id) if this def is from a function's formals, -1 otherwise. *)
+  funId: int;
+  (* id of the variable being defined. *)
+  varId_def: int;
+  (* Current definition of the variable (number of def seen before + 1). *)
+  defId: int;
+  (* Statement id, will be use to "add" the sequence to its stmt at the end. *)
+  stmtDef: int;
 }
 
-module DefSet = Set.Make(struct type t = def let compare d1 d2 = compare d1.id d2.id end)
+(* Main type used for dataflow analysis *)
+type use = {
+  varId_use: int;
+  stmtUse: stmt;
+}
 
+(* Main type used for our analysis's state *)
+module DefSet = Set.Make (
+  struct type t = def
+    let compare d1 d2 = compare d1.id d2.id
+  end)
+
+module UseSet = Set.Make (
+  struct type t = use
+    let compare u1 u2 =
+      let tmp = compare u1.varId_use u2.varId_use in
+      if tmp = 0 then Cil_datatype.Stmt.compare u1.stmtUse u2.stmtUse
+      else tmp
+  end)
+
+(* Represent states in our analysis*)
 type t =
   | Bottom
-  | NonBottom of DefSet.t
+  | NonBottom of (DefSet.t * UseSet.t)
 
-(* bind each new sequence (def) to its corresponding statement *)
-let to_add_defs : (int, int*stmt) Hashtbl.t = Hashtbl.create 32
-(* bind each new sequence (use)  to its corresponding statement *)
-let to_add_uses : (int, int*stmt) Hashtbl.t = Hashtbl.create 32
-(* bind each new sequence (cond) to its corresponding statement *)
-let to_add_cond : (int, stmt) Hashtbl.t = Hashtbl.create 32
-(* bind each new sequence (def) to its corresponding function (for function formals) *)
-let to_add_fun : (int, int*stmt) Hashtbl.t = Hashtbl.create 32
-
-(* For each variable, keep the number of assignment seen for this variable *)
-let def_id : (int, int) Hashtbl.t = Hashtbl.create 32
-
-(* bind a variable id and an index to a new id  *)
-let index_vid : (int*int,int) Hashtbl.t = Hashtbl.create 32
-(* Used to find all indexes seen for a specific vid  *)
-let vid_to_index : (int,int) Hashtbl.t = Hashtbl.create 32
-
-(* since cil expr have no side effect, we do not need to create more than one sequence if
- a lval is used more than once in an expr *)
-let done_set : (int*int,DefSet.t) Hashtbl.t = Hashtbl.create 32
-
-(* each def (statement id) are registered to avoid creating them twice (or more) with a new id
-   (for example, in loop, each statement will be computed at least 2 times to find a fixpoint) *)
-let seen_def : (int,def) Hashtbl.t = Hashtbl.create 32
-
-(* Used to create hyperlabels. key = (variable id, definition id), value = sequence id *)
-let hyperlabels : (int*int, int list) Hashtbl.t = Hashtbl.create 32
-
-(* count the number of sequences *)
+(* Count the number of sequences. *)
 let nb_seqs = ref 0
 
-(* def's ID, used to know the order of seen def during dataflow analysis *)
+(* Def's ID, used to know the order of seen def during dataflow analysis. *)
 let count_def = ref 1
+
+(* For each variable, keep the number of assignment seen for this variable
+   key : variable id
+   value : def counter
+*)
+let def_id : (int, int) Hashtbl.t = Hashtbl.create 32
+
+(* Used to assign unique id for specific variable and field of structs
+   key : variable id * field name
+   value : unique id
+*)
+let offset_id : (int*string, int) Hashtbl.t = Hashtbl.create 32
+
+(* each def is registered to avoid creating them more than once
+   key : statement id
+   value : def
+*)
+let seen_def : (int,def) Hashtbl.t = Hashtbl.create 32
+
+(* bind each new sequence (def) to its corresponding statement, sequence id is
+   used to sort them at the end
+   key : statement id
+   value : (sequence id * statement) list
+*)
+let to_add_defs : (int, (int*stmt) list) Hashtbl.t = Hashtbl.create 32
+(* bind each new sequence (use)  to its corresponding statement *)
+let to_add_uses : (int, (int*stmt) list) Hashtbl.t = Hashtbl.create 32
+(* bind each new sequence (cond) to its corresponding statement *)
+let to_add_cond : (int, stmt) Hashtbl.t = Hashtbl.create 32
+(* bind each new sequence (def) to its corresponding function (for formals)
+   key : function id
+   value : (sequence id * statement) list
+*)
+let to_add_fun : (int, (int*stmt) list) Hashtbl.t = Hashtbl.create 32
+
+(* Used to create hyperlabels
+   key : variable id * definition id
+   value : (sequence id) list
+*)
+let hyperlabels : (int*int, int list) Hashtbl.t = Hashtbl.create 32
+
+(* Increments count_def and returns the old value *)
 let next () =
   let tmp = !count_def in
   incr count_def;
   tmp
 
-(* Used for context criteria, count the number of labels avoided due to MaxContextPath option*)
-let ignoredLabels = ref 0
+let print_def elt =
+  Printf.printf "funId: %d / varId: %d / defId: %d / stmtDef: %d\n%!"
+    elt.funId elt.varId_def elt.defId elt.stmtDef
 
+let print_use elt =
+  Printf.printf "varId: %d / sid: %d\n%!"
+    elt.varId_use elt.stmtUse.sid
 
-(* Clear all hashtbl after each function in addSequences *)
+let print_uses set =
+  Printf.printf "Uses : @.";
+  UseSet.iter (fun elt -> Printf.printf "    @."; print_use elt) set
+
+let print_defs set =
+  Printf.printf "Defs : @.";
+  DefSet.iter (fun elt -> Printf.printf "    @."; print_def elt) set
+
+let pretty _ = function
+  | Bottom -> Printf.printf "Bottom\n@."
+  | NonBottom (defs,uses) ->
+    Printf.printf "NonBottom : \n@.";
+    print_defs defs;
+    print_uses uses
+
+(* Clear all hashtbl and reset counter after each function in addSequences *)
 let reset_all () : unit =
   Hashtbl.reset to_add_defs;
   Hashtbl.reset to_add_uses;
   Hashtbl.reset to_add_cond;
   Hashtbl.reset to_add_fun;
   Hashtbl.reset def_id;
-  Hashtbl.reset index_vid;
-  Hashtbl.reset done_set;
+  Hashtbl.reset offset_id;
   Hashtbl.reset seen_def;
   count_def := 0
 
-(* Given a variable id, increment the number of defs seen, and returns it *)
+(* generic function for Hashtbl which use list as values.
+   If the binding key exists, adds elt at the beginning of the list,
+   else create a new binding. *)
+let replace_or_add_list_front (tbl:('a,'b list) Hashtbl.t) (key:'a) (elt:'b) =
+  if Hashtbl.mem tbl key then begin
+    let old = Hashtbl.find tbl key in
+    Hashtbl.replace tbl key (elt::old)
+  end
+  else
+    Hashtbl.add tbl key [elt]
+
+(* generic function for Hashtbl which use list as values.
+   If the binding key exists, adds elt at the end of the list,
+   else create a new binding. *)
+let replace_or_add_list_back (tbl:('a,'b list) Hashtbl.t) (key:'a) (elt:'b) =
+  if Hashtbl.mem tbl key then begin
+    let old = Hashtbl.find tbl key in
+    Hashtbl.replace tbl key (old@[elt])
+  end
+  else
+    Hashtbl.add tbl key [elt]
+
+(* Create a new def. *)
+let make_def ?(funId = (-1)) (varId_def: int) (defId: int) (stmtDef: int) : def =
+  {id=next();funId;varId_def;defId;stmtDef}
+
+(* Add a sequence id to its corresponding hyperlabel *)
+let add_to_hyperlabel (key:int*int) (ids:int) : unit =
+  replace_or_add_list_front hyperlabels key ids
+
+(* Given a variable id, increment the number of defs seen
+   and returns it. If it is the first return 1. *)
 let get_next_def_id (vid:int) : int  =
   if Hashtbl.mem def_id vid then begin
     let n = (Hashtbl.find def_id vid) + 1 in
@@ -79,274 +167,160 @@ let get_next_def_id (vid:int) : int  =
   else
     (Hashtbl.add def_id vid 1; 1)
 
-(* Given a variable id and its index, create/return the corresponding new id *)
-let get_index_vid (vid:int) (index:int) : int =
-  if Hashtbl.mem index_vid (vid,index) then
-    Hashtbl.find index_vid (vid,index)
+(* For a given vid and field name, returns their unique id *)
+let get_offset_id (vid:int) (field_name:string) : int =
+  if Hashtbl.mem offset_id (vid,field_name) then
+    Hashtbl.find offset_id (vid,field_name)
   else begin
-    let new_vid =  Cil_const.new_raw_id () in
-    Hashtbl.add vid_to_index vid index;
-    Hashtbl.add index_vid (vid,index) new_vid;
-    new_vid
+    let new_id = Cil_const.new_raw_id () in
+    Hashtbl.add offset_id (vid,field_name) new_id;
+    new_id
   end
 
-(* Create a new def *)
-let make_def ?(funId = (-1)) (varId: int) (defId: int) (stmtDef: int) : def =
-  {id=next();funId;varId;defId;stmtDef}
-
-(* for a given variable id, returns all indexes seen so far for this id *)
-let get_all_index_vid (vid:int) : int list =
-  let all_index = Hashtbl.find_all vid_to_index vid in
-  List.map (fun i -> Hashtbl.find index_vid (vid,i)) all_index
-
-(* If 'index' can be reduced to a constant, then create a new id, associate it to the pair
-   (variable id, 'index') and returns it, else return vid.
-   If we can't recuce index, then return all seen indexes plus the current vid *)
-let extract_index (vid:int) (index:Cil_types.offset) : int list =
-  if not (Options.FoldIndex.get ()) then [vid]
-  else
-    match index with
-    | Index(index,NoOffset) ->
-      begin match Cil.constFoldToInt index with
-        | None ->
-          vid :: get_all_index_vid vid
-        | Some i ->
-          let i = Integer.to_int i in
-          [get_index_vid vid i]
-      end
-    | _ ->
-      [vid]
-
-(* Add a sequence id to its corresponding hyperlabel *)
-let add_to_hyperlabel (key:int*int) (ids:int) : unit =
-  if Hashtbl.mem hyperlabels key then
-    let old = Hashtbl.find hyperlabels key in
-    Hashtbl.replace hyperlabels key (ids::old)
-  else
-    Hashtbl.add hyperlabels key [ids]
-
-(* Given a pair (stmt id, expr id), returns all defs already done for this expr *)
-let get_done_set (key:int*int) : DefSet.t =
-  if Hashtbl.mem done_set key then
-    Hashtbl.find done_set key
-  else
-    DefSet.empty
-
-(* Given a pair (stmt id, expr id), returns all defs already done for this expr *)
-let get_all_done_set (key:int*int) : DefSet.t list =
-  Hashtbl.find_all done_set key
-
-(* Add the given def to the set of done defs for the corresponding key *)
-let add_to_done_set (key:int*int) (def:def) : unit =
-  if Hashtbl.mem done_set key then
-    let old = Hashtbl.find done_set key in
-    Hashtbl.replace done_set key (DefSet.add def old)
-  else
-    Hashtbl.add done_set key (DefSet.singleton def)
-
-let add_done_set (key:int*int) (set:DefSet.t) : unit =
-  Hashtbl.add done_set key set
-
-(** Return the cartesian product between all lists of def given in parameters
-    [[a;b];[c;d]] -> [[a;c];[a;d];[b;c];[b;d]] ...
+(* Recursively create new unique id for each field used with the variable.
+   Exemple :
+   A_struct.field1.field2id will be :
+   create new_vid  for (A_struct.vid, field1)
+   create new_vid2 for (new_vid     ,field2)
+   returns new_vid2
 *)
-let rec n_cartesian_product (ll : def list list) : def list list =
-  match ll with
-  | [] -> assert false
-  | [l] -> List.fold_left (fun acc i -> [i]::acc) [] l
-  | h :: t ->
-    let rest = n_cartesian_product t in
-    List.concat
-      (List.fold_left (fun acc i -> acc@[List.fold_left (fun acc2 r -> (i :: r)::acc2) [] rest]) [] h)
-
-(* Given a list of def list (For each variable, each definitions), returns all possible combinations
-of those definitions that were not already computed before *)
-let make_combs expr sid (combs: def list list) : DefSet.t list =
-  let prod_size = List.fold_left (fun acc l -> acc * (List.length l)) 1 combs in
-  if prod_size <= Options.MaxContextPath.get () then begin
-    let all_cases = n_cartesian_product combs in
-    let all_cases = List.map (fun dl -> DefSet.of_list dl) all_cases in
-    let already_done_combs = get_all_done_set (sid, expr.eid) in
-    let all_cases = List.filter (fun c1 -> not (List.exists (fun c2 -> DefSet.equal c1 c2) already_done_combs)) all_cases in
-    all_cases
-  end
+let rec get_vid_with_field (vid:int) (offset:offset) : int =
+  if Options.HandleStruct.get () then
+    match offset with
+    | Field (f_info,offset') ->
+      let new_id = get_offset_id vid f_info.fname in
+      get_vid_with_field new_id offset'
+    | _ -> vid
   else
-    (ignoredLabels := (List.length combs + 1) * prod_size + !ignoredLabels;
-    Options.warning "Expression ignored in file %a, too many paths (%d)" Printer.pp_location expr.eloc prod_size;
-     [])
+    vid
 
-(* Create a sequence member (def if is_def is true, use otherwise) *)
-let  mkSeq_aux (ids: int) (vid: string) (id:int) (max:int) : Cil_types.stmt =
-  let idExp = Exp.kinteger IULong ids in
-  let oneExp = Exp.one () in
-  let curr = Exp.integer id in
-  let slen = Exp.integer max in
-  let varExp = Exp.string vid in
-  let zeroExp = Exp.zero () in
-  Utils.mk_call "pc_label_sequence" ([oneExp;idExp;curr;slen;varExp;zeroExp])
+(* Try to find a use in state wich dom/post-dom current use  *)
+let is_equivalent vid stmt kf uses =
+  UseSet.exists (fun use ->
+      use.varId_use = vid &&
+      Dominators.dominates use.stmtUse stmt &&
+      !Db.Postdominators.is_postdominator
+        kf ~opening:use.stmtUse ~closing:stmt
+    ) uses
 
-(* Create a condition which will break sequences for this variable *)
-let mkCond (vid: int) : Cil_types.stmt =
-  let zeroExp = Exp.zero () in
-  let ccExp = Exp.string (string_of_int vid) in
-  Utils.mk_call "pc_label_sequence_condition" ([zeroExp;ccExp])
+(* Annot use in expression only once  *)
+let is_triv_equiv vid visited =
+  Options.CleanEquiv.get() &&
+  List.exists (fun vid' -> vid' = vid) visited
 
+(* Test if a LVal should be instrumented, i.e. it's not a global,
+   a temp variable or if it's the first time we see it in the current
+   expr/instr (except if CleanDuplicate is true) *)
+let should_instrument (v:varinfo) vid visited : bool =
+  not v.vglob && not (v.vname = "__retres") && not v.vtemp
+  && not (is_triv_equiv vid visited)
 
-(* Since expr (and inside of instr) don't have any side effect,
-   we can create only one sequence per lval inside it,
-   even if they are used more than once*)
-let visited : int list ref = ref []
+(***********************************)
+(********* Defuse Criteria *********)
+(***********************************)
 
-(* Test if a LVal shoudl be instrumented, i.e. it's not a global, a temp variable
-   or if it's the first time we saw it in the current expr/instr
-   (except if CleanExp is true) *)
-let should_instrument v vid =
-  not v.vglob
-  && not (v.vname = "__retres")
-  && not v.vtemp
-  && (not (Options.CleanDuplicate.get())
-      || not (List.exists (fun vid' -> vid' = vid) !visited))
-
-(* This visitor visits each LVal to create sequences if the state t contains defs for this LVal *)
-class visit_defuse (t:t) (sid:int) = object(self)
+(* This visitor visits each LVal to create sequences if the state t contains
+   defs for theses LVals *)
+class visit_defuse ((defs_set,uses_set):DefSet.t*UseSet.t) current_stmt kf = object(self)
   inherit Visitor.frama_c_inplace
+  val mutable visited = []
 
-  (* Create for a given def the sequence def-use for the current LVal *)
-  method private mkSeq eid def =
-    let ids = Annotators.next () in
-    let sdef = mkSeq_aux ids (string_of_int def.varId) 1 2 in
-    let suse = mkSeq_aux ids (string_of_int def.varId) 2 2 in
+  (* Create a sequence member
+     ids : sequence id
+     vid : variable id
+     id : position of this member (ex. 1=def and 2=use for def-use pairs
+     max : size of the sequence (2 for def-use pairs)
+  *)
+  method private mkSeq_aux (ids: int) (vid: string) (id:int) (max:int) : stmt =
+    let idExp = Exp.kinteger IULong ids in
+    let oneExp = Exp.one () in
+    let curr = Exp.integer id in
+    let slen = Exp.integer max in
+    let varExp = Exp.string vid in
+    let zeroExp = Exp.zero () in
+    Utils.mk_call "pc_label_sequence" ([oneExp;idExp;curr;slen;varExp;zeroExp])
+
+  (* Create a condition which will break sequences for the variable vid *)
+  method private  mkCond (vid: int) : stmt =
+    let zeroExp = Exp.zero () in
+    let ccExp = Exp.string (string_of_int vid) in
+    Utils.mk_call "pc_label_sequence_condition" ([zeroExp;ccExp])
+
+  (* Create a def-use sequence for the given def *)
+  method private mkSeq (def:def) : unit =
+    let ids = Annotators.next () in (* sequence id *)
+    let sdef = self#mkSeq_aux ids (string_of_int def.varId_def) 1 2 in (* def part *)
+    let suse = self#mkSeq_aux ids (string_of_int def.varId_def) 2 2 in (* use part *)
+    (* Add sdef to either defs table or function table *)
     if def.funId = -1 then begin
+      (* Add a cond label for this def *)
       if not (Hashtbl.mem to_add_cond def.stmtDef) then
-        Hashtbl.add to_add_cond def.stmtDef (mkCond def.varId);
-      Hashtbl.add to_add_defs def.stmtDef (ids,sdef)
+        Hashtbl.add to_add_cond def.stmtDef (self#mkCond def.varId_def);
+      replace_or_add_list_front to_add_defs def.stmtDef (ids,sdef)
     end
     else
-      Hashtbl.add to_add_fun def.funId (ids,sdef);
-    Hashtbl.add to_add_uses sid (ids,suse);
-    add_to_hyperlabel (def.varId, def.defId) ids;
-    add_to_done_set (sid,eid) def;
+      replace_or_add_list_front to_add_fun def.funId (ids,sdef);
+    (* Add the use *)
+    replace_or_add_list_front to_add_uses current_stmt.sid (ids,suse);
+    (* Register this sequence to its hyperlabel *)
+    add_to_hyperlabel (def.varId_def, def.defId) ids;
     incr nb_seqs
 
-  (* Get all the definition of a Lval  *)
+  (* Visit all expressions and sub expressions to find lvals *)
   method! vexpr expr =
-    match t with
-    | Bottom -> Cil.SkipChildren
-    | NonBottom t ->
-      begin match expr.enode with
-        | Lval (Var v, index) ->
-          let vids = extract_index v.vid index in
-          let f vid =
-            if should_instrument v vid then begin
-              visited := vid :: !visited;
-              let already_done = get_done_set (sid, expr.eid) in
-              let all_vid_defs = DefSet.filter (fun def -> def.varId = vid) t in
-              let all_vid_defs_todo = DefSet.diff all_vid_defs already_done in
-              DefSet.iter (self#mkSeq expr.eid) all_vid_defs_todo;
-            end
-          in
-          List.iter f vids;
-          Cil.DoChildren
-        | _ -> Cil.DoChildren
-      end
+    match expr.enode with
+    | Lval (Var v, offset) ->
+      let vid = get_vid_with_field v.vid offset in
+      (* Keeps defs related to this variable *)
+      let all_vid_defs = DefSet.filter (fun def -> def.varId_def = vid) defs_set in
+      if should_instrument v vid visited then begin
+        visited <- vid :: visited;
+        if not (DefSet.is_empty all_vid_defs) then
+          if not (Options.CleanEquiv.get ())
+          || not (is_equivalent vid current_stmt kf uses_set) then
+            DefSet.iter self#mkSeq all_vid_defs;
+      end;
+      Cil.DoChildren
+    | _ -> Cil.DoChildren
 end
 
 
-(** Count the number of LVals in an expression *)
-class countLvalExp = object(_)
+(******************************)
+(***** Dataflow analysis ******)
+(******************************)
+class visit_use state stmt = object(_)
   inherit Visitor.frama_c_inplace
+  val mutable visited = []
 
-  method get_LVals () = !visited
-
-  method! vlval lval =
-    match lval with
-    | Var v,_ ->
-      (** If the Lval is previously defined, and not already in the list *)
-      if should_instrument v v.vid then
-        visited := v.vid :: !visited;
-      Cil.SkipChildren
-    | _ -> Cil.SkipChildren
-end
-
-
-(* This visitor visits each LVal to create sequences if the state t contains defs for this LVal *)
-class visit_context (t:t) (sid:int) = object(self)
-  inherit Visitor.frama_c_inplace
-
-  (* Create for a given def the sequence def-use for the current LVal *)
-  method private mkComb eid defs =
-    let ids = Annotators.next () in
-    let max = DefSet.cardinal defs + 1 in
-    add_done_set (sid, eid) defs;
-    let f i def =
-      let s = mkSeq_aux ids (string_of_int def.varId) (i+1) max in
-      if def.funId = -1 then begin
-        if not (Hashtbl.mem to_add_cond def.stmtDef) then
-          Hashtbl.add to_add_cond def.stmtDef (mkCond def.varId);
-        Hashtbl.add to_add_defs def.stmtDef (ids,s)
-      end
-      else
-        Hashtbl.add to_add_fun def.funId (ids,s);
-    in
-    List.iteri f (DefSet.elements defs);
-    let u = mkSeq_aux ids "N/A" max max in
-    Hashtbl.add to_add_uses sid (ids,u);
-    add_to_hyperlabel (eid, 0) ids;
-    incr nb_seqs
-
-  (* Get all the definition of a Lval  *)
+  (* Visit all expressions and sub expressions to find lvals *)
   method! vexpr expr =
-    match t with
+    match !state with
     | Bottom -> Cil.SkipChildren
-    | NonBottom t ->
-      let vExp = new countLvalExp in
-      ignore(Cil.visitCilExpr (vExp :> Cil.cilVisitor) expr);
-      let lvalIds = vExp#get_LVals () in
-      if List.length lvalIds > 1 then begin
-        let filter_lval lvid =
-          DefSet.elements (DefSet.filter (fun def -> def.varId = lvid) t)
-        in
-        let sorted_defs_per_vid = List.map filter_lval lvalIds in
-        let all_combs = make_combs expr sid sorted_defs_per_vid in
-        List.iter (self#mkComb expr.eid) all_combs;
-        Cil.SkipChildren
-      end
-      else
-        Cil.SkipChildren
+    | NonBottom (defs,uses) ->
+      match expr.enode with
+      | Lval (Var v, offset) ->
+        let vid = get_vid_with_field v.vid offset in
+        if should_instrument v vid visited then begin
+          visited <- vid :: visited;
+          let new_uses = UseSet.add {varId_use=vid;stmtUse=stmt} uses in
+          state := NonBottom (defs, new_uses);
+        end;
+        Cil.DoChildren
+      | _ -> Cil.DoChildren
 end
 
-module type V_type = sig
-  val make : t -> int -> Cil.cilVisitor
-end
 
-let get_v b =
-  if b then
-    (module struct
-      let make state sid = (new visit_defuse state sid :> Cil.cilVisitor)
-    end: V_type)
-  else
-    (module struct
-      let make state sid = (new visit_context state sid :> Cil.cilVisitor)
-    end: V_type)
+module P() = struct
 
-module P(V : V_type) = struct
-
-  let print_elt elt =
-    Printf.printf "funId: %d / varId: %d / defId: %d / stmtDef: %d\n%!"
-      elt.funId elt.varId elt.defId elt.stmtDef
-
-  let print_defs set =
-    DefSet.iter (fun elt -> Printf.printf "    %!"; print_elt elt) set
-
-  let pretty _ = function
-    | Bottom -> Printf.printf "State: Bottom\n%!"
-    | NonBottom t ->
-      Printf.printf "NonBottom : \n%!";
-      print_defs t
+  let pretty = pretty
 
   (* Return a new set after removing all definitions of a variable *)
   let remove_def vid s =
-    DefSet.filter (fun v -> v.varId <> vid) s
+    DefSet.filter (fun d -> d.varId_def <> vid) s
+
+  (* Return a new set after removing all definitions of a variable *)
+  let remove_use vid s =
+    UseSet.filter (fun u -> u.varId_use <> vid) s
 
   type nonrec t = t
 
@@ -354,76 +328,76 @@ module P(V : V_type) = struct
   let join a b =
     match a,b with
     | Bottom, x | x, Bottom -> x
-    | NonBottom a, NonBottom b ->
-      NonBottom (DefSet.union a b)
+    | NonBottom (d,u), NonBottom (d',u') ->
+      NonBottom (DefSet.union d d',UseSet.inter u u')
 
   (* is the set a is a subset of b*)
   let is_included a b =
     match a,b with
     | Bottom, _ -> true
     | NonBottom _, Bottom -> false
-    | NonBottom a, NonBottom b ->
-      DefSet.subset a b
+    | NonBottom (d,u), NonBottom (d',u') ->
+      DefSet.subset d d' && UseSet.subset u u'
 
   let join_and_is_included a b =
     join a b, is_included a b
 
   let bottom = Bottom
 
-  let the = function None -> assert false | Some x -> x
-
-  (* For each definition statement, change the current state by adding or not new definition,
-  removing older ones etc... *)
-  let do_def ?(index=NoOffset) v sid = function
+  (* For each definition statement, change the current state by
+     adding or not new definition, removing older ones etc... *)
+  let do_def vid offset sid = function
     | Bottom -> Bottom
-    | NonBottom t ->
-      let vids = extract_index v.vid index in
-      let f acc vid =
-        let removed_vid =
-          if Options.CleanDataflow.get () then
-            remove_def vid acc
-          else
-            acc
-        in
+    | NonBottom (d,u) ->
+      let vid = get_vid_with_field vid offset in
+      let d_clean =
+        if Options.CleanDataflow.get () then
+          remove_def vid d
+        else
+          d
+      in
+      let u_clean = remove_use vid u in
+      let new_d =
         if Hashtbl.mem seen_def sid then
-          DefSet.add (Hashtbl.find seen_def sid) removed_vid
+          DefSet.add (Hashtbl.find seen_def sid) d_clean
         else begin
           let defId = get_next_def_id vid in
           let new_def = make_def vid defId sid in
           Hashtbl.add seen_def sid new_def;
-          DefSet.add new_def removed_vid
+          DefSet.add new_def d_clean
         end
       in
-      NonBottom (List.fold_left f t vids)
+      NonBottom (new_d,u_clean)
 
   (* Function called for each stmt and propagating new states to each succs of stmt *)
   let transfer_stmt stmt state =
     match stmt.skind with
     | Instr i when not (Utils.is_label i) ->
-      visited := [];
-      ignore(Cil.visitCilInstr (V.make state stmt.sid) i);
+      let state = ref state in
+      ignore(Cil.visitCilInstr  (new visit_use state stmt :> Cil.cilVisitor) i);
       begin match i with
-        | Set ((Var v,index),_,_)
-        | Call (Some (Var v,index),_,_,_) ->
+        | Set ((Var v,offset),_,_)
+        | Call (Some (Var v,offset),_,_,_) ->
           if not (v.vname = "__retres") && not v.vtemp then begin
-            let res = do_def ~index v stmt.sid state in
+            let res = do_def v.vid offset stmt.sid !state in
             List.map (fun x -> (x,res)) stmt.succs
           end
-          else List.map (fun x -> (x,state)) stmt.succs
+          else List.map (fun x -> (x,!state)) stmt.succs
         | Local_init (v,_,_) ->
           if not (v.vname = "__retres") && not v.vtemp then begin
-            let res = do_def v stmt.sid state in
+            let res = do_def v.vid NoOffset stmt.sid !state in
             List.map (fun x -> (x,res)) stmt.succs
           end
-          else List.map (fun x -> (x,state)) stmt.succs
-        | _ -> List.map (fun x -> (x,state)) stmt.succs
+          else List.map (fun x -> (x,!state)) stmt.succs
+        | _ ->
+          List.map (fun x -> (x,!state)) stmt.succs
       end
     | Return (Some e,_)
     | If (e,_,_,_)
     | Switch (e,_,_,_) ->
-      visited := [];
-      ignore(Cil.visitCilExpr (V.make state stmt.sid) e);
-      List.map (fun x -> (x,state)) stmt.succs
+      let state = ref state in
+      ignore(Cil.visitCilExpr  (new visit_use state stmt :> Cil.cilVisitor) e);
+      List.map (fun x -> (x,!state)) stmt.succs
     | _ -> List.map (fun x -> (x,state)) stmt.succs
 
 end
@@ -431,55 +405,85 @@ end
 (* For each function, do a dataflow analysis and create sequences
    Initial state contains def of each formal
 *)
-let do_function kf defuse =
+let do_function kf =
   let module Fenv = (val Dataflows.function_env kf) in
-  let module V = (val (get_v defuse)) in
-  let module Inst = P(V) in
+  let module Inst = P() in
   let args = Kernel_function.get_formals kf in
   let first_stmt = Kernel_function.find_first_stmt kf in
-  let init = ref DefSet.empty in
-  let f arg =
+  let funId = Kernel_function.get_id kf in
+  let f acc arg =
     let defId = get_next_def_id arg.vid in
-    init := DefSet.add (make_def ~funId:(Kernel_function.get_id kf) arg.vid defId first_stmt.sid) !init
+    DefSet.add (make_def ~funId arg.vid defId first_stmt.sid) acc
   in
-  List.iter f args;
+  let init_d = List.fold_left f DefSet.empty args in
   let module Arg = struct
     include Inst
     let init =
-      [(first_stmt, NonBottom (!init))]
+      [(first_stmt, NonBottom (init_d, UseSet.empty))]
 
   end in
-  let module Analysis = Dataflows.Simple_forward(Fenv)(Arg) in
-  ()
+  let module Results = Dataflows.Simple_forward(Fenv)(Arg) in
+  let f stmt state =
+    match state with
+    | Bottom -> ()
+    | NonBottom t ->
+      begin
+        match stmt.skind with
+        | Instr i when not (Utils.is_label i) ->
+          ignore(Cil.visitCilInstr (new visit_defuse t stmt kf :> Cil.cilVisitor) i);
+        | Return (Some e,_)
+        | If (e,_,_,_)
+        | Switch (e,_,_,_) ->
+          ignore(Cil.visitCilExpr  (new visit_defuse t stmt kf :> Cil.cilVisitor) e);
+        | _ -> ()
+      end
+  in
+  Results.iter_on_result f
 
 (* This visitor will, for each function :
    - Do the dataflows analysis and fill hashtbls
    - Then visit the body of the function, add add all sequences to where
-   they belong.
+     they belong.
    - Clean all hashtbls and do the next function (if any)
 *)
-class addSequences defuse= object(self)
+class addSequences = object(self)
   inherit Visitor.frama_c_inplace
 
   (* get all sequences, sort defs and uses by sequence ID, and returns
-  a pair of list (before,after) with sequences to add before & after the current statement *)
+     a pair of list (before,after) with sequences to add before & after the current statement *)
   method private get_seqs_sorted sid =
-    let defs = Hashtbl.find_all to_add_defs sid in
-    let uses = Hashtbl.find_all to_add_uses sid in
-    let cond = List.rev (Hashtbl.find_all to_add_cond sid) in
+    let defs =
+      if Hashtbl.mem to_add_defs sid then
+        Hashtbl.find to_add_defs sid
+      else []
+    in
+    let uses =
+      if Hashtbl.mem to_add_uses sid then
+        Hashtbl.find to_add_uses sid
+      else []
+    in
+    let cond =
+      if Hashtbl.mem to_add_cond sid then
+        [Hashtbl.find to_add_cond sid]
+      else []
+    in
     let compare (id1,_) (id2,_) = compare id1 id2 in
     let defs,uses = List.sort compare defs, List.sort compare uses in
     List.map (fun (_,s) -> s) defs, (List.map (fun (_,s) -> s) uses) @ cond
 
-  method! vfunc (dec : Cil_types.fundec) : Cil_types.fundec Cil.visitAction =
+  method! vfunc (dec : fundec) : fundec Cil.visitAction =
     let kf = Extlib.the self#current_kf in
     if Kernel_function.is_definition kf && Annotators.shouldInstrument dec.svar then begin
       Cfg.clearCFGinfo ~clear_id:false dec;
       Cfg.cfgFun dec;
-      do_function kf defuse;
+      do_function kf;
       Cil.DoChildrenPost (fun f ->
           let id = dec.svar.vid in
-          let defs = List.sort compare (Hashtbl.find_all to_add_fun id) in
+          let defs = List.sort compare (
+              if Hashtbl.mem to_add_fun id then
+                Hashtbl.find to_add_fun id
+              else [])
+          in
           let params = List.map (fun (_,s) -> s) defs in
           f.sbody.bstmts <- params @ f.sbody.bstmts;
           reset_all ();
@@ -539,13 +543,12 @@ let gen_hyperlabels () =
   let out = open_out_gen [Open_creat; Open_append] 0o644 data_filename in
   output_string out data;
   close_out out;
-  Options.feedback "Number of ignored labels %d" !ignoredLabels;
   Options.feedback "Total number of sequences = %d" !nb_seqs;
   Options.feedback "Total number of hyperlabels = %d" (Annotators.getCurrentHLId())
 
 (** Successively pass the 2 visitors *)
-let visite (file : Cil_types.file) visit : unit =
-  Visitor.visitFramacFileSameGlobals (new addSequences visit :> Visitor.frama_c_visitor) file;
+let visite (file : file) : unit =
+  Visitor.visitFramacFileSameGlobals (new addSequences :> Visitor.frama_c_visitor) file;
   Cfg.clearFileCFG ~clear_id:false file;
   Cfg.computeFileCFG file;
   Ast.mark_as_changed ();
@@ -555,7 +558,7 @@ module ADC = Annotators.Register (struct
     let name = "ADC"
     let help = "All-Definitions Coverage"
     let apply _ file =
-      visite file true;
+      visite file;
       symb := "+";
       gen_hyperlabels ()
   end)
@@ -565,7 +568,7 @@ module AUC = Annotators.Register (struct
     let name = "AUC"
     let help = "All-Uses Coverage"
     let apply _ file =
-      visite file true;
+      visite file;
       symb := ".";
       gen_hyperlabels ()
   end)
@@ -575,19 +578,7 @@ module DUC = Annotators.Register (struct
     let name = "DUC"
     let help = "Definition-Use Coverage"
     let apply _ file =
-      visite file true;
+      visite file;
       symb := "-";
-      gen_hyperlabels ()
-  end)
-
-(**
-   Context criteria annotator
-*)
-module Context = Annotators.Register (struct
-    let name = "CTXC"
-    let help = "Context Coverage"
-    let apply _ file =
-      Options.result "[WIP] Context is currently in Alpha";
-      visite file false;
       gen_hyperlabels ()
   end)

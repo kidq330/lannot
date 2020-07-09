@@ -21,6 +21,9 @@
 (**************************************************************************)
 open Utils
 
+let old_value = ref (Kernel.LogicalOperators.get ())
+
+
 let store_label_data out annotations =
   (* TODO do that in its own module, ultimately shared with the other LTest-tools *)
   (* TODO (later) do something better than csv *)
@@ -54,20 +57,15 @@ let compute_outfile opt files =
 
 
 let annotate_on_project ann_names =
-  let old_value = Kernel.LogicalOperators.get () in
-  Kernel.LogicalOperators.on (); (* invalidate the Ast if any *)
   let filename = compute_outfile (Options.Output.get ()) (Kernel.Files.get ()) in
-
+  let basename = Filename.chop_extension filename in
   (* Remove .hyperlabels file if exists *)
-  let hl_data_filename = (Filename.chop_extension filename) ^ ".hyperlabels" in
+  let hl_data_filename = basename ^ ".hyperlabels" in
   if Sys.file_exists hl_data_filename then
     Sys.remove hl_data_filename;
 
   let annotations = ref [] in
   let collect ann = annotations := ann :: !annotations in
-  let old_project = Project.current () in
-  let new_proj = Project.create_by_copy ~last:true "Lannotate_prj" in
-  Project.set_current new_proj;
   Annotators.annotate (compute_outfile (Options.Output.get ()) (Kernel.Files.get ())) ann_names ~collect (Ast.get ());
 
   let annotations = !annotations in
@@ -79,13 +77,12 @@ let annotate_on_project ann_names =
   Format.pp_print_flush formatter ();
   close_out out;
   (* output label data *)
-  let data_filename = (Filename.chop_extension filename) ^ ".labels" in
+  let data_filename = basename ^ ".labels" in
   Options.feedback "write label data (to %s)" data_filename;
+  Options.feedback "%d labels/sequences created" (Annotators.getCurrentLabelId ());
   let out = open_out data_filename in
   store_label_data out annotations;
   close_out out;
-  Kernel.LogicalOperators.set old_value;
-  Project.set_current old_project;
   Options.feedback "finished"
 
 let annotate ann_names =
@@ -112,6 +109,7 @@ let run () =
   try
     setupMutatorOptions ();
     annotate (Datatype.String.Set.elements (Options.Annotators.get ()))
+    (* Kernel.LogicalOperators.set !old_value *)
   with
   | Globals.No_such_entry_point _ ->
     Options.abort "`-main` parameter missing"
@@ -119,14 +117,23 @@ let run () =
   | Dynamic.Incompatible_type(s) -> Options.fatal "%s incompatible" s
   | Failure s -> Options.fatal "unexpected failure: %s" s
 
-let run () =
-  if Options.ListAnnotators.get () then
-    begin
-      Annotators.print_help Format.std_formatter;
-      exit 0;
-    end
-  else if not (Options.Annotators.is_empty ()) then
-    run ()
+let run_once, _ = State_builder.apply_once "LAnnotate.run" [] run
 
-let () =
-  Db.Main.extend run
+let help () =
+  if Options.ListAnnotators.get () then begin
+    Annotators.print_help Format.std_formatter;
+    raise Cmdline.Exit
+  end
+let () = Cmdline.run_after_configuring_stage help
+
+let run () =
+  if not (Options.Annotators.is_empty ()) then run_once ()
+
+let setup_run () =
+  if not (Options.Annotators.is_empty ()) then begin
+    Kernel.LogicalOperators.on () (* invalidate the Ast if any *)
+  end
+
+let () = Cmdline.run_after_configuring_stage setup_run
+
+let () = Db.Main.extend run

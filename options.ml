@@ -36,7 +36,7 @@ let rec string_list l =
 module Annotators = String_set (struct
     let option_name = "-lannot"
     let arg_name = "criteria"
-    let help = "generate labels for each criterion (comma-separated \
+    let help = "enable annotation and generate labels for each criterion (comma-separated \
                 list of criteria, see -lannot-list)"
   end)
 let () = Annotators.add_aliases ["-lannotate"]
@@ -53,9 +53,16 @@ module Simplify = False (struct
     let help = "enable the simplification of boolean expressions before annotations"
   end)
 
-module FunctionNames = Kernel_function_set (struct
+module DoFunctionNames = Kernel_function_set (struct
     let arg_name = "funs"
     let option_name = "-lannot-functions"
+    let help = "filter by function names (disabled by default)"
+  end)
+
+
+module SkipFunctionNames = Kernel_function_set (struct
+    let arg_name = "funs"
+    let option_name = "-lannot-skip-functions"
     let help = "filter by function names (disabled by default)"
   end)
 
@@ -145,12 +152,6 @@ module Inline = True (struct
     let help = "Annotate inline functions (Default : true)"
   end)
 
-module InlineException = Kernel_function_set (struct
-    let option_name = "-lannot-inline-functions"
-    let arg_name = "funs"
-    let help = "if -lannot-inline is false, then this option allows to add exceptions and annotate some inline functions"
-  end)
-
 let dataflow = add_group "Dataflow criterion-specific options"
 
 let () = Parameter_customize.set_group dataflow
@@ -160,15 +161,9 @@ module CleanDataflow = True (struct
   end)
 
 let () = Parameter_customize.set_group dataflow
-module FoldIndex = False (struct
-    let option_name = "-lannot-fold-index"
-    let help = "Reduce table index to an Int (constant) if possible before dataflow analysis"
-  end)
-
-let () = Parameter_customize.set_group dataflow
-module CleanDuplicate = True (struct
-    let option_name = "-lannot-clean-duplicate"
-    let help = "Annotate lval only once per expr"
+module CleanEquiv = True (struct
+    let option_name = "-lannot-clean-equiv"
+    let help = "Remove equivalent sequences and annotate lval only once per expr"
   end)
 
 let () = Parameter_customize.set_group dataflow
@@ -186,4 +181,9 @@ module MaxContextPath = Int (struct
 module HandleDoWhile = True (struct
     let option_name = "-lannot-handle-dowhile"
     let help = "Do..While.. will be supported in loops criterias, but empty loops will also be considered as Do..While.. (default: true)"
+  end)
+
+module HandleStruct = True (struct
+    let option_name = "-lannot-handle-struct"
+    let help = "WIP: for def-use analysis (default: false)"
   end)
