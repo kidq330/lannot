@@ -219,8 +219,9 @@ let rec get_vid_with_field (vid:int) (offset:offset) : int =
 (* Try to find a use in state wich dom/post-dom current use  *)
 let is_equivalent vid stmt kf uses =
   UseSet.exists (fun use ->
+      if use.varId_use = vid && not (Dominators.dominates use.stmtUse stmt) then
+        Options.fatal "Discrepancy: This should not happen" vid;
       use.varId_use = vid &&
-      Dominators.dominates use.stmtUse stmt &&
       !Db.Postdominators.is_postdominator
         kf ~opening:use.stmtUse ~closing:stmt
     ) uses
