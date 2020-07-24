@@ -38,7 +38,7 @@ PLUGIN_ENABLE:=@ENABLE_LANNOTATE@
 PLUGIN_NAME:=LAnnotate
 
 PLUGIN_CMO:= options utils ast_const bes simplify annotators \
-             l_wm l_logical l_partition l_dataflows \
+             l_wm l_logical l_boundary l_partition l_dataflows \
              l_function l_statement l_loop register
 
 PLUGIN_DISTRIBUTED:=$(PLUGIN_ENABLE)

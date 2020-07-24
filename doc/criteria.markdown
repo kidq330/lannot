@@ -454,6 +454,8 @@ else {
 	goto return_label;
 }
 ```
+
+
 ### WM (Weak Mutation)
 
     frama-c -lannot=WM file.c
@@ -482,6 +484,34 @@ int main(int a, int b) {
   pc_label(b < 0,5,"WM ABS");
   __retres = a + b;
   pc_label(__retres < 0,6,"WM ABS");
+  return __retres;
+}
+```
+
+
+### IOB (Input Output Bounds Coverage)
+
+Test boundaries of each function input and output (i.e. formals and returns).
+Boundaries are either Zero/Min/Max (depending on variable's type). Unsigned's min is zero.
+With Frama-C's normalization, each function will cointain only one return statement.
+
+The following example:
+```c
+int main(int a){
+  return a;
+}
+```
+will be instrumented as follows:
+```c
+int main(int a) {
+  int __retres;
+  pc_label(a == 0,1,"IOB");
+  pc_label(a == (-2147483647-1),2,"IOB");
+  pc_label(a == 2147483647,3,"IOB");
+  __retres = a + a;
+  pc_label(__retres == 0,4,"IOB");
+  pc_label(__retres == (-2147483647-1),5,"IOB");
+  pc_label(__retres == 2147483647,6,"IOB");
   return __retres;
 }
 ```

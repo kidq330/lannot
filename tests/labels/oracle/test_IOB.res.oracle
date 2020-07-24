@@ -1,0 +1,6 @@
+[kernel] Parsing tests/labels/test_IOB.c (with preprocessing)
+[lannot] apply annotations for IOB
+[lannot] write modified C file (to tests/labels/result/test_IOB_labels.c)
+[lannot] write label data (to tests/labels/result/test_IOB_labels.labels)
+[lannot] 60 labels/sequences created
+[lannot] finished

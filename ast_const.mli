@@ -35,7 +35,10 @@ module Exp : sig
   val integer : ?loc:location -> int -> exp
 
   (** [ikind] constant *)
-  val kinteger : ?loc:location -> Cil_types.ikind -> int -> exp
+  val kinteger : ?loc:location -> ikind -> int -> exp
+
+  (** [ikind] constant *)
+  val kinteger64 : ?loc:location -> ikind -> ?repr:string -> Integer.t -> exp
 
   (** [float] constant *)
   val float : ?loc:location -> float -> exp
