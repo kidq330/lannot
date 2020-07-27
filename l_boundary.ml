@@ -25,39 +25,37 @@ open Ast_const
 
 let unk_loc = Cil_datatype.Location.unknown
 
+
+(* For each exp, limits equals [min;max] (signed) or [max] (unsigned)
+   We create a label for each bound, plus a label for zero (which is
+   min for unsigned types) *)
+let mk_bound mk_label (limits:Integer.t list) (exp:exp) (ik:ikind) (loc:location) : stmt list =
+  let exp_limits =
+    List.map (fun i -> Exp.kinteger64 ik i) limits
+  in
+  List.map (fun exp' ->
+      mk_label (Exp.binop Eq exp exp') [] loc
+    ) exp_limits
+
+(* Create bound labels for each "int type" argument *)
+let mk_bounds mk_label (loc:location) (exp:exp) : stmt list =
+  match Cil.typeOf exp with
+  | TInt (kind,_) ->
+    let size = Cil.bitsSizeOfInt kind in
+    let limits =
+      if Cil.isSigned kind then
+        [Cil.min_signed_number size;
+         Cil.max_signed_number size]
+      else
+        [Integer.zero;
+         Cil.max_unsigned_number size]
+    in
+    mk_bound mk_label limits exp kind loc
+  | _ -> []
+
 (** Input Output Bound Visitor **)
-class visitor mk_label = object(self)
+class io_visitor mk_label = object(self)
   inherit Visitor.frama_c_inplace
-
-  (* For each exp, limits equals [min;max] (signed) or [max] (unsigned)
-     We create a label for each bound, plus a label for zero (which is
-     min for unsigned types) *)
-  method private mk_bound (limits:Integer.t list) (exp:exp) (ik:ikind) (loc:location) : stmt list =
-    let zero = mk_label (Exp.binop Eq exp (Exp.zero ())) [] loc in
-    let exp_limits =
-      List.map (fun i -> Exp.kinteger64 ik i) limits
-    in
-    let lbl_limits =
-      List.map (fun exp' ->
-          mk_label (Exp.binop Eq exp exp') [] loc
-        ) exp_limits
-    in
-    zero :: lbl_limits
-
-  (* Create bound labels for each "int type" argument *)
-  method private mk_bounds (loc:location) (exp:exp) : stmt list =
-    match Cil.typeOf exp with
-    | TInt (kind,_) ->
-      let size = Cil.bitsSizeOfInt kind in
-      let limits =
-        if Cil.isSigned kind then
-          [Cil.min_signed_number size;
-           Cil.max_signed_number size]
-        else
-          [Cil.max_unsigned_number size]
-      in
-      self#mk_bound limits exp kind loc
-    | _ -> []
 
   (* visit each function and annotate formals and return statement*)
   method! vfunc _ =
@@ -65,7 +63,7 @@ class visitor mk_label = object(self)
     let args = Kernel_function.get_formals kf in
     let exp_args = List.map (fun arg -> Exp.lval (Lval.var arg)) args in
     let loc = Kernel_function.get_location kf in
-    let bounds_labels = List.concat_map (self#mk_bounds loc) exp_args in
+    let bounds_labels = List.concat_map (mk_bounds mk_label loc) exp_args in
     Cil.DoChildrenPost( fun fdec ->
         fdec.sbody.bstmts <- bounds_labels @ fdec.sbody.bstmts;
         fdec
@@ -75,20 +73,83 @@ class visitor mk_label = object(self)
   method! vstmt_aux stmt =
     begin match stmt.skind with
       | Return (Some exp, loc) ->
-        let bounds_labels = self#mk_bounds loc exp in
+        let bounds_labels = mk_bounds mk_label loc exp in
         stmt.skind <- Block (Block.mk (bounds_labels @ [Stmt.mk stmt.skind]));
         Cil.SkipChildren
       | _ -> Cil.DoChildren
     end
+end
 
+
+(** Condition Bound Visitor **)
+class atom_visitor mk_label labels = object(self)
+  inherit Visitor.frama_c_inplace
+
+  method! vexpr exp =
+    match exp.enode with
+    | Lval _ ->
+      labels := List.rev (mk_bounds mk_label exp.eloc exp) @ !labels;
+      Cil.SkipChildren
+    | BinOp ((Lt | Gt | Le | Ge | Eq | Ne), e1, e2, _) ->
+      ignore(Cil.visitCilExpr (self :> Cil.cilVisitor) e1);
+      ignore(Cil.visitCilExpr (self :> Cil.cilVisitor) e2);
+      let new_exp = Exp.binop Eq e1 e2 in
+      labels := (mk_label new_exp [] exp.eloc) :: !labels;
+      Cil.SkipChildren
+    | _ -> Cil.DoChildren
+end
+
+(** Condition Bound Visitor **)
+class c_visitor mk_label = object(self)
+  inherit Visitor.frama_c_inplace
+
+  (* Create bound labels for return statement  *)
+  method! vstmt_aux stmt =
+    begin match stmt.skind with
+      | If (e, thenb, elseb, loc) ->
+        let atoms = Utils.atomic_conditions e in
+        let atoms_labels = ref [] in
+        List.iter (fun atom ->
+            ignore(Cil.visitCilExpr (new atom_visitor mk_label atoms_labels :> Cil.cilVisitor) atom);
+            ) atoms;
+        (* handle visits manually to skip visit of e *)
+        let thenb = Visitor.visitFramacBlock (self :> Visitor.frama_c_visitor) thenb in
+        let elseb = Visitor.visitFramacBlock (self :> Visitor.frama_c_visitor) elseb in
+        let old_stmt = Stmt.mk (If (e, thenb, elseb, loc)) in
+        stmt.skind <- Block (Block.mk (List.rev !atoms_labels @ [old_stmt]));
+        Cil.SkipChildren
+      | _ -> Cil.DoChildren
+    end
 end
 
 (**
-   Input Output Bounds annotator
+   Input Output Bound annotator
 *)
 module InOutBound = Annotators.Register (struct
     let name = "IOB"
-    let help = "Input Output Bounds Coverage"
+    let help = "Input Output Bound Coverage"
     let apply mk_label file =
-      Visitor.visitFramacFileSameGlobals (new visitor mk_label :> Visitor.frama_c_visitor) file
+      Visitor.visitFramacFileSameGlobals (new io_visitor mk_label :> Visitor.frama_c_visitor) file
+  end)
+
+
+(**
+   Condition Bound annotator
+*)
+module CondBound = Annotators.Register (struct
+    let name = "CB"
+    let help = "Condition Bound Coverage"
+    let apply mk_label file =
+      Visitor.visitFramacFileSameGlobals (new c_visitor mk_label :> Visitor.frama_c_visitor) file
+  end)
+
+(**
+   Bound annotator
+*)
+module Bound = Annotators.Register (struct
+    let name = "BC"
+    let help = "Bound Coverage (IOB + CB)"
+    let apply mk_label file =
+      Visitor.visitFramacFileSameGlobals (new io_visitor mk_label :> Visitor.frama_c_visitor) file;
+      Visitor.visitFramacFileSameGlobals (new c_visitor mk_label :> Visitor.frama_c_visitor) file
   end)

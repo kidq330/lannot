@@ -28,133 +28,121 @@ _Bool bool_test(_Bool a)
 char char_test(char a)
 {
   char __retres;
-  pc_label((int)a == 0,5,"IOB");
-  pc_label((int)a == -128,6,"IOB");
-  pc_label((int)a == 127,7,"IOB");
+  pc_label((int)a == -128,5,"IOB");
+  pc_label((int)a == 127,6,"IOB");
   __retres = (char)((int)a + (int)a);
-  pc_label((int)__retres == 0,8,"IOB");
-  pc_label((int)__retres == -128,9,"IOB");
-  pc_label((int)__retres == 127,10,"IOB");
+  pc_label((int)__retres == -128,7,"IOB");
+  pc_label((int)__retres == 127,8,"IOB");
   return __retres;
 }
 
 signed char signed_char_test(signed char a)
 {
   signed char __retres;
-  pc_label((int)a == 0,11,"IOB");
-  pc_label((int)a == -128,12,"IOB");
-  pc_label((int)a == 127,13,"IOB");
+  pc_label((int)a == -128,9,"IOB");
+  pc_label((int)a == 127,10,"IOB");
   __retres = (signed char)((int)a + (int)a);
-  pc_label((int)__retres == 0,14,"IOB");
-  pc_label((int)__retres == -128,15,"IOB");
-  pc_label((int)__retres == 127,16,"IOB");
+  pc_label((int)__retres == -128,11,"IOB");
+  pc_label((int)__retres == 127,12,"IOB");
   return __retres;
 }
 
 unsigned char unsigned_char_test(unsigned char a)
 {
   unsigned char __retres;
-  pc_label((int)a == 0,17,"IOB");
-  pc_label((int)a == 255,18,"IOB");
+  pc_label((int)a == 0,13,"IOB");
+  pc_label((int)a == 255,14,"IOB");
   __retres = (unsigned char)((int)a + (int)a);
-  pc_label((int)__retres == 0,19,"IOB");
-  pc_label((int)__retres == 255,20,"IOB");
+  pc_label((int)__retres == 0,15,"IOB");
+  pc_label((int)__retres == 255,16,"IOB");
   return __retres;
 }
 
 int int_test(int a)
 {
   int __retres;
-  pc_label(a == 0,21,"IOB");
-  pc_label(a == (-2147483647-1),22,"IOB");
-  pc_label(a == 2147483647,23,"IOB");
+  pc_label(a == (-2147483647-1),17,"IOB");
+  pc_label(a == 2147483647,18,"IOB");
   __retres = a + a;
-  pc_label(__retres == 0,24,"IOB");
-  pc_label(__retres == (-2147483647-1),25,"IOB");
-  pc_label(__retres == 2147483647,26,"IOB");
+  pc_label(__retres == (-2147483647-1),19,"IOB");
+  pc_label(__retres == 2147483647,20,"IOB");
   return __retres;
 }
 
 unsigned int unsigned_int_test(unsigned int a)
 {
   unsigned int __retres;
-  pc_label(a == 0U,27,"IOB");
-  pc_label(a == 4294967295U,28,"IOB");
+  pc_label(a == 0U,21,"IOB");
+  pc_label(a == 4294967295U,22,"IOB");
   __retres = a + a;
-  pc_label(__retres == 0U,29,"IOB");
-  pc_label(__retres == 4294967295U,30,"IOB");
+  pc_label(__retres == 0U,23,"IOB");
+  pc_label(__retres == 4294967295U,24,"IOB");
   return __retres;
 }
 
 short short_test(short a)
 {
   short __retres;
-  pc_label((int)a == 0,31,"IOB");
-  pc_label((int)a == -32768,32,"IOB");
-  pc_label((int)a == 32767,33,"IOB");
+  pc_label((int)a == -32768,25,"IOB");
+  pc_label((int)a == 32767,26,"IOB");
   __retres = (short)((int)a + (int)a);
-  pc_label((int)__retres == 0,34,"IOB");
-  pc_label((int)__retres == -32768,35,"IOB");
-  pc_label((int)__retres == 32767,36,"IOB");
+  pc_label((int)__retres == -32768,27,"IOB");
+  pc_label((int)__retres == 32767,28,"IOB");
   return __retres;
 }
 
 unsigned short unsigned_short_test(unsigned short a)
 {
   unsigned short __retres;
-  pc_label((int)a == 0,37,"IOB");
-  pc_label((int)a == 65535,38,"IOB");
+  pc_label((int)a == 0,29,"IOB");
+  pc_label((int)a == 65535,30,"IOB");
   __retres = (unsigned short)((int)a + (int)a);
-  pc_label((int)__retres == 0,39,"IOB");
-  pc_label((int)__retres == 65535,40,"IOB");
+  pc_label((int)__retres == 0,31,"IOB");
+  pc_label((int)__retres == 65535,32,"IOB");
   return __retres;
 }
 
 long long_test(long a)
 {
   long __retres;
-  pc_label(a == 0L,41,"IOB");
-  pc_label(a == (-2147483647-1),42,"IOB");
-  pc_label(a == 2147483647L,43,"IOB");
+  pc_label(a == (-2147483647-1),33,"IOB");
+  pc_label(a == 2147483647L,34,"IOB");
   __retres = a + a;
-  pc_label(__retres == 0L,44,"IOB");
-  pc_label(__retres == (-2147483647-1),45,"IOB");
-  pc_label(__retres == 2147483647L,46,"IOB");
+  pc_label(__retres == (-2147483647-1),35,"IOB");
+  pc_label(__retres == 2147483647L,36,"IOB");
   return __retres;
 }
 
 unsigned long unsigned_long_test(unsigned long a)
 {
   unsigned long __retres;
-  pc_label(a == 0UL,47,"IOB");
-  pc_label(a == 4294967295UL,48,"IOB");
+  pc_label(a == 0UL,37,"IOB");
+  pc_label(a == 4294967295UL,38,"IOB");
   __retres = a + a;
-  pc_label(__retres == 0UL,49,"IOB");
-  pc_label(__retres == 4294967295UL,50,"IOB");
+  pc_label(__retres == 0UL,39,"IOB");
+  pc_label(__retres == 4294967295UL,40,"IOB");
   return __retres;
 }
 
 long long long_long_test(long long a)
 {
   long long __retres;
-  pc_label(a == 0LL,51,"IOB");
-  pc_label(a == (-9223372036854775807-1),52,"IOB");
-  pc_label(a == 9223372036854775807LL,53,"IOB");
+  pc_label(a == (-9223372036854775807-1),41,"IOB");
+  pc_label(a == 9223372036854775807LL,42,"IOB");
   __retres = a + a;
-  pc_label(__retres == 0LL,54,"IOB");
-  pc_label(__retres == (-9223372036854775807-1),55,"IOB");
-  pc_label(__retres == 9223372036854775807LL,56,"IOB");
+  pc_label(__retres == (-9223372036854775807-1),43,"IOB");
+  pc_label(__retres == 9223372036854775807LL,44,"IOB");
   return __retres;
 }
 
 unsigned long long unsigned_long_long_test(unsigned long long a)
 {
   unsigned long long __retres;
-  pc_label(a == 0ULL,57,"IOB");
-  pc_label(a == 18446744073709551615ULL,58,"IOB");
+  pc_label(a == 0ULL,45,"IOB");
+  pc_label(a == 18446744073709551615ULL,46,"IOB");
   __retres = a + a;
-  pc_label(__retres == 0ULL,59,"IOB");
-  pc_label(__retres == 18446744073709551615ULL,60,"IOB");
+  pc_label(__retres == 0ULL,47,"IOB");
+  pc_label(__retres == 18446744073709551615ULL,48,"IOB");
   return __retres;
 }
 

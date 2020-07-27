@@ -489,10 +489,10 @@ int main(int a, int b) {
 ```
 
 
-### IOB (Input Output Bounds Coverage)
+### IOB (Input Output Bound Coverage)
 
 Test boundaries of each function input and output (i.e. formals and returns).
-Boundaries are either Zero/Min/Max (depending on variable's type). Unsigned's min is zero.
+Boundaries are Min and Max (depending on variable's type). Unsigned's min is zero.
 With Frama-C's normalization, each function will cointain only one return statement.
 
 The following example:
@@ -505,16 +505,61 @@ will be instrumented as follows:
 ```c
 int main(int a) {
   int __retres;
-  pc_label(a == 0,1,"IOB");
-  pc_label(a == (-2147483647-1),2,"IOB");
-  pc_label(a == 2147483647,3,"IOB");
+  pc_label(a == (-2147483647-1),1,"IOB");
+  pc_label(a == 2147483647,2,"IOB");
   __retres = a + a;
-  pc_label(__retres == 0,4,"IOB");
-  pc_label(__retres == (-2147483647-1),5,"IOB");
-  pc_label(__retres == 2147483647,6,"IOB");
+  pc_label(__retres == (-2147483647-1),3,"IOB");
+  pc_label(__retres == 2147483647,4,"IOB");
   return __retres;
 }
 ```
+
+
+### CB (Condition Bound Coverage)
+
+Create bound objectives for each variable inside condition. Also create an objective
+to compare both side of each atomic expression for Lt/Gt/Le/Ge/Eq/Ne
+
+
+The following example:
+```c
+int maintest(int a, int b, int c){
+    if(a < b) return 1;
+    if(c + 12 != 42) return 2;
+	return 0;
+}
+```
+will be instrumented as follows:
+```c
+int maintest(int a, int b, int c)
+ {
+   int __retres;
+   pc_label(a == (-2147483647-1),1,"CB");
+   pc_label(a == 2147483647,2,"CB");
+   pc_label(b == (-2147483647-1),3,"CB");
+   pc_label(b == 2147483647,4,"CB");
+   pc_label(a == b,5,"CB");
+   if (a < b) {
+     __retres = 1;
+     goto return_label;
+   }
+   pc_label(c == (-2147483647-1),6,"CB");
+   pc_label(c == 2147483647,7,"CB");
+   pc_label(c + 12 == 42,8,"CB");
+   if (c <= 42) {
+     __retres = 2;
+     goto return_label;
+   }
+   __retres = 0;
+   return_label: return __retres;
+ }
+```
+
+
+### BC (Bound Coverage (IOB + CB)
+
+This criteria simply regroup Input/Output Bound Coverage and Condition Bound Coverage
+
 
 ### IDP (Input Domain Partition)
 
