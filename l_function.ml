@@ -60,14 +60,14 @@ let compute_hl caller_callee =
   let disj =
     String.concat "+" (List.rev (List.map (fun i -> "l" ^ string_of_int i) (Hashtbl.find_all disjunctions caller_callee)))
   in
-   Annotators.next_hl() ^ ") <" ^ disj ^ "|; ;>,"
+  Annotators.next_hl() ^ ") <" ^ disj ^ "|; ;>,"
 
 let gen_hyperlabels_callcov = ref (fun () ->
-  let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
-  Options.feedback "write hyperlabel data (to %s)" data_filename;
-  let out = open_out_gen [Open_creat; Open_append] 0o644 data_filename in
-  output_string out (HL.fold (fun el str -> str ^ (compute_hl el) ^ "\n") !hyperlabels "");
-  close_out out)
+    let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
+    Options.feedback "write hyperlabel data (to %s)" data_filename;
+    let out = open_out_gen [Open_creat; Open_append] 0o644 data_filename in
+    output_string out (HL.fold (fun el str -> str ^ (compute_hl el) ^ "\n") !hyperlabels "");
+    close_out out)
 
 (** Call Coverage Visitor **)
 class visitor mk_label = object(self)
@@ -131,8 +131,8 @@ class remcastvisitor = object(selfobj)
 
   method! vfile _ =
     let f file = (
-    file.globals <- file.globals @ !newfuncs;
-    file
+      file.globals <- file.globals @ !newfuncs;
+      file
     ) in (Cil.DoChildrenPost f)
 
   method! vfunc dec =
@@ -210,9 +210,9 @@ class remcastvisitor = object(selfobj)
                  let new_blok = Visitor.visitFramacStmt (selfobj :> Visitor.frama_c_visitor) block in
                  (Cil.ChangeTo new_blok)
                end
-              else (Cil.DoChildrenPost f)
-            | _ -> (Cil.DoChildrenPost f))
-         | _ -> (Cil.DoChildrenPost f)
+               else (Cil.DoChildrenPost f)
+             | _ -> (Cil.DoChildrenPost f))
+          | _ -> (Cil.DoChildrenPost f)
         end
       in
       match stmt.skind with

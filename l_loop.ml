@@ -251,16 +251,16 @@ let warning () =
   else
     Options.warning "Handle Do While disabled : Do..While will be considered as Empty loops";
 
-(*include Annotators.Register (struct
+  (*include Annotators.Register (struct
 
-    let name = "ASL"
-    let help = "Always Skip Loop Coverage"
+      let name = "ASL"
+      let help = "Always Skip Loop Coverage"
 
-    let apply _ ast =
-      warning();
-      Visitor.visitFramacFileSameGlobals realloop ast;
-      gen_hyperlabels_ASL ()
-  end)*)
+      let apply _ ast =
+        warning();
+        Visitor.visitFramacFileSameGlobals realloop ast;
+        gen_hyperlabels_ASL ()
+    end)*)
 
 include Annotators.Register (struct
 

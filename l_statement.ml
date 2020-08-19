@@ -88,23 +88,23 @@ let visitor mk_label = object(self)
     | _ ->
       Cil.DoChildrenPost (fun res ->
           if lbl then begin
-              let loc =
-                match List.hd stmt.labels with
-                | Label (_,l,_)
-                | Case (_,l)
-                | Default l -> l
-              in
-              let lb = mk_label (Exp.one()) [] loc in
-              res.skind <-
-                (match res.skind with
-                | Instr(Skip _) ->
-                   lb.skind
-                | Block b ->
-                   b.bstmts <- lb::b.bstmts;
-                   res.skind
-                | _ -> Block (Block.mk (lb :: [Stmt.mk res.skind])));
-              res
-            end
+            let loc =
+              match List.hd stmt.labels with
+              | Label (_,l,_)
+              | Case (_,l)
+              | Default l -> l
+            in
+            let lb = mk_label (Exp.one()) [] loc in
+            res.skind <-
+              (match res.skind with
+               | Instr(Skip _) ->
+                 lb.skind
+               | Block b ->
+                 b.bstmts <- lb::b.bstmts;
+                 res.skind
+               | _ -> Block (Block.mk (lb :: [Stmt.mk res.skind])));
+            res
+          end
           else
             res
         )

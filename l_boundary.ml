@@ -67,7 +67,7 @@ class io_visitor mk_label = object(self)
     Cil.DoChildrenPost( fun fdec ->
         fdec.sbody.bstmts <- bounds_labels @ fdec.sbody.bstmts;
         fdec
-    )
+      )
 
   (* Create bound labels for return statement  *)
   method! vstmt_aux stmt =
@@ -111,7 +111,7 @@ class c_visitor mk_label = object(self)
         let atoms_labels = ref [] in
         List.iter (fun atom ->
             ignore(Cil.visitCilExpr (new atom_visitor mk_label atoms_labels :> Cil.cilVisitor) atom);
-            ) atoms;
+          ) atoms;
         (* handle visits manually to skip visit of e *)
         let thenb = Visitor.visitFramacBlock (self :> Visitor.frama_c_visitor) thenb in
         let elseb = Visitor.visitFramacBlock (self :> Visitor.frama_c_visitor) elseb in

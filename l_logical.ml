@@ -129,11 +129,11 @@ let store_hyperlabel_data out str =
   Format.fprintf formatter "%s@." str
 
 let gen_hyperlabels_cacc = ref (fun () ->
-  let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
-  Options.feedback "write hyperlabel data (to %s)" data_filename;
-  let out = open_out_gen [Open_creat; Open_append] 0o644 data_filename in
-  store_hyperlabel_data out  (Array.fold_right array_to_string (Array.map couple_to_string !hlab_cacc) "");
-  close_out out)
+    let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
+    Options.feedback "write hyperlabel data (to %s)" data_filename;
+    let out = open_out_gen [Open_creat; Open_append] 0o644 data_filename in
+    store_hyperlabel_data out  (Array.fold_right array_to_string (Array.map couple_to_string !hlab_cacc) "");
+    close_out out)
 
 
 
@@ -188,11 +188,11 @@ let couple_to_string c =
   ^ ";>"
 
 let gen_hyperlabels_racc = ref (fun () ->
-  let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
-  Options.feedback "write hyperlabel data (to %s)" data_filename;
-  let out = open_out_gen [Open_creat; Open_append] 0o644 data_filename in
-  store_hyperlabel_data out  (Array.fold_right array_to_string (Array.map couple_to_string !hlab_racc) "");
-  close_out out)
+    let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
+    Options.feedback "write hyperlabel data (to %s)" data_filename;
+    let out = open_out_gen [Open_creat; Open_append] 0o644 data_filename in
+    store_hyperlabel_data out  (Array.fold_right array_to_string (Array.map couple_to_string !hlab_racc) "");
+    close_out out)
 
 
 
