@@ -51,6 +51,24 @@ module Printer = Printer_builder.Make (struct
                             #endif@\n\
                             #ifndef pc_label_sequence_condition\n#define pc_label_sequence_condition(...) do{}while(0)\n\
                             #endif@\n\n";
+        if Options.Annotators.mem "SCM" then begin
+          Format.fprintf fmt "\
+          #define MAX_MUTATION %d\n\
+          unsigned int cpt_mutation = 0;\n\n\
+          /*%@ assigns cpt_mutation;\n\
+          \    behavior can_mutate:\n\
+          \        assumes cpt_mutation < MAX_MUTATION;\n\
+          \        ensures  \\result <==> cpt_mutation == \\at(cpt_mutation, Pre) + 1;\n\
+          \        ensures !\\result <==> cpt_mutation == \\at(cpt_mutation, Pre);\n\n\
+          \    behavior cant_mutate:\n\
+          \        assumes cpt_mutation >= MAX_MUTATION;\n\
+          \        ensures !\\result;\n\
+          \        ensures cpt_mutation == \\at(cpt_mutation, Pre);\n\n\
+          \    complete behaviors;\n\
+          \    disjoint behaviors;\n\
+          */\n\
+          int mutate();\n" (Options.MaxMutation.get ());
+        end;
         Cil.iterGlobals file (fun g -> self#global fmt g);
         Format.fprintf fmt "@]@."
     end

@@ -187,3 +187,10 @@ module HandleStruct = True (struct
     let option_name = "-lannot-handle-struct"
     let help = "WIP: for def-use analysis (default: false)"
   end)
+
+module MaxMutation = Int (struct
+    let option_name = "-lannot-max-mutation"
+    let arg_name = "NUM"
+    let help = "set the maximum number of possible mutation for Sanity Check Mutation criteria (Default : 1)"
+    let default = 1
+  end)
