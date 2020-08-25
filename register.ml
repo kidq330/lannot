@@ -136,7 +136,7 @@ let run () =
 
 let setup_run () =
   if not (Options.Annotators.is_empty ()) then begin
-    Kernel.LogicalOperators.on () (* invalidate the Ast if any *);
+    Kernel.LogicalOperators.on (); (* invalidate the Ast if any *)
     add_label_support (Project.current ())
   end
 

@@ -20,18 +20,33 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef __LABELS_H__
-#define __LABELS_H__
+#ifndef __LABELS_LANNOT_H__
+#define __LABELS_LANNOT_H__
 
-#define lannot_success(id) __LANNOTATE_SUCCESS(id)
-#define lannot_simple(id) __LANNOTATE_SIMPLE(id)
-#define lannot_double(id) __LANNOTATE_DOUBLE(id)
+#define MKFN(fn, ...) MKFN_N(fn, ##__VA_ARGS__, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0) \
+(__VA_ARGS__)
+#define MKFN_N(fn, n0, n1, n2, n3, n4, n5, n6, n7, n8, n, ...) fn##n
+#define DEFAULT_ID 0
+
+#define lannot_success(...) MKFN(lannot_success, ##__VA_ARGS__)
+#define lannot_success_inter(...) MKFN(lannot_success_inter, ##__VA_ARGS__)
+#define lannot_simple(...) MKFN(lannot_simple, ##__VA_ARGS__)
+#define lannot_double(...) MKFN(lannot_double, ##__VA_ARGS__)
+
+#define lannot_success0() __LANNOTATE_SUCCESS(1, DEFAULT_ID)
+#define lannot_success1(id) __LANNOTATE_SUCCESS(1, id)
+#define lannot_success_inter0() __LANNOTATE_SUCCESS(0, DEFAULT_ID)
+#define lannot_success_inter1(id) __LANNOTATE_SUCCESS(0, id)
+#define lannot_simple0() __LANNOTATE_SIMPLE(DEFAULT_ID)
+#define lannot_simple1(id) __LANNOTATE_SIMPLE(id)
+#define lannot_double0() __LANNOTATE_DOUBLE(DEFAULT_ID)
+#define lannot_double1(id) __LANNOTATE_DOUBLE(id)
 
 /*@assigns \nothing;*/
-void __LANNOTATE_SUCCESS(int id) __attribute((FC_BUILTIN));
+void __LANNOTATE_SUCCESS(unsigned int clean, unsigned int id) __attribute((FC_BUILTIN));
 /*@assigns \nothing;*/
-void __LANNOTATE_SIMPLE(int id) __attribute((FC_BUILTIN));
+void __LANNOTATE_SIMPLE(unsigned id) __attribute((FC_BUILTIN));
 /*@assigns \nothing;*/
-void __LANNOTATE_DOUBLE(int id) __attribute((FC_BUILTIN));
+void __LANNOTATE_DOUBLE(unsigned id) __attribute((FC_BUILTIN));
 
 #endif

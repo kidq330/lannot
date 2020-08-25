@@ -55,20 +55,22 @@ class visitor mk_label = object(self)
     let lval = Cil.new_exp ~loc (Lval (Cil.var vInfo)) in
     let mut = Cil.mkBinOp ~loc LAnd lval (Exp.lnot e) in
     let not_mut = Cil.mkBinOp ~loc LAnd (Exp.lnot lval) e in
-    Cil.mkBinOp ~loc LOr mut not_mut
+    let init = Utils.mk_call ~result:(Cil.var vInfo) "mutate" [] in
+    init, Cil.mkBinOp ~loc LOr mut not_mut
 
   method private generate_if_exp e =
     match Stack.pop_opt seen_if_macro with
-    | None -> e
+    | None -> [], e
     | Some (Simple id) ->
-      self#generate_exp e id
+      let init, e = self#generate_exp e id in
+      [init], e
     | Some (Double id) ->
       begin match e.enode with
         | BinOp (LAnd|LOr as op, e1, e2, _) ->
-          let new_e1 = self#generate_exp e1 id in
-          let new_e2 = self#generate_exp e2 id in
-          Cil.mkBinOp e.eloc op new_e1 new_e2
-        | _ -> e
+          let init, new_e1 = self#generate_exp e1 id in
+          let init',new_e2 = self#generate_exp e2 id in
+          [init;init'],Cil.mkBinOp e.eloc op new_e1 new_e2
+        | _ -> assert false
       end
 
   method private generate_disj loc vinfos =
@@ -91,10 +93,6 @@ class visitor mk_label = object(self)
         to_remove <- [];
         current_fdec <- None;
         Stack.clear seen_if_macro;
-        let f vinfo = Utils.mk_call ~result:(Cil.var vinfo) "mutate" [] in
-        let inits = List.sort (fun v v' -> compare v.vname v'.vname) (Hashtbl.fold (fun _ vinfos acc -> vinfos@acc) id_to_vinfos []) in
-        let inits = List.map (fun vinfo -> f vinfo) inits in
-        fdec.sbody.bstmts <- inits @ fdec.sbody.bstmts;
         Hashtbl.clear id_to_vinfos;
         fdec
       )
@@ -111,30 +109,35 @@ class visitor mk_label = object(self)
   (* Create bound labels for return statement  *)
   method! vstmt_aux stmt =
     match stmt.skind with
-    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [id], loc)) when v.vname = "__LANNOTATE_SUCCESS" ->
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, clean :: id :: [], loc)) when v.vname = "__LANNOTATE_SUCCESS" ->
+      let clean = Integer.to_int (Extlib.the (Cil.isInteger clean)) in
       let id = Integer.to_int (Extlib.the (Cil.isInteger id)) in
       if Hashtbl.mem id_to_vinfos id then begin
         let vinfos = Hashtbl.find id_to_vinfos id in
         let label = mk_label (self#generate_disj loc vinfos) [] loc in
+        if clean <> 0 then Hashtbl.remove id_to_vinfos id;
         Cil.ChangeTo label
       end
       else
         assert false
-    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [id], _)) when v.vname = "__LANNOTATE_SIMPLE" ->
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, id :: [], _)) when v.vname = "__LANNOTATE_SIMPLE" ->
       to_remove <- stmt.sid :: to_remove;
       let id = Integer.to_int (Extlib.the (Cil.isInteger id)) in
       Stack.push (Simple(id)) seen_if_macro;
       Cil.SkipChildren
-    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [id], _)) when v.vname = "__LANNOTATE_DOUBLE" ->
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, id :: [], _)) when v.vname = "__LANNOTATE_DOUBLE" ->
       to_remove <- stmt.sid :: to_remove;
       let id = Integer.to_int (Extlib.the (Cil.isInteger id)) in
       Stack.push (Double(id)) seen_if_macro;
       Cil.SkipChildren
     | If (exp,th,el,lo) ->
-      let new_exp = self#generate_if_exp exp in
+      let init_l, new_exp = self#generate_if_exp exp in
       let thenb = (Cil.visitCilBlock (self :> Cil.cilVisitor) th) in
       let elseb = (Cil.visitCilBlock (self :> Cil.cilVisitor) el) in
-      stmt.skind <- If (new_exp,thenb,elseb,lo);
+      if init_l != [] then
+        stmt.skind <- Block (Block.mk (init_l @ [Stmt.mk (If (new_exp,thenb,elseb,lo))]))
+      else
+        stmt.skind <- If (new_exp,thenb,elseb,lo);
       Cil.SkipChildren
     | _ -> Cil.DoChildren
 
