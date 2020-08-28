@@ -23,57 +23,89 @@
 open Cil_types
 open Ast_const
 
-let unk_loc = Cil_datatype.Location.unknown
-
-type cm = Simple of int | Double of int
+let rec cil_isString exp =
+  match exp.enode with
+  | Const (CStr str) -> Some str
+  | CastE (_, exp) -> cil_isString exp
+  | _ -> None
 
 (** Sanity Check Mutation Visitor **)
 class visitor mk_label = object(self)
   inherit Visitor.frama_c_inplace
 
-  val mutable to_remove = []
-  val mutable current_fdec = None
-  val seen_if_macro = Stack.create ()
-  val id_to_vinfos = Hashtbl.create 10
-  val id = ref 0
+  (* Used to remember when inline code start *)
+  val started_inline = Stack.create ()
+  (* Statement which will be removed from AST *)
+  val mutable to_remove : int list = []
+  (* List of last temporary variables used to store mutations *)
+  val mutable seen_vinfos : varinfo list= []
+  (* When started is true, mutate all if until success point is found *)
+  val mutable started : bool = false
+  (* Remember if a macro duble was seen for the next if *)
+  val mutable seen_double : bool = false
+  (* Id used to create temporary variable names *)
+  val mutable id : int = 0
 
-  method private next () =
-    incr id; !id
+  (* Get the next id to use *)
+  method private next () : int =
+    id <- id + 1; id
 
-  method private get_vinfo id =
-    let fdec = Extlib.the current_fdec in
-    let vi = Cil.makeTempVar ~name:("lannot_mut_"^string_of_int (self#next())) fdec (TInt(IInt,[])) in
-    if Hashtbl.mem id_to_vinfos id then
-      Hashtbl.replace id_to_vinfos id (vi::(Hashtbl.find id_to_vinfos id))
-    else
-      Hashtbl.add id_to_vinfos id [vi];
+  (* Returns true if :
+     - we're not inside an inlined code
+     - the code correspond to the original inlined function
+       returns false otherwise
+  *)
+  method private should_instrument () : bool =
+    let kf = Extlib.the self#current_kf in
+    let fdec = Kernel_function.get_definition kf in
+    match Stack.top_opt started_inline with
+    | None -> true
+    | Some fun_name' -> String.equal fdec.svar.vname fun_name'
+
+  (* Creates a new temporary variable and adds it to seen_vinfos *)
+  method private get_new_tmp_var () : varinfo =
+    let kf = Extlib.the self#current_kf in
+    let fdec = Kernel_function.get_definition kf in
+    let name = "lannot_mut_"^string_of_int (self#next()) in
+    let vi = Cil.makeTempVar ~name fdec (TInt(IInt,[])) in
+    seen_vinfos <- vi :: seen_vinfos;
     vi
 
-  method private generate_exp e id =
-    let vInfo = self#get_vinfo id in
-    let loc = e.eloc in
-    let lval = Cil.new_exp ~loc (Lval (Cil.var vInfo)) in
-    let mut = Cil.mkBinOp ~loc LAnd lval (Exp.lnot e) in
-    let not_mut = Cil.mkBinOp ~loc LAnd (Exp.lnot lval) e in
-    let init = Utils.mk_call ~result:(Cil.var vInfo) "mutate" [] in
-    init, Cil.mkBinOp ~loc LOr mut not_mut
+  (* For a given if expression, creates the corresponding mutated expression
+     of the form (mut_exp && !e || !mut_exp && e), and assigns the temporary
+     variable with mutate function (cf. Printer in utils.ml)
+  *)
+  method private generate_exp (exp: exp) : (stmt*exp) =
+    let mutate_lval = Cil.var (self#get_new_tmp_var ()) in
+    let loc = exp.eloc in
+    let mutate_exp = Cil.new_exp ~loc (Lval mutate_lval) in
+    let mutation_side = Cil.mkBinOp ~loc LAnd mutate_exp (Exp.lnot exp) in
+    let no_mutation_side = Cil.mkBinOp ~loc LAnd (Exp.lnot mutate_exp) exp in
+    let mutate_call = Utils.mk_call ~result:mutate_lval "mutate" [] in
+    mutate_call, Cil.mkBinOp ~loc LOr mutation_side no_mutation_side
 
-  method private generate_if_exp e =
-    match Stack.pop_opt seen_if_macro with
-    | None -> [], e
-    | Some (Simple id) ->
-      let init, e = self#generate_exp e id in
-      [init], e
-    | Some (Double id) ->
-      begin match e.enode with
-        | BinOp (LAnd|LOr as op, e1, e2, _) ->
-          let init, new_e1 = self#generate_exp e1 id in
-          let init',new_e2 = self#generate_exp e2 id in
-          [init;init'],Cil.mkBinOp e.eloc op new_e1 new_e2
-        | _ -> assert false
-      end
+  (* Depending on seen_double value, changes the form of the mutated expression
+     and returns it along with assigns of temporary variables *)
+  method private generate_if_exp (exp:exp) : (stmt list*exp) =
+    match exp.enode with
+    | BinOp (LAnd|LOr as op, exp1, exp2, _) when seen_double ->
+      seen_double <- false;
+      let mutate_call, new_exp1 = self#generate_exp exp1 in
+      let mutate_call',new_exp2 = self#generate_exp exp2 in
+      let concat_exp = Cil.mkBinOp exp.eloc op new_exp1 new_exp2 in
+      [mutate_call;mutate_call'],concat_exp
+    | _ ->
+      if seen_double then begin
+        seen_double <- false;
+        Options.warning "If at %a wrongly marked as double.\n\
+                         \t Parsing can split if statement if it contains side effects.\
+                         Ignoring macro..." Printer.pp_location exp.eloc;
+      end;
+      let mutate_call, new_exp = self#generate_exp exp in
+      [mutate_call], new_exp
 
-  method private generate_disj loc vinfos =
+  (* Creates a disjunction of all seen_vinfos *)
+  method private generate_disj (loc:location) (vinfos:varinfo list) =
     let rec aux vinfos acc =
       match vinfos, acc with
       | [], Some acc -> acc
@@ -86,17 +118,17 @@ class visitor mk_label = object(self)
     in
     aux vinfos None
 
-  (* visit each function and annotate formals and return statement *)
-  method! vfunc fdec =
-    current_fdec <- Some fdec;
+  (* Clears all parameters after each function *)
+  method! vfunc _ =
     Cil.DoChildrenPost( fun fdec ->
+        Stack.clear started_inline;
         to_remove <- [];
-        current_fdec <- None;
-        Stack.clear seen_if_macro;
-        Hashtbl.clear id_to_vinfos;
+        seen_vinfos <- [];
+        started <- false;
+        seen_double <- false;
         fdec
       )
-
+  (* Removes statements of to_remove from blocks *)
   method! vblock _ =
     Cil.DoChildrenPost (fun b ->
         b.bstmts <- List.filter (fun stmt ->
@@ -106,44 +138,73 @@ class visitor mk_label = object(self)
         b
       )
 
-  (* Create bound labels for return statement  *)
+  (* Handles lannotate macro and generates mutations and labels as such :
+     - START/END INLINE, used to know where we are
+       (inlined code/inline function/normal code)
+     - START, handles all if statements between START and SUCCESS
+       (except for inlined code, cf. should_instrument)
+     - SUCCESS, ends "annotating" zone, and generates labels
+     - DOUBLE, remember for the next instrumented if form
+     - If, if should handle, mutate if expression
+  *)
   method! vstmt_aux stmt =
     match stmt.skind with
-    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, clean :: id :: [], loc)) when v.vname = "__LANNOTATE_SUCCESS" ->
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, fun_name :: [], _)) when v.vname = "__LANNOTATE_START_INLINE" ->
+      let fun_name =  Extlib.the (cil_isString fun_name) in
+      Stack.push fun_name started_inline;
+      to_remove <- stmt.sid :: to_remove;
+      Cil.SkipChildren
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, fun_name :: [], _)) when v.vname = "__LANNOTATE_END_INLINE" ->
+      let fun_name =  Extlib.the (cil_isString fun_name) in
+      to_remove <- stmt.sid :: to_remove;
+      (match Stack.pop_opt started_inline with
+       | None -> assert false
+       | Some fun_name' when not (String.equal fun_name' fun_name) ->
+         assert false
+       | _ -> Cil.SkipChildren)
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], _)) when v.vname = "__LANNOTATE_START" ->
+      if self#should_instrument () then started <- true;
+      to_remove <- stmt.sid :: to_remove;
+      Cil.SkipChildren
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, clean :: [], loc)) when v.vname = "__LANNOTATE_SUCCESS" ->
       let clean = Integer.to_int (Extlib.the (Cil.isInteger clean)) in
-      let id = Integer.to_int (Extlib.the (Cil.isInteger id)) in
-      if Hashtbl.mem id_to_vinfos id then begin
-        let vinfos = Hashtbl.find id_to_vinfos id in
-        let label = mk_label (self#generate_disj loc vinfos) [] loc in
-        if clean <> 0 then Hashtbl.remove id_to_vinfos id;
-        Cil.ChangeTo label
+      if started && self#should_instrument () then begin
+        if seen_vinfos <> [] then begin
+          let label = mk_label (self#generate_disj loc seen_vinfos) [] loc in
+          if clean <> 0 then (seen_vinfos <- []; started <- false);
+          Cil.ChangeTo label
+        end
+        else begin
+          Options.warning "Success point reached without preceding if at %a, annotation ignored." Printer.pp_location loc;
+          to_remove <- stmt.sid :: to_remove;
+          Cil.SkipChildren
+        end
       end
-      else
-        assert false
-    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, id :: [], _)) when v.vname = "__LANNOTATE_SIMPLE" ->
+      else begin
+        to_remove <- stmt.sid :: to_remove;
+        Cil.SkipChildren
+      end
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], _)) when v.vname = "__LANNOTATE_DOUBLE" ->
       to_remove <- stmt.sid :: to_remove;
-      let id = Integer.to_int (Extlib.the (Cil.isInteger id)) in
-      Stack.push (Simple(id)) seen_if_macro;
+      if started && self#should_instrument () then
+        seen_double <- true;
       Cil.SkipChildren
-    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, id :: [], _)) when v.vname = "__LANNOTATE_DOUBLE" ->
-      to_remove <- stmt.sid :: to_remove;
-      let id = Integer.to_int (Extlib.the (Cil.isInteger id)) in
-      Stack.push (Double(id)) seen_if_macro;
-      Cil.SkipChildren
-    | If (exp,th,el,lo) ->
-      let init_l, new_exp = self#generate_if_exp exp in
+    | If (exp,th,el,lo) when started && self#should_instrument () ->
+      let mutate_calls, new_exp = self#generate_if_exp exp in
       let thenb = (Cil.visitCilBlock (self :> Cil.cilVisitor) th) in
       let elseb = (Cil.visitCilBlock (self :> Cil.cilVisitor) el) in
-      if init_l != [] then
-        stmt.skind <- Block (Block.mk (init_l @ [Stmt.mk (If (new_exp,thenb,elseb,lo))]))
-      else
-        stmt.skind <- If (new_exp,thenb,elseb,lo);
+      if mutate_calls != [] then
+        stmt.skind <- Block (Block.mk (mutate_calls @ [Stmt.mk (If (new_exp,thenb,elseb,lo))]))
+      else begin
+        failwith "test";
+        (* stmt.skind <- If (new_exp,thenb,elseb,lo); *)
+      end;
       Cil.SkipChildren
     | _ -> Cil.DoChildren
 
 end
 
-module SanityCheckMutation =   Annotators.Register (struct
+module SanityCheckMutation = Annotators.Register (struct
     let name = "SCM"
     let help = "Sanity Check Mutation Coverage"
     let apply mk_label file =
