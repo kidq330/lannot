@@ -202,6 +202,15 @@ class visitor mk_label = object(self)
       Cil.SkipChildren
     | _ -> Cil.DoChildren
 
+  method! vfile _ =
+    Cil.DoChildrenPost (fun f ->
+          let clean_globals =
+            Cil.foldGlobals f (fun acc g ->
+              if Utils.is_lannotate_builtin g then acc else g :: acc
+          ) [] in
+        f.globals <- List.rev clean_globals;
+        f
+      )
 end
 
 module RedundantCheckCountermeasures = Annotators.Register (struct

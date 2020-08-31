@@ -86,6 +86,17 @@ let extract_global_vars file =
   let globals = Cil.foldGlobals file f S.empty in
   S.elements globals
 
+let is_lannotate_builtin g =
+  match g with
+  | GFunDecl (_, vi, _ ) ->
+    begin match vi.vname with
+      | "__LANNOTATE_START" |  "__LANNOTATE_START_INLINE"
+      | "__LANNOTATE_END_INLINE" | "__LANNOTATE_DOUBLE"
+      | "__LANNOTATE_SUCCESS" -> true
+      | _ -> false
+    end
+  | _ -> false
+
 (* for option slicing = NONE *)
 let all_stmts = ref ([]:stmt list)
 

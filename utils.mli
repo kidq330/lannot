@@ -25,7 +25,7 @@ open Cil_types
 module Printer : Printer_api.S
 
 val extract_global_vars : file -> varinfo list
-
+val is_lannotate_builtin : global -> bool
 val all_stmts : stmt list ref
 val get_stmt_loc : stmt -> location
 val get_stmt_loc_int : stmt -> int
