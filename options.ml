@@ -191,6 +191,6 @@ module HandleStruct = True (struct
 module MaxMutation = Int (struct
     let option_name = "-lannot-max-mutation"
     let arg_name = "NUM"
-    let help = "set the maximum number of possible mutation for Sanity Check Mutation criteria (Default : 1)"
+    let help = "set the maximum number of possible mutation for RCC criteria (Default : 1)"
     let default = 1
   end)

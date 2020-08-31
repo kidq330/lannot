@@ -29,7 +29,7 @@ let rec cil_isString exp =
   | CastE (_, exp) -> cil_isString exp
   | _ -> None
 
-(** Sanity Check Mutation Visitor **)
+(** RCC Visitor **)
 class visitor mk_label = object(self)
   inherit Visitor.frama_c_inplace
 
@@ -204,9 +204,9 @@ class visitor mk_label = object(self)
 
 end
 
-module SanityCheckMutation = Annotators.Register (struct
-    let name = "SCM"
-    let help = "Sanity Check Mutation Coverage"
+module RedundantCheckCountermeasures = Annotators.Register (struct
+    let name = "RCC"
+    let help = "Redundant Check Countermeasures Coverage"
     let apply mk_label file =
       Visitor.visitFramacFileSameGlobals (new visitor mk_label :> Visitor.frama_c_visitor) file
   end)

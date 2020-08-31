@@ -51,7 +51,7 @@ module Printer = Printer_builder.Make (struct
                             #endif@\n\
                             #ifndef pc_label_sequence_condition\n#define pc_label_sequence_condition(...) do{}while(0)\n\
                             #endif@\n\n";
-        if Options.Annotators.mem "SCM" then begin
+        if Options.Annotators.mem "RCC" then begin
           Format.fprintf fmt "\
           #define MAX_MUTATION %d\n\
           unsigned int cpt_mutation = 0;\n\n\
