@@ -30,8 +30,6 @@ class visitor mk_label = object(self)
 
   (* Used to remember when inline code start *)
   val started_inline = Stack.create ()
-  (* Statement which will be removed from AST *)
-  val mutable to_remove : int list = []
   (* List of last temporary variables used to store mutations *)
   val mutable seen_vinfos : varinfo list= []
   (* When started is true, mutate all if until success point is found *)
@@ -115,20 +113,10 @@ class visitor mk_label = object(self)
   method! vfunc _ =
     Cil.DoChildrenPost( fun fdec ->
         Stack.clear started_inline;
-        to_remove <- [];
         seen_vinfos <- [];
         started <- false;
         seen_double <- false;
         fdec
-      )
-  (* Removes statements of to_remove from blocks *)
-  method! vblock _ =
-    Cil.DoChildrenPost (fun b ->
-        b.bstmts <- List.filter (fun stmt ->
-            not (List.exists (fun sid ->
-                sid = stmt.sid) to_remove)
-          ) b.bstmts;
-        b
       )
 
   (* Handles lannotate macro and generates mutations and labels as such :
@@ -145,36 +133,39 @@ class visitor mk_label = object(self)
     | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, fun_name :: [], _)) when String.equal v.vname start_inline ->
       let fun_name =  Extlib.the (is_cil_string fun_name) in
       Stack.push fun_name started_inline;
-      to_remove <- stmt.sid :: to_remove;
+      stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
       Cil.SkipChildren
     | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, fun_name :: [], _)) when String.equal v.vname end_inline ->
       let fun_name =  Extlib.the (is_cil_string fun_name) in
+      stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
       (match Stack.pop_opt started_inline with
        | Some fun_name' when (String.equal fun_name' fun_name) ->
          Cil.SkipChildren
        | _ -> assert false)
     | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], _)) when String.equal v.vname start ->
       if self#should_instrument () then started <- true;
-      to_remove <- stmt.sid :: to_remove;
+      stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
       Cil.SkipChildren
     | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, step :: [], loc)) when String.equal v.vname target ->
       let step = Integer.to_int (Extlib.the (Cil.isInteger step)) in
       if started && self#should_instrument () then
         if seen_vinfos <> [] then begin
           let label = mk_label (self#generate_disj loc seen_vinfos) [] loc in
+          label.labels <- stmt.labels;
           if step = 0 then (seen_vinfos <- []; started <- false);
           Cil.ChangeTo label
         end
         else begin
           Options.warning "Success point reached without preceding if at %a, annotation ignored." Printer.pp_location loc;
+          stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
           Cil.SkipChildren
         end
-      end
       else begin
-        to_remove <- stmt.sid :: to_remove;
+        stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
         Cil.SkipChildren
       end
     | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], _)) when String.equal v.vname double_if ->
+      stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
       if started && self#should_instrument () then
         seen_double <- true;
       Cil.SkipChildren
