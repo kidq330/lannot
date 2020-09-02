@@ -53,7 +53,8 @@ class visitor mk_label = object(self)
     let fdec = Kernel_function.get_definition kf in
     match Stack.top_opt started_inline with
     | None -> true
-    | Some fun_name' -> String.equal fdec.svar.vname fun_name'
+    | Some fun_name' ->
+      String.equal fdec.svar.vorig_name fun_name'
 
   (* Creates a new temporary variable and adds it to seen_vinfos *)
   method private get_new_tmp_var () : varinfo =

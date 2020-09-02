@@ -1,0 +1,6 @@
+[kernel] Parsing tests/labels/test_RCC.c (with preprocessing)
+[lannot] apply annotations for RCC
+[lannot] write modified C file (to tests/labels/result/test_RCC_labels.c)
+[lannot] write label data (to tests/labels/result/test_RCC_labels.labels)
+[lannot] 6 labels/sequences created
+[lannot] finished

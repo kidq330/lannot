@@ -1,0 +1,7 @@
+# id, status, tag, origin_loc, current_loc, emitter, drivers, exec_time
+1, unknown, RCC, test_RCC.c:12, , LAnnot, , 0.
+2, unknown, RCC, test_RCC.c:20, , LAnnot, , 0.
+3, unknown, RCC, test_RCC.c:28, , LAnnot, , 0.
+4, unknown, RCC, test_RCC.c:31, , LAnnot, , 0.
+5, unknown, RCC, test_RCC.c:41, , LAnnot, , 0.
+6, unknown, RCC, test_RCC.c:52, , LAnnot, , 0.
