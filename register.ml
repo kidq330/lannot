@@ -21,14 +21,11 @@
 (**************************************************************************)
 open Utils
 
-let old_value = ref (Kernel.LogicalOperators.get ())
-
-let add_label_support prj =
+let add_label_support () =
   let hfile = Format.asprintf "%a" Filepath.Normalized.pp_abs
       (Options.Share.get_file ~mode:`Must_exist "labels.h")
   in
-  Project.on prj Kernel.CppExtraArgs.append_before ["-include "^hfile];
-  ()
+  Kernel.CppExtraArgs.append_before ["-include "^hfile]
 
 let store_label_data out annotations =
   (* TODO do that in its own module, ultimately shared with the other LTest-tools *)
@@ -137,7 +134,7 @@ let run () =
 let setup_run () =
   if not (Options.Annotators.is_empty ()) then begin
     Kernel.LogicalOperators.on (); (* invalidate the Ast if any *)
-    add_label_support (Project.current ())
+    add_label_support ()
   end
 
 let () = Cmdline.run_after_configuring_stage setup_run
