@@ -86,15 +86,18 @@ let extract_global_vars file =
   let globals = Cil.foldGlobals file f S.empty in
   S.elements globals
 
+let start_inline = "__LANNOTATE_START_INLINE"
+let end_inline = "__LANNOTATE_END_INLINE"
+let start = "__CM_START"
+let double_if = "__CM_DOUBLE_IF"
+let target = "__CM_TARGET"
+
+let lannot_builtins = [start;double_if;target;start_inline;end_inline]
+
 let is_lannotate_builtin g =
   match g with
   | GFunDecl (_, vi, _ ) ->
-    begin match vi.vname with
-      | "__LANNOTATE_START" |  "__LANNOTATE_START_INLINE"
-      | "__LANNOTATE_END_INLINE" | "__LANNOTATE_DOUBLE"
-      | "__LANNOTATE_SUCCESS" -> true
-      | _ -> false
-    end
+    List.exists (fun builtin -> String.equal vi.vname builtin) lannot_builtins
   | _ -> false
 
 (* for option slicing = NONE *)
@@ -151,6 +154,12 @@ let is_boolean e =
   | BinOp ((LAnd|LOr|Lt|Gt|Le|Ge|Eq|Ne), _, _, _)
   | UnOp (LNot, _, _) -> true
   | _ -> false
+
+let rec is_cil_string exp =
+  match exp.enode with
+  | Const (CStr str) -> Some str
+  | CastE (_, exp) -> is_cil_string exp
+  | _ -> None
 
 (**
    Get atomic conditions from a boolean expression.

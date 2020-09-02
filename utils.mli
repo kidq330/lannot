@@ -24,6 +24,12 @@ open Cil_types
 
 module Printer : Printer_api.S
 
+val start : string
+val start_inline : string
+val end_inline : string
+val target : string
+val double_if : string
+
 val extract_global_vars : file -> varinfo list
 val is_lannotate_builtin : global -> bool
 val all_stmts : stmt list ref
@@ -45,6 +51,7 @@ val is_label : instr -> bool
 *)
 val is_boolean: exp -> bool
 
+val is_cil_string: exp -> string option
 (**
    Get atomic conditons form a boolean expression.
 *)

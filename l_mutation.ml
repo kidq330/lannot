@@ -22,12 +22,7 @@
 
 open Cil_types
 open Ast_const
-
-let rec cil_isString exp =
-  match exp.enode with
-  | Const (CStr str) -> Some str
-  | CastE (_, exp) -> cil_isString exp
-  | _ -> None
+open Utils
 
 (** RCC Visitor **)
 class visitor mk_label = object(self)
@@ -89,14 +84,12 @@ class visitor mk_label = object(self)
   method private generate_if_exp (exp:exp) : (stmt list*exp) =
     match exp.enode with
     | BinOp (LAnd|LOr as op, exp1, exp2, _) when seen_double ->
-      seen_double <- false;
       let mutate_call, new_exp1 = self#generate_exp exp1 in
       let mutate_call',new_exp2 = self#generate_exp exp2 in
       let concat_exp = Cil.mkBinOp exp.eloc op new_exp1 new_exp2 in
       [mutate_call;mutate_call'],concat_exp
     | _ ->
       if seen_double then begin
-        seen_double <- false;
         Options.warning "If at %a wrongly marked as double.\n\
                          \t Parsing can split if statement if it contains side effects.\
                          Ignoring macro..." Printer.pp_location exp.eloc;
@@ -144,39 +137,36 @@ class visitor mk_label = object(self)
      - START, handles all if statements between START and SUCCESS
        (except for inlined code, cf. should_instrument)
      - SUCCESS, ends "annotating" zone, and generates labels
-     - DOUBLE, remember for the next instrumented if form
-     - If, if should handle, mutate if expression
+     - DOUBLE IF, remember for the next instrumented if form
+     - If, mutate if expression
   *)
   method! vstmt_aux stmt =
     match stmt.skind with
-    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, fun_name :: [], _)) when v.vname = "__LANNOTATE_START_INLINE" ->
-      let fun_name =  Extlib.the (cil_isString fun_name) in
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, fun_name :: [], _)) when String.equal v.vname start_inline ->
+      let fun_name =  Extlib.the (is_cil_string fun_name) in
       Stack.push fun_name started_inline;
       to_remove <- stmt.sid :: to_remove;
       Cil.SkipChildren
-    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, fun_name :: [], _)) when v.vname = "__LANNOTATE_END_INLINE" ->
-      let fun_name =  Extlib.the (cil_isString fun_name) in
-      to_remove <- stmt.sid :: to_remove;
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, fun_name :: [], _)) when String.equal v.vname end_inline ->
+      let fun_name =  Extlib.the (is_cil_string fun_name) in
       (match Stack.pop_opt started_inline with
-       | None -> assert false
-       | Some fun_name' when not (String.equal fun_name' fun_name) ->
-         assert false
-       | _ -> Cil.SkipChildren)
-    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], _)) when v.vname = "__LANNOTATE_START" ->
+       | Some fun_name' when (String.equal fun_name' fun_name) ->
+         Cil.SkipChildren
+       | _ -> assert false)
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], _)) when String.equal v.vname start ->
       if self#should_instrument () then started <- true;
       to_remove <- stmt.sid :: to_remove;
       Cil.SkipChildren
-    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, clean :: [], loc)) when v.vname = "__LANNOTATE_SUCCESS" ->
-      let clean = Integer.to_int (Extlib.the (Cil.isInteger clean)) in
-      if started && self#should_instrument () then begin
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, step :: [], loc)) when String.equal v.vname target ->
+      let step = Integer.to_int (Extlib.the (Cil.isInteger step)) in
+      if started && self#should_instrument () then
         if seen_vinfos <> [] then begin
           let label = mk_label (self#generate_disj loc seen_vinfos) [] loc in
-          if clean <> 0 then (seen_vinfos <- []; started <- false);
+          if step = 0 then (seen_vinfos <- []; started <- false);
           Cil.ChangeTo label
         end
         else begin
           Options.warning "Success point reached without preceding if at %a, annotation ignored." Printer.pp_location loc;
-          to_remove <- stmt.sid :: to_remove;
           Cil.SkipChildren
         end
       end
@@ -184,30 +174,26 @@ class visitor mk_label = object(self)
         to_remove <- stmt.sid :: to_remove;
         Cil.SkipChildren
       end
-    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], _)) when v.vname = "__LANNOTATE_DOUBLE" ->
-      to_remove <- stmt.sid :: to_remove;
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], _)) when String.equal v.vname double_if ->
       if started && self#should_instrument () then
         seen_double <- true;
       Cil.SkipChildren
-    | If (exp,th,el,lo) when started && self#should_instrument () ->
+    | If (exp,thenb,elseb,loc) when started && self#should_instrument () ->
       let mutate_calls, new_exp = self#generate_if_exp exp in
-      let thenb = (Cil.visitCilBlock (self :> Cil.cilVisitor) th) in
-      let elseb = (Cil.visitCilBlock (self :> Cil.cilVisitor) el) in
-      if mutate_calls != [] then
-        stmt.skind <- Block (Block.mk (mutate_calls @ [Stmt.mk (If (new_exp,thenb,elseb,lo))]))
-      else begin
-        failwith "test";
-        (* stmt.skind <- If (new_exp,thenb,elseb,lo); *)
-      end;
+      seen_double <- false;
+      let thenb' = (Cil.visitCilBlock (self :> Cil.cilVisitor) thenb) in
+      let elseb' = (Cil.visitCilBlock (self :> Cil.cilVisitor) elseb) in
+      let new_if = Stmt.mk (If (new_exp,thenb',elseb',loc)) in
+      stmt.skind <- Block (Block.mk (mutate_calls @ [new_if]));
       Cil.SkipChildren
     | _ -> Cil.DoChildren
 
   method! vfile _ =
     Cil.DoChildrenPost (fun f ->
-          let clean_globals =
-            Cil.foldGlobals f (fun acc g ->
+        let clean_globals =
+          Cil.foldGlobals f (fun acc g ->
               if Utils.is_lannotate_builtin g then acc else g :: acc
-          ) [] in
+            ) [] in
         f.globals <- List.rev clean_globals;
         f
       )
@@ -217,5 +203,6 @@ module RedundantCheckCountermeasures = Annotators.Register (struct
     let name = "RCC"
     let help = "Redundant Check Countermeasures Coverage"
     let apply mk_label file =
-      Visitor.visitFramacFileSameGlobals (new visitor mk_label :> Visitor.frama_c_visitor) file
+      Visitor.visitFramacFileSameGlobals
+        (new visitor mk_label :> Visitor.frama_c_visitor) file
   end)

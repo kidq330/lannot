@@ -23,22 +23,22 @@
 #ifndef __LABELS_LANNOT_H__
 #define __LABELS_LANNOT_H__
 
-#define lannot_start() __LANNOTATE_START()
-#define lannot_start_inline() __LANNOTATE_START_INLINE(__func__)
-#define lannot_end_inline() __LANNOTATE_END_INLINE(__func__)
-#define lannot_double() __LANNOTATE_DOUBLE()
-#define lannot_success() __LANNOTATE_SUCCESS(1)
-#define lannot_success_inter() __LANNOTATE_SUCCESS(0)
+#define __lannot_start_inline() __LANNOTATE_START_INLINE(__func__)
+#define __lannot_end_inline() __LANNOTATE_END_INLINE(__func__)
+#define __cm_start() __CM_START()
+#define __cm_double_if() __CM_DOUBLE_IF()
+#define __cm_target() __CM_TARGET(0)
+#define __cm_step() __CM_TARGET(1)
 
-/*@assigns \nothing;*/
-void __LANNOTATE_START(void) __attribute((FC_BUILTIN));
 /*@assigns \nothing;*/
 void __LANNOTATE_START_INLINE(const char * fun_name) __attribute((FC_BUILTIN));
 /*@assigns \nothing;*/
 void __LANNOTATE_END_INLINE(const char * fun_name) __attribute((FC_BUILTIN));
 /*@assigns \nothing;*/
-void __LANNOTATE_SUCCESS(unsigned int clean) __attribute((FC_BUILTIN));
+void __CM_START(void) __attribute((FC_BUILTIN));
 /*@assigns \nothing;*/
-void __LANNOTATE_DOUBLE(void) __attribute((FC_BUILTIN));
+void __CM_DOUBLE_IF(void) __attribute((FC_BUILTIN));
+/*@assigns \nothing;*/
+void __CM_TARGET(unsigned int step) __attribute((FC_BUILTIN));
 
 #endif
