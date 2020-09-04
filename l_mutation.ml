@@ -28,8 +28,8 @@ open Utils
 class visitor mk_label = object(self)
   inherit Visitor.frama_c_inplace
 
-  (* Used to remember when inline code start *)
-  val started_inline = Stack.create ()
+  (* Used to know if we are inside an inlined block *)
+  val is_inlined_block = Stack.create ()
   (* List of last temporary variables used to store mutations *)
   val mutable seen_vinfos : varinfo list= []
   (* When started is true, mutate all if until success point is found *)
@@ -42,19 +42,6 @@ class visitor mk_label = object(self)
   (* Get the next id to use *)
   method private next () : int =
     id <- id + 1; id
-
-  (* Returns true if :
-     - we're not inside an inlined code
-     - the code correspond to the original inlined function
-       returns false otherwise
-  *)
-  method private should_instrument () : bool =
-    let kf = Extlib.the self#current_kf in
-    let fdec = Kernel_function.get_definition kf in
-    match Stack.top_opt started_inline with
-    | None -> true
-    | Some fun_name' ->
-      String.equal fdec.svar.vorig_name fun_name'
 
   (* Creates a new temporary variable and adds it to seen_vinfos *)
   method private get_new_tmp_var () : varinfo =
@@ -75,7 +62,7 @@ class visitor mk_label = object(self)
     let mutate_exp = Cil.new_exp ~loc (Lval mutate_lval) in
     let mutation_side = Cil.mkBinOp ~loc LAnd mutate_exp (Exp.lnot exp) in
     let no_mutation_side = Cil.mkBinOp ~loc LAnd (Exp.lnot mutate_exp) exp in
-    let mutate_call = Utils.mk_call ~result:mutate_lval "mutate" [] in
+    let mutate_call = Utils.mk_call ~result:mutate_lval "mutated" [] in
     mutate_call, Cil.mkBinOp ~loc LOr mutation_side no_mutation_side
 
   (* Depending on seen_double value, changes the form of the mutated expression
@@ -89,8 +76,8 @@ class visitor mk_label = object(self)
       [mutate_call;mutate_call'],concat_exp
     | _ ->
       if seen_double then begin
-        Options.warning "If at %a wrongly marked as double.\n\
-                         \t Parsing can split if statement if it contains side effects.\
+        Options.warning "If at %a wrongly marked as double.\ Parsing can split \
+                         if statement if it contains side effects. \
                          Ignoring macro..." Printer.pp_location exp.eloc;
       end;
       let mutate_call, new_exp = self#generate_exp exp in
@@ -113,43 +100,39 @@ class visitor mk_label = object(self)
   (* Clears all parameters after each function *)
   method! vfunc _ =
     Cil.DoChildrenPost( fun fdec ->
-        Stack.clear started_inline;
+        Stack.clear is_inlined_block;
         seen_vinfos <- [];
         started <- false;
         seen_double <- false;
         fdec
       )
 
+  (* Handles inlined block to avoid annotating them *)
+  method! vblock b =
+    if Cil.hasAttribute Cil.frama_c_inlined b.battrs then begin
+      Stack.push true is_inlined_block;
+      Cil.DoChildrenPost (fun b' ->
+          ignore(Stack.pop is_inlined_block);
+          b'
+        )
+    end
+    else Cil.DoChildren
+
   (* Handles lannotate macro and generates mutations and labels as such :
-     - START/END INLINE, used to know where we are
-       (inlined code/inline function/normal code)
      - START, handles all if statements between START and SUCCESS
-       (except for inlined code, cf. should_instrument)
      - SUCCESS, ends "annotating" zone, and generates labels
      - DOUBLE IF, remember for the next instrumented if form
      - If, mutate if expression
   *)
   method! vstmt_aux stmt =
     match stmt.skind with
-    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, fun_name :: [], _)) when String.equal v.vname start_inline ->
-      let fun_name =  Extlib.the (is_cil_string fun_name) in
-      Stack.push fun_name started_inline;
-      stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
-      Cil.SkipChildren
-    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, fun_name :: [], _)) when String.equal v.vname end_inline ->
-      let fun_name =  Extlib.the (is_cil_string fun_name) in
-      stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
-      (match Stack.pop_opt started_inline with
-       | Some fun_name' when (String.equal fun_name' fun_name) ->
-         Cil.SkipChildren
-       | _ -> assert false)
     | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], _)) when String.equal v.vname start ->
-      if self#should_instrument () then started <- true;
+      if Stack.is_empty is_inlined_block then started <- true;
       stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
       Cil.SkipChildren
     | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, step :: [], loc)) when String.equal v.vname target ->
       let step = Integer.to_int (Extlib.the (Cil.isInteger step)) in
-      if started && self#should_instrument () then
+      if started && Stack.is_empty is_inlined_block then
         if seen_vinfos <> [] then begin
           let label = mk_label (self#generate_disj loc seen_vinfos) [] loc in
           label.labels <- stmt.labels;
@@ -157,7 +140,8 @@ class visitor mk_label = object(self)
           Cil.ChangeTo label
         end
         else begin
-          Options.warning "Success point reached without preceding if at %a, annotation ignored." Printer.pp_location loc;
+          Options.warning "Success point reached without preceding if at %a, \
+                           annotation ignored." Printer.pp_location loc;
           stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
           Cil.SkipChildren
         end
@@ -166,11 +150,10 @@ class visitor mk_label = object(self)
         Cil.SkipChildren
       end
     | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], _)) when String.equal v.vname double_if ->
+      if started && Stack.is_empty is_inlined_block then seen_double <- true;
       stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
-      if started && self#should_instrument () then
-        seen_double <- true;
       Cil.SkipChildren
-    | If (exp,thenb,elseb,loc) when started && self#should_instrument () ->
+    | If (exp,thenb,elseb,loc) when started && Stack.is_empty is_inlined_block ->
       let mutate_calls, new_exp = self#generate_if_exp exp in
       seen_double <- false;
       let thenb' = (Cil.visitCilBlock (self :> Cil.cilVisitor) thenb) in

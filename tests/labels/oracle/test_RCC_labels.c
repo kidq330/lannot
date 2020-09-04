@@ -31,20 +31,25 @@ unsigned int cpt_mutation = 0;
     complete behaviors;
     disjoint behaviors;
 */
-int mutate();
-
+int mutated();
+enum
+ __anonenum_secbool_1 {
+secfalse = 0x55aa55aa,
+sectrue = 0xaa55aa55
+};
+typedef enum __anonenum_secbool_1 secbool;
 int f1(int password)
 {
   int lannot_mut_2;
   int lannot_mut_1;
   int __retres;
   ;
-  lannot_mut_1 = mutate();
+  lannot_mut_1 = mutated();
   if (lannot_mut_1 && ! (password != 12345) || ! lannot_mut_1 && password != 12345) {
     __retres = 1;
     goto return_label;
   }
-  lannot_mut_2 = mutate();
+  lannot_mut_2 = mutated();
   if (lannot_mut_2 && ! (password != 12345) || ! lannot_mut_2 && password != 12345) {
     __retres = 1;
     goto return_label;
@@ -61,8 +66,8 @@ int f2(int password)
   int __retres;
   ;
   ;
-  lannot_mut_3 = mutate();
-  lannot_mut_4 = mutate();
+  lannot_mut_3 = mutated();
+  lannot_mut_4 = mutated();
   if ((lannot_mut_3 && ! (password != 12345) || ! lannot_mut_3 && password != 12345) || (
       lannot_mut_4 && ! (password != 12345) || ! lannot_mut_4 && password != 12345)) {
     __retres = 1;
@@ -80,15 +85,15 @@ int f3(int password)
   int lannot_mut_5;
   int __retres;
   ;
-  lannot_mut_5 = mutate();
+  lannot_mut_5 = mutated();
   if (lannot_mut_5 && ! (password == 12345) || ! lannot_mut_5 && password == 12345) {
-    lannot_mut_6 = mutate();
+    lannot_mut_6 = mutated();
     if (lannot_mut_6 && ! (password != 12345) || ! lannot_mut_6 && password != 12345) {
       __retres = 1;
       goto return_label;
     }
     pc_label(lannot_mut_5 || lannot_mut_6,3,"RCC");
-    lannot_mut_7 = mutate();
+    lannot_mut_7 = mutated();
     if (lannot_mut_7 && ! (password != 12345) || ! lannot_mut_7 && password != 12345) {
       __retres = 1;
       goto return_label;
@@ -106,16 +111,13 @@ __inline static int check__fc_inline(int p1, int p2)
   int lannot_mut_8;
   int __retres;
   ;
-  ;
-  lannot_mut_8 = mutate();
+  lannot_mut_8 = mutated();
   if (lannot_mut_8 && ! (p1 != p2) || ! lannot_mut_8 && p1 != p2) {
     __retres = 1;
     goto return_label;
   }
   pc_label(lannot_mut_8,5,"RCC");
   __retres = 0;
-  goto return_label;
-  ;
   return_label: return __retres;
 }
 
@@ -134,18 +136,15 @@ int f4(int password)
     int p1 = password;
     int p2 = 12345;
     ;
-    ;
     if (p1 != p2) {
       __retres_7 = 1;
       goto return_label_0;
     }
     ;
     __retres_7 = 0;
-    goto return_label_0;
-    ;
     return_label_0: tmp = __retres_7;
   }
-  lannot_mut_9 = mutate();
+  lannot_mut_9 = mutated();
   if (lannot_mut_9 && ! tmp || ! lannot_mut_9 && tmp) {
     __retres = 1;
     goto return_label;
@@ -155,18 +154,15 @@ int f4(int password)
     int p1_8 = 12345;
     int p2_9 = password;
     ;
-    ;
     if (p1_8 != p2_9) {
       __retres_10 = 1;
       goto return_label_1;
     }
     ;
     __retres_10 = 0;
-    goto return_label_1;
-    ;
     return_label_1: tmp_0 = __retres_10;
   }
-  lannot_mut_10 = mutate();
+  lannot_mut_10 = mutated();
   if (lannot_mut_10 && ! tmp_0 || ! lannot_mut_10 && tmp_0) {
     __retres = 1;
     goto return_label;
@@ -176,23 +172,278 @@ int f4(int password)
     int p1_11 = password;
     int p2_12 = 12345;
     ;
-    ;
     if (p1_11 != p2_12) {
       __retres_13 = 1;
       goto return_label_2;
     }
     ;
     __retres_13 = 0;
-    goto return_label_2;
-    ;
     return_label_2: tmp_1 = __retres_13;
   }
-  lannot_mut_11 = mutate();
+  lannot_mut_11 = mutated();
   if (lannot_mut_11 && ! tmp_1 || ! lannot_mut_11 && tmp_1) {
     __retres = 1;
     goto return_label;
   }
   pc_label(lannot_mut_9 || (lannot_mut_10 || lannot_mut_11),6,"RCC");
+  __retres = 0;
+  return_label: return __retres;
+}
+
+int f5(int password)
+{
+  int __retres;
+  ;
+  ;
+  __retres = 0;
+  return __retres;
+}
+
+int f6(int password)
+{
+  int lannot_mut_13;
+  int lannot_mut_12;
+  int __retres;
+  ;
+  ;
+  lannot_mut_12 = mutated();
+  if (lannot_mut_12 && ! (password != 12345) || ! lannot_mut_12 && password != 12345) {
+    __retres = 1;
+    goto return_label;
+  }
+  lannot_mut_13 = mutated();
+  if (lannot_mut_13 && ! (password != 12345) || ! lannot_mut_13 && password != 12345) {
+    __retres = 1;
+    goto return_label;
+  }
+  pc_label(lannot_mut_12 || lannot_mut_13,7,"RCC");
+  __retres = 0;
+  return_label: return __retres;
+}
+
+int integrity[10];
+__inline static secbool check_code_integrity__fc_inline(void)
+{
+  secbool __retres;
+  int sum = 0;
+  {
+    int i = 0;
+    if (! (i < 10)) goto unrolling_2_loop;
+    sum += integrity[i];
+    i ++;
+    unrolling_13_loop: ;
+    if (! (i < 10)) goto unrolling_2_loop;
+    sum += integrity[i];
+    i ++;
+    unrolling_12_loop: ;
+    if (! (i < 10)) goto unrolling_2_loop;
+    sum += integrity[i];
+    i ++;
+    unrolling_11_loop: ;
+    if (! (i < 10)) goto unrolling_2_loop;
+    sum += integrity[i];
+    i ++;
+    unrolling_10_loop: ;
+    if (! (i < 10)) goto unrolling_2_loop;
+    sum += integrity[i];
+    i ++;
+    unrolling_9_loop: ;
+    if (! (i < 10)) goto unrolling_2_loop;
+    sum += integrity[i];
+    i ++;
+    unrolling_8_loop: ;
+    if (! (i < 10)) goto unrolling_2_loop;
+    sum += integrity[i];
+    i ++;
+    unrolling_7_loop: ;
+    if (! (i < 10)) goto unrolling_2_loop;
+    sum += integrity[i];
+    i ++;
+    unrolling_6_loop: ;
+    if (! (i < 10)) goto unrolling_2_loop;
+    sum += integrity[i];
+    i ++;
+    unrolling_5_loop: ;
+    if (! (i < 10)) goto unrolling_2_loop;
+    sum += integrity[i];
+    i ++;
+    unrolling_4_loop: ;
+    if (! (i < 10)) goto unrolling_2_loop;
+    sum += integrity[i];
+    i ++;
+    unrolling_3_loop: ;
+    /*@ loop invariant \false;
+        loop pragma UNROLL 10 + 1, "completely";
+        loop pragma UNROLL "done", 11;
+    */
+    while (i < 10) {
+      sum += integrity[i];
+      i ++;
+    }
+    unrolling_2_loop: ;
+  }
+  if (sum == 10) {
+    __retres = sectrue;
+    goto return_label;
+  }
+  __retres = secfalse;
+  return_label: return __retres;
+}
+
+int f7(void)
+{
+  int lannot_mut_15;
+  int lannot_mut_14;
+  secbool __inline_tmp_9;
+  secbool __inline_tmp;
+  int __retres;
+  ;
+  {
+    secbool __retres_8;
+    int sum = 0;
+    {
+      int i = 0;
+      if (! (i < 10)) goto unrolling_15_loop;
+      sum += integrity[i];
+      i ++;
+      unrolling_26_loop: ;
+      if (! (i < 10)) goto unrolling_15_loop;
+      sum += integrity[i];
+      i ++;
+      unrolling_25_loop: ;
+      if (! (i < 10)) goto unrolling_15_loop;
+      sum += integrity[i];
+      i ++;
+      unrolling_24_loop: ;
+      if (! (i < 10)) goto unrolling_15_loop;
+      sum += integrity[i];
+      i ++;
+      unrolling_23_loop: ;
+      if (! (i < 10)) goto unrolling_15_loop;
+      sum += integrity[i];
+      i ++;
+      unrolling_22_loop: ;
+      if (! (i < 10)) goto unrolling_15_loop;
+      sum += integrity[i];
+      i ++;
+      unrolling_21_loop: ;
+      if (! (i < 10)) goto unrolling_15_loop;
+      sum += integrity[i];
+      i ++;
+      unrolling_20_loop: ;
+      if (! (i < 10)) goto unrolling_15_loop;
+      sum += integrity[i];
+      i ++;
+      unrolling_19_loop: ;
+      if (! (i < 10)) goto unrolling_15_loop;
+      sum += integrity[i];
+      i ++;
+      unrolling_18_loop: ;
+      if (! (i < 10)) goto unrolling_15_loop;
+      sum += integrity[i];
+      i ++;
+      unrolling_17_loop: ;
+      if (! (i < 10)) goto unrolling_15_loop;
+      sum += integrity[i];
+      i ++;
+      unrolling_16_loop: ;
+      /*@ loop invariant \false;
+          loop pragma UNROLL 10 + 1, "completely";
+          loop pragma UNROLL "done", 11;
+      */
+      while (i < 10) {
+        sum += integrity[i];
+        i ++;
+      }
+      unrolling_15_loop: ;
+    }
+    if (sum == 10) {
+      __retres_8 = sectrue;
+      goto return_label_0;
+    }
+    __retres_8 = secfalse;
+    return_label_0: __inline_tmp = __retres_8;
+  }
+  secbool chk1 = __inline_tmp;
+  lannot_mut_14 = mutated();
+  if (lannot_mut_14 && ! (chk1 != 0xaa55aa55) || ! lannot_mut_14 && chk1 != 0xaa55aa55) {
+    __retres = 1;
+    goto return_label;
+  }
+  {
+    secbool __retres_13;
+    int sum_11 = 0;
+    {
+      int i_12 = 0;
+      if (! (i_12 < 10)) goto unrolling_28_loop;
+      sum_11 += integrity[i_12];
+      i_12 ++;
+      unrolling_39_loop: ;
+      if (! (i_12 < 10)) goto unrolling_28_loop;
+      sum_11 += integrity[i_12];
+      i_12 ++;
+      unrolling_38_loop: ;
+      if (! (i_12 < 10)) goto unrolling_28_loop;
+      sum_11 += integrity[i_12];
+      i_12 ++;
+      unrolling_37_loop: ;
+      if (! (i_12 < 10)) goto unrolling_28_loop;
+      sum_11 += integrity[i_12];
+      i_12 ++;
+      unrolling_36_loop: ;
+      if (! (i_12 < 10)) goto unrolling_28_loop;
+      sum_11 += integrity[i_12];
+      i_12 ++;
+      unrolling_35_loop: ;
+      if (! (i_12 < 10)) goto unrolling_28_loop;
+      sum_11 += integrity[i_12];
+      i_12 ++;
+      unrolling_34_loop: ;
+      if (! (i_12 < 10)) goto unrolling_28_loop;
+      sum_11 += integrity[i_12];
+      i_12 ++;
+      unrolling_33_loop: ;
+      if (! (i_12 < 10)) goto unrolling_28_loop;
+      sum_11 += integrity[i_12];
+      i_12 ++;
+      unrolling_32_loop: ;
+      if (! (i_12 < 10)) goto unrolling_28_loop;
+      sum_11 += integrity[i_12];
+      i_12 ++;
+      unrolling_31_loop: ;
+      if (! (i_12 < 10)) goto unrolling_28_loop;
+      sum_11 += integrity[i_12];
+      i_12 ++;
+      unrolling_30_loop: ;
+      if (! (i_12 < 10)) goto unrolling_28_loop;
+      sum_11 += integrity[i_12];
+      i_12 ++;
+      unrolling_29_loop: ;
+      /*@ loop invariant \false;
+          loop pragma UNROLL 10 + 1, "completely";
+          loop pragma UNROLL "done", 11;
+      */
+      while (i_12 < 10) {
+        sum_11 += integrity[i_12];
+        i_12 ++;
+      }
+      unrolling_28_loop: ;
+    }
+    if (sum_11 == 10) {
+      __retres_13 = sectrue;
+      goto return_label_1;
+    }
+    __retres_13 = secfalse;
+    return_label_1: __inline_tmp_9 = __retres_13;
+  }
+  secbool chk2 = __inline_tmp_9;
+  lannot_mut_15 = mutated();
+  if (lannot_mut_15 && ! ((unsigned int)(! chk2) == 0xaa55aa55) || ! lannot_mut_15 && 
+                                                                   (unsigned int)(! chk2) == 0xaa55aa55) {
+    __retres = 1;
+    goto return_label;
+  }
+  pc_label(lannot_mut_14 || lannot_mut_15,8,"RCC");
   __retres = 0;
   return_label: return __retres;
 }

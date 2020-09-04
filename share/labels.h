@@ -23,17 +23,11 @@
 #ifndef __LABELS_LANNOT_H__
 #define __LABELS_LANNOT_H__
 
-#define __lannot_start_inline() __LANNOTATE_START_INLINE(__func__)
-#define __lannot_end_inline() __LANNOTATE_END_INLINE(__func__)
 #define __cm_start() __CM_START()
 #define __cm_double_if() __CM_DOUBLE_IF()
 #define __cm_target() __CM_TARGET(0)
 #define __cm_step() __CM_TARGET(1)
 
-/*@assigns \nothing;*/
-void __LANNOTATE_START_INLINE(const char * fun_name) __attribute((FC_BUILTIN));
-/*@assigns \nothing;*/
-void __LANNOTATE_END_INLINE(const char * fun_name) __attribute((FC_BUILTIN));
 /*@assigns \nothing;*/
 void __CM_START(void) __attribute((FC_BUILTIN));
 /*@assigns \nothing;*/

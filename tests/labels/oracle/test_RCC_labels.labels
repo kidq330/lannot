@@ -3,5 +3,7 @@
 2, unknown, RCC, test_RCC.c:20, , LAnnot, , 0.
 3, unknown, RCC, test_RCC.c:28, , LAnnot, , 0.
 4, unknown, RCC, test_RCC.c:31, , LAnnot, , 0.
-5, unknown, RCC, test_RCC.c:41, , LAnnot, , 0.
-6, unknown, RCC, test_RCC.c:52, , LAnnot, , 0.
+5, unknown, RCC, test_RCC.c:40, , LAnnot, , 0.
+6, unknown, RCC, test_RCC.c:50, , LAnnot, , 0.
+7, unknown, RCC, test_RCC.c:65, , LAnnot, , 0.
+8, unknown, RCC, test_RCC.c:90, , LAnnot, , 0.
