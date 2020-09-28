@@ -67,7 +67,7 @@ module Printer = Printer_builder.Make (struct
           \    complete behaviors;\n\
           \    disjoint behaviors;\n\
           */\n\
-          int mutated();\n" (Options.MaxMutation.get ());
+          int mutated(void);\n" (Options.MaxMutation.get ());
         end;
         Cil.iterGlobals file (fun g -> self#global fmt g);
         Format.fprintf fmt "@]@."

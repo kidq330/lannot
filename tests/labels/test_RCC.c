@@ -86,7 +86,7 @@ int f7(){
     secbool chk1=check_code_integrity();
     if(chk1 != sectrue) return 1;
     secbool chk2=check_code_integrity();
-    if(!chk2 == sectrue) return 1; // incorrect countermeasure
+    if(!chk2 == sectrue) return 1; // incorrect countermeasure, correct version use ~ instead of !
     __cm_target();
     return 0;
 }

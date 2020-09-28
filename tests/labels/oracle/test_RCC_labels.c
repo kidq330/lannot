@@ -31,7 +31,7 @@ unsigned int cpt_mutation = 0;
     complete behaviors;
     disjoint behaviors;
 */
-int mutated();
+int mutated(void);
 enum
  __anonenum_secbool_1 {
 secfalse = 0x55aa55aa,
