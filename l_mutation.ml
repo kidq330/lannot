@@ -28,6 +28,7 @@ open Utils
 class visitor mk_label = object(self)
   inherit Visitor.frama_c_inplace
 
+  val unk_loc = Cil_datatype.Location.unknown
   (* Used to know if we are inside an inlined block *)
   val is_inlined_block = Stack.create ()
   (* List of last temporary variables used to store mutations *)
@@ -38,6 +39,8 @@ class visitor mk_label = object(self)
   val mutable seen_double : bool = false
   (* Id used to create temporary variable names *)
   val mutable id : int = 0
+
+  val mutable to_add = []
 
   (* Get the next id to use *)
   method private next () : int =
@@ -50,6 +53,7 @@ class visitor mk_label = object(self)
     let name = "lannot_mut_"^string_of_int (self#next()) in
     let vi = Cil.makeTempVar ~name fdec (TInt(IInt,[])) in
     seen_vinfos <- vi :: seen_vinfos;
+    to_add <- vi :: to_add;
     vi
 
   (* For a given if expression, creates the corresponding mutated expression
@@ -89,10 +93,12 @@ class visitor mk_label = object(self)
       match vinfos, acc with
       | [], Some acc -> acc
       | vInfo :: tl, None ->
-        aux tl (Some(Cil.new_exp ~loc (Lval (Cil.var vInfo))))
+        let new_exp = Cil.new_exp ~loc (Lval (Cil.var vInfo)) in
+        aux tl (Some(new_exp))
       | vInfo :: tl, Some acc ->
-        let new_lval = (Cil.new_exp ~loc (Lval (Cil.var vInfo))) in
-        aux tl (Some(Cil.mkBinOp ~loc LOr new_lval acc))
+        let new_exp = Cil.new_exp ~loc (Lval (Cil.var vInfo)) in
+        let new_disj = Cil.mkBinOp ~loc LOr new_exp acc in
+        aux tl (Some(new_disj))
       | _ -> assert false
     in
     aux vinfos None
@@ -101,7 +107,17 @@ class visitor mk_label = object(self)
   method! vfunc _ =
     Cil.DoChildrenPost( fun fdec ->
         Stack.clear is_inlined_block;
+        let f vi =
+          let zero_init = Cil.makeZeroInit ~loc:unk_loc vi.vtype in
+          let local_init = AssignInit zero_init in
+          let instr_init = Local_init(vi, local_init, unk_loc) in
+          vi.vdefined <- true;
+          Cil.mkStmtOneInstr instr_init
+        in
+        let inits = List.rev @@ List.map f to_add in
+        fdec.sbody.bstmts <- inits @ fdec.sbody.bstmts;
         seen_vinfos <- [];
+        to_add <- [];
         started <- false;
         seen_double <- false;
         fdec
