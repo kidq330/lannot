@@ -125,14 +125,16 @@ class visitor mk_label = object(self)
 
   (* Handles inlined block to avoid annotating them *)
   method! vblock b =
-    if Cil.hasAttribute Cil.frama_c_inlined b.battrs then begin
+    if not (Options.InlinedBlock.get ())
+          && Cil.hasAttribute Cil.frama_c_inlined b.battrs then begin
       Stack.push true is_inlined_block;
       Cil.DoChildrenPost (fun b' ->
           ignore(Stack.pop is_inlined_block);
           b'
         )
     end
-    else Cil.DoChildren
+    else
+      Cil.DoChildren
 
   (* Handles lannotate macro and generates mutations and labels as such :
      - START, handles all if statements between START and SUCCESS

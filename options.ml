@@ -152,6 +152,11 @@ module Inline = True (struct
     let help = "Annotate inline functions (Default : true)"
   end)
 
+module InlinedBlock = False (struct
+    let option_name = "-lannot-inlined-block"
+    let help = "Annotate inlined block from inline functions (Default : true)"
+  end)
+
 let dataflow = add_group "Dataflow criterion-specific options"
 
 let () = Parameter_customize.set_group dataflow
