@@ -148,13 +148,21 @@ class visitor mk_label = object(self)
       if Stack.is_empty is_inlined_block then started <- true;
       stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
       Cil.SkipChildren
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], _)) when String.equal v.vname end_crit ->
+      if Stack.is_empty is_inlined_block then begin
+        seen_vinfos <- [];
+        started <- false;
+        seen_double <- false;
+      end;
+      stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
+      Cil.SkipChildren
     | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, step :: [], loc)) when String.equal v.vname target ->
       let step = Integer.to_int (Extlib.the (Cil.isInteger step)) in
       if started && Stack.is_empty is_inlined_block then
         if seen_vinfos <> [] then begin
           let label = mk_label (self#generate_disj loc seen_vinfos) [] loc in
           label.labels <- stmt.labels;
-          if step = 0 then (seen_vinfos <- []; started <- false);
+          if step = 0 then (seen_vinfos <- []);
           Cil.ChangeTo label
         end
         else begin

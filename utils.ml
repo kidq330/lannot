@@ -89,6 +89,7 @@ let extract_global_vars file =
 let start_inline = "__LANNOTATE_START_INLINE"
 let end_inline = "__LANNOTATE_END_INLINE"
 let start = "__CM_START"
+let end_crit = "__CM_END"
 let double_if = "__CM_DOUBLE_IF"
 let target = "__CM_TARGET"
 

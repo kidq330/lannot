@@ -26,6 +26,7 @@ module Printer : Printer_api.S
 
 val start : string
 val start_inline : string
+val end_crit : string
 val end_inline : string
 val target : string
 val double_if : string
