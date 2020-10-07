@@ -55,7 +55,7 @@ module Printer = Printer_builder.Make (struct
           Format.fprintf fmt "\
           #define MAX_MUTATION %d\n\
           unsigned int cpt_mutation = 0;\n\n\
-          /*%@ assigns cpt_mutation;\n\
+          /*%@ assigns cpt_mutation, \\result;\n\
           \    behavior can_mutate:\n\
           \        assumes cpt_mutation < MAX_MUTATION;\n\
           \        ensures  \\result <==> cpt_mutation == \\at(cpt_mutation, Pre) + 1;\n\
