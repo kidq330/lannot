@@ -96,6 +96,18 @@ class atom_visitor mk_label labels = object(self)
       let new_exp = Exp.binop Eq e1 e2 in
       labels := (mk_label new_exp [] exp.eloc) :: !labels;
       Cil.SkipChildren
+    | BinOp ((LAnd|LOr), e1, e2, _) ->
+      ignore(Cil.visitCilExpr (self :> Cil.cilVisitor) e1);
+      ignore(Cil.visitCilExpr (self :> Cil.cilVisitor) e2);
+      let new_exp1 = Exp.lnot e1 in
+      let new_exp2 = Exp.lnot e2 in
+      labels := (mk_label new_exp2 [] exp.eloc) :: (mk_label new_exp1 [] exp.eloc) :: !labels;
+      Cil.SkipChildren
+    | UnOp (LNot, e1, _) ->
+      ignore(Cil.visitCilExpr (self :> Cil.cilVisitor) e1);
+      let new_exp = Exp.binop Eq e1 (Exp.zero()) in
+      labels := (mk_label new_exp [] exp.eloc) :: !labels;
+      Cil.SkipChildren
     | _ -> Cil.DoChildren
 end
 
