@@ -59,7 +59,7 @@ class io_visitor mk_label = object(self)
 
   (* visit each function and annotate formals and return statement*)
   method! vfunc _ =
-    let kf = Extlib.the self#current_kf in
+    let kf = Option.get self#current_kf in
     let args = Kernel_function.get_formals kf in
     let exp_args = List.map (fun arg -> Exp.lval (Lval.var arg)) args in
     let loc = Kernel_function.get_location kf in

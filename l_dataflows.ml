@@ -495,7 +495,7 @@ class addSequences = object(self)
     List.map (fun (_,s) -> s) defs, (List.map (fun (_,s) -> s) uses) @ cond
 
   method! vfunc (dec : fundec) : fundec Cil.visitAction =
-    let kf = Extlib.the self#current_kf in
+    let kf = Option.get self#current_kf in
     if Kernel_function.is_definition kf && Annotators.shouldInstrument dec.svar then begin
       Cfg.clearCFGinfo ~clear_id:false dec;
       Cfg.cfgFun dec;

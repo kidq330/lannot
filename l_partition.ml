@@ -59,7 +59,10 @@ let rec partition_lval ~depth ~width ~(emit: exp -> unit) typ lval =
           let lval' () = Cil.addOffsetLval (Field (field, NoOffset)) (lval ()) in
           partition_lval ~depth:(depth-1) ~width ~emit field.ftype lval'
       in
-      List.iter onfield comp.cfields
+      begin match comp.cfields with
+        | Some cfields ->  List.iter onfield cfields
+        | None -> ()
+      end
 
     (* Array length provided *)
     | TArray (typ, Some length, _, _) ->

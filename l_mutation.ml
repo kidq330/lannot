@@ -48,7 +48,7 @@ class visitor mk_label = object(self)
 
   (* Creates a new temporary variable and adds it to seen_vinfos *)
   method private get_new_tmp_var () : varinfo =
-    let kf = Extlib.the self#current_kf in
+    let kf = Option.get self#current_kf in
     let fdec = Kernel_function.get_definition kf in
     let name = "lannot_mut_"^string_of_int (self#next()) in
     let vi = Cil.makeTempVar ~name fdec (TInt(IInt,[])) in
@@ -158,7 +158,7 @@ class visitor mk_label = object(self)
       stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
       Cil.SkipChildren
     | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, step :: [], loc)) when String.equal v.vname target ->
-      let step = Integer.to_int (Extlib.the (Cil.isInteger step)) in
+      let step = Integer.to_int (Option.get (Cil.isInteger step)) in
       if started && Stack.is_empty is_inlined_block then
         if seen_vinfos <> [] then begin
           let label = mk_label (self#generate_disj loc seen_vinfos) [] loc in
