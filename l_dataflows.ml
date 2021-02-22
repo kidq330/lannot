@@ -159,24 +159,9 @@ let replace_or_add_list_front (tbl:('a,'b list) Hashtbl.t) (key:'a) (elt:'b) =
   else
     Hashtbl.add tbl key [elt]
 
-(* generic function for Hashtbl which use list as values.
-   If the binding key exists, adds elt at the end of the list,
-   else create a new binding. *)
-let replace_or_add_list_back (tbl:('a,'b list) Hashtbl.t) (key:'a) (elt:'b) =
-  if Hashtbl.mem tbl key then begin
-    let old = Hashtbl.find tbl key in
-    Hashtbl.replace tbl key (old@[elt])
-  end
-  else
-    Hashtbl.add tbl key [elt]
-
 (* Create a new def. *)
 let make_def ?(funId = (-1)) (varId_def: int) (defId: int) (stmtDef: int) : def =
   {id=next();funId;varId_def;defId;stmtDef}
-
-(* Add a sequence id to its corresponding hyperlabel *)
-let add_to_hyperlabel (key:int*int) (ids:int) : unit =
-  replace_or_add_list_front hyperlabels key ids
 
 (* Given a variable id, increment the number of defs seen
    and returns it. If it is the first return 1. *)
@@ -286,7 +271,7 @@ class visit_defuse ((defs_set,uses_set):DefSet.t*UseSet.t) current_stmt kf = obj
     (* Add the use *)
     replace_or_add_list_front to_add_uses current_stmt.sid (ids,suse);
     (* Register this sequence to its hyperlabel *)
-    add_to_hyperlabel (def.varId_def, def.defId) ids;
+    replace_or_add_list_front hyperlabels (def.varId_def, def.defId) ids;
     incr nb_seqs
 
   (* Visit all expressions and sub expressions to find lvals *)
@@ -294,10 +279,10 @@ class visit_defuse ((defs_set,uses_set):DefSet.t*UseSet.t) current_stmt kf = obj
     match expr.enode with
     | Lval (Var v, offset) ->
       let vid = get_vid_with_field v.vid offset in
-      (* Keeps defs related to this variable *)
-      let all_vid_defs = DefSet.filter (fun def -> def.varId_def = vid) defs_set in
       if should_instrument v vid visited then begin
         visited <- vid :: visited;
+        (* Keeps defs related to this variable *)
+        let all_vid_defs = DefSet.filter (fun def -> def.varId_def = vid) defs_set in
         if not (DefSet.is_empty all_vid_defs) then
           if not (Options.CleanEquiv.get ())
           || not (is_equivalent vid current_stmt kf uses_set) then
@@ -371,33 +356,33 @@ module P() = struct
      adding or not new definition, removing older ones etc... *)
   let do_def vid offset sid = function
     | Bottom -> Bottom
-    | NonBottom (d,u) ->
+    | NonBottom (defs,uses) ->
       let vid = get_vid_with_field vid offset in
-      let d_clean =
+      let defs_clean =
         if Options.CleanDataflow.get () then
-          remove_def vid d
+          remove_def vid defs
         else
-          d
+          defs
       in
-      let u_clean = remove_use vid u in
+      let uses_clean = remove_use vid uses in
       let new_d =
         if Hashtbl.mem seen_def sid then
-          DefSet.add (Hashtbl.find seen_def sid) d_clean
+          DefSet.add (Hashtbl.find seen_def sid) defs_clean
         else begin
           let defId = get_next_def_id vid in
           let new_def = make_def vid defId sid in
           Hashtbl.add seen_def sid new_def;
-          DefSet.add new_def d_clean
+          DefSet.add new_def defs_clean
         end
       in
-      NonBottom (new_d,u_clean)
+      NonBottom (new_d,uses_clean)
 
   (* Function called for each stmt and propagating new states to each succs of stmt *)
   let transfer_stmt stmt state =
     match stmt.skind with
     | Instr i when not (Utils.is_label i) ->
       let state = ref state in
-      ignore(Cil.visitCilInstr  (new visit_use state stmt :> Cil.cilVisitor) i);
+      ignore(Cil.visitCilInstr (new visit_use state stmt :> Cil.cilVisitor) i);
       begin match i with
         | Set ((Var v,offset),_,_)
         | Call (Some (Var v,offset),_,_,_) ->
