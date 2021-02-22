@@ -25,22 +25,27 @@ int maintest(int a, unsigned int b, short c, int d, _Bool e, long long f)
    pc_label((int)c == -32768,6,"CB");
    pc_label((int)c == 32767,7,"CB");
    pc_label((int)c == 42,8,"CB");
-   pc_label(d == (-2147483647-1),9,"CB");
-   pc_label(d == 2147483647,10,"CB");
+   pc_label(! ((unsigned int)a < b),9,"CB");
+   pc_label(! ((int)c == 42),10,"CB");
+   pc_label(d == (-2147483647-1),11,"CB");
+   pc_label(d == 2147483647,12,"CB");
+   pc_label(d == 0,13,"CB");
+   pc_label(! ((unsigned int)a < b && (int)c == 42),14,"CB");
+   pc_label(! (! d),15,"CB");
    if (((unsigned int)a < b && (int)c == 42) && ! d) {
      __retres = 1;
      goto return_label;
    }
-   pc_label((int)e == 0,11,"CB");
-   pc_label((int)e == 255,12,"CB");
-   pc_label((int)e == 42,13,"CB");
+   pc_label((int)e == 0,16,"CB");
+   pc_label((int)e == 255,17,"CB");
+   pc_label((int)e == 42,18,"CB");
    if ((int)e <= 42) {
      __retres = 2;
      goto return_label;
    }
-   pc_label(f == (-9223372036854775807-1),14,"CB");
-   pc_label(f == 9223372036854775807LL,15,"CB");
-   pc_label(f + 12LL == 26LL,16,"CB");
+   pc_label(f == (-9223372036854775807-1),19,"CB");
+   pc_label(f == 9223372036854775807LL,20,"CB");
+   pc_label(f + 12LL == 26LL,21,"CB");
    if (f + (long long)12 != (long long)26) {
      __retres = 3;
      goto return_label;

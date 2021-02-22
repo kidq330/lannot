@@ -119,11 +119,8 @@ class c_visitor mk_label = object(self)
   method! vstmt_aux stmt =
     begin match stmt.skind with
       | If (e, thenb, elseb, loc) ->
-        let atoms = Utils.atomic_conditions e in
         let atoms_labels = ref [] in
-        List.iter (fun atom ->
-            ignore(Cil.visitCilExpr (new atom_visitor mk_label atoms_labels :> Cil.cilVisitor) atom);
-          ) atoms;
+        ignore(Cil.visitCilExpr (new atom_visitor mk_label atoms_labels :> Cil.cilVisitor) e);
         (* handle visits manually to skip visit of e *)
         let thenb = Visitor.visitFramacBlock (self :> Visitor.frama_c_visitor) thenb in
         let elseb = Visitor.visitFramacBlock (self :> Visitor.frama_c_visitor) elseb in

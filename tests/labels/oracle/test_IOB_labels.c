@@ -105,11 +105,11 @@ unsigned short unsigned_short_test(unsigned short a)
 long long_test(long a)
 {
   long __retres;
-  pc_label(a == (-2147483647-1),33,"IOB");
-  pc_label(a == 2147483647L,34,"IOB");
+  pc_label(a == (-9223372036854775807-1),33,"IOB");
+  pc_label(a == 9223372036854775807L,34,"IOB");
   __retres = a + a;
-  pc_label(__retres == (-2147483647-1),35,"IOB");
-  pc_label(__retres == 2147483647L,36,"IOB");
+  pc_label(__retres == (-9223372036854775807-1),35,"IOB");
+  pc_label(__retres == 9223372036854775807L,36,"IOB");
   return __retres;
 }
 
@@ -117,10 +117,10 @@ unsigned long unsigned_long_test(unsigned long a)
 {
   unsigned long __retres;
   pc_label(a == 0UL,37,"IOB");
-  pc_label(a == 4294967295UL,38,"IOB");
+  pc_label(a == 18446744073709551615UL,38,"IOB");
   __retres = a + a;
   pc_label(__retres == 0UL,39,"IOB");
-  pc_label(__retres == 4294967295UL,40,"IOB");
+  pc_label(__retres == 18446744073709551615UL,40,"IOB");
   return __retres;
 }
 

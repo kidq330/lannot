@@ -2,5 +2,5 @@
 [lannot] apply annotations for CB
 [lannot] write modified C file (to tests/labels/result/test_CB_labels.c)
 [lannot] write label data (to tests/labels/result/test_CB_labels.labels)
-[lannot] 16 labels/sequences created
+[lannot] 21 labels/sequences created
 [lannot] finished
