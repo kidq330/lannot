@@ -160,7 +160,7 @@ let replace_or_add_list_front (tbl:('a,'b list) Hashtbl.t) (key:'a) (elt:'b) =
     Hashtbl.add tbl key [elt]
 
 (* Create a new def. *)
-let make_def ?(funId = (-1)) (varId_def: int) (defId: int) (stmtDef: int) : def =
+let make_def (funId: int) (varId_def: int) (defId: int) (stmtDef: int) : def =
   {id=next();funId;varId_def;defId;stmtDef}
 
 (* Given a variable id, increment the number of defs seen
@@ -223,51 +223,58 @@ let should_instrument (v:varinfo) vid visited : bool =
   not v.vglob && not (v.vname = "__retres") && not v.vtemp
   && not (is_triv_equiv vid visited)
 
+let init_vinfo ids =
+  let vi = Cil.makeVarinfo false true
+      ("__SEQ_STATUS_" ^ string_of_int ids)
+      (TInt(IInt,[]))
+  in
+  vi.vghost <- false;
+  vi
+
+let unk_loc = Cil_datatype.Location.unknown
+
+
 (***********************************)
 (********* Defuse Criteria *********)
 (***********************************)
 
 (* This visitor visits each LVal to create sequences if the state t contains
    defs for theses LVals *)
-class visit_defuse ((defs_set,uses_set):DefSet.t*UseSet.t) current_stmt kf = object(self)
+class visit_defuse ((defs_set,uses_set):DefSet.t*UseSet.t) current_stmt kf mk_label = object(self)
   inherit Visitor.frama_c_inplace
   val mutable visited = []
 
-  (* Create a sequence member
-     ids : sequence id
-     vid : variable id
-     id : position of this member (ex. 1=def and 2=use for def-use pairs
-     max : size of the sequence (2 for def-use pairs)
-  *)
-  method private mkSeq_aux (ids: int) (vid: string) (id:int) (max:int) : stmt =
-    let idExp = Exp.kinteger IULong ids in
-    let oneExp = Exp.one () in
-    let curr = Exp.integer id in
-    let slen = Exp.integer max in
-    let varExp = Exp.string vid in
-    let zeroExp = Exp.zero () in
-    Utils.mk_call "pc_label_sequence" ([oneExp;idExp;curr;slen;varExp;zeroExp])
+  method private mk_set ?(loc=unk_loc) vInfo value =
+    let lval = Cil.var vInfo in
+    let new_value = Cil.integer ~loc value in
+    let set = Ast_info.mkassign lval new_value loc in
+    Cil.mkStmtOneInstr ~ghost:false set
 
-  (* Create a condition which will break sequences for the variable vid *)
-  method private  mkCond (vid: int) : stmt =
-    let zeroExp = Exp.zero () in
-    let ccExp = Exp.string (string_of_int vid) in
-    Utils.mk_call "pc_label_sequence_condition" ([zeroExp;ccExp])
+  method private mk_comp ?(loc=unk_loc) vInfo value =
+    let lval = Exp.var ~loc vInfo in
+    Exp.binop Cil_types.Eq lval (Exp.integer value)
+
+  method private mk_init ?(loc=unk_loc) vi value =
+    let new_value = Cil.integer loc value in
+    let set = Local_init(vi,AssignInit(SingleInit(new_value)),loc) in
+    Cil.mkStmtOneInstr ~ghost:false set
 
   (* Create a def-use sequence for the given def *)
-  method private mkSeq (def:def) : unit =
-    let ids = Annotators.next () in (* sequence id *)
-    let sdef = self#mkSeq_aux ids (string_of_int def.varId_def) 1 2 in (* def part *)
-    let suse = self#mkSeq_aux ids (string_of_int def.varId_def) 2 2 in (* use part *)
+  method private mkSeq loc (def:def) : unit =
+    let ids = Annotators.getCurrentLabelId () + 1 in (* sequence id *)
+    let vInfo = init_vinfo ids in
+    let use = self#mk_comp ~loc vInfo 1 in
+    let suse = mk_label use [] loc in
     (* Add sdef to either defs table or function table *)
-    if def.funId = -1 then begin
+    if def.stmtDef <> -1 then begin
       (* Add a cond label for this def *)
       if not (Hashtbl.mem to_add_cond def.stmtDef) then
-        Hashtbl.add to_add_cond def.stmtDef (self#mkCond def.varId_def);
-      replace_or_add_list_front to_add_defs def.stmtDef (ids,sdef)
+        Hashtbl.add to_add_cond def.stmtDef (self#mk_set ~loc vInfo 0);
+      replace_or_add_list_front to_add_defs def.stmtDef (ids,self#mk_set ~loc vInfo 1);
+      replace_or_add_list_front to_add_fun def.funId (ids,self#mk_init ~loc vInfo 0)
     end
     else
-      replace_or_add_list_front to_add_fun def.funId (ids,sdef);
+      replace_or_add_list_front to_add_fun def.funId (ids,self#mk_init ~loc vInfo 1);
     (* Add the use *)
     replace_or_add_list_front to_add_uses current_stmt.sid (ids,suse);
     (* Register this sequence to its hyperlabel *)
@@ -286,7 +293,7 @@ class visit_defuse ((defs_set,uses_set):DefSet.t*UseSet.t) current_stmt kf = obj
         if not (DefSet.is_empty all_vid_defs) then
           if not (Options.CleanEquiv.get ())
           || not (is_equivalent vid current_stmt kf uses_set) then
-            DefSet.iter self#mkSeq all_vid_defs;
+            DefSet.iter (self#mkSeq expr.eloc) all_vid_defs;
       end;
       Cil.DoChildren
     | _ -> Cil.DoChildren
@@ -317,6 +324,7 @@ class visit_use state stmt = object(_)
       | _ -> Cil.DoChildren
 end
 
+let current_function = ref (-1)
 
 module P() = struct
 
@@ -370,7 +378,7 @@ module P() = struct
           DefSet.add (Hashtbl.find seen_def sid) defs_clean
         else begin
           let defId = get_next_def_id vid in
-          let new_def = make_def vid defId sid in
+          let new_def = make_def !current_function vid defId sid in
           Hashtbl.add seen_def sid new_def;
           DefSet.add new_def defs_clean
         end
@@ -413,15 +421,15 @@ end
 (* For each function, do a dataflow analysis and create sequences
    Initial state contains def of each formal
 *)
-let do_function kf =
+let do_function funId kf mk_label =
+  current_function:=funId;
   let module Fenv = (val Dataflows.function_env kf) in
   let module Inst = P() in
   let args = Kernel_function.get_formals kf in
   let first_stmt = Kernel_function.find_first_stmt kf in
-  let funId = Kernel_function.get_id kf in
   let f acc arg =
     let defId = get_next_def_id arg.vid in
-    DefSet.add (make_def ~funId arg.vid defId first_stmt.sid) acc
+    DefSet.add (make_def funId arg.vid defId (-1)) acc
   in
   let init_d = List.fold_left f DefSet.empty args in
   let module Arg = struct
@@ -438,11 +446,11 @@ let do_function kf =
       begin
         match stmt.skind with
         | Instr i when not (Utils.is_label i) ->
-          ignore(Cil.visitCilInstr (new visit_defuse t stmt kf :> Cil.cilVisitor) i);
+          ignore(Cil.visitCilInstr (new visit_defuse t stmt kf mk_label :> Cil.cilVisitor) i);
         | Return (Some e,_)
         | If (e,_,_,_)
         | Switch (e,_,_,_) ->
-          ignore(Cil.visitCilExpr  (new visit_defuse t stmt kf :> Cil.cilVisitor) e);
+          ignore(Cil.visitCilExpr  (new visit_defuse t stmt kf mk_label :> Cil.cilVisitor) e);
         | _ -> ()
       end
   in
@@ -454,7 +462,7 @@ let do_function kf =
      they belong.
    - Clean all hashtbls and do the next function (if any)
 *)
-class addSequences = object(self)
+class addSequences mk_label = object(self)
   inherit Visitor.frama_c_inplace
 
   (* get all sequences, sort defs and uses by sequence ID, and returns
@@ -480,20 +488,20 @@ class addSequences = object(self)
     List.map (fun (_,s) -> s) defs, (List.map (fun (_,s) -> s) uses) @ cond
 
   method! vfunc (dec : fundec) : fundec Cil.visitAction =
+    let id = dec.svar.vid in
     let kf = Option.get self#current_kf in
     if Kernel_function.is_definition kf && Annotators.shouldInstrument dec.svar then begin
       Cfg.clearCFGinfo ~clear_id:false dec;
       Cfg.cfgFun dec;
-      do_function kf;
+      do_function id kf mk_label;
       Cil.DoChildrenPost (fun f ->
-          let id = dec.svar.vid in
-          let defs = List.sort compare (
-              if Hashtbl.mem to_add_fun id then
-                Hashtbl.find to_add_fun id
-              else [])
+          let defs =
+            if Hashtbl.mem to_add_fun id then
+              Hashtbl.find to_add_fun id
+            else []
           in
-          let params = List.map (fun (_,s) -> s) defs in
-          f.sbody.bstmts <- params @ f.sbody.bstmts;
+          let defs = List.sort compare defs in
+          f.sbody.bstmts <- (List.map (fun (_,s) -> s) defs) @ f.sbody.bstmts;
           reset_all ();
           f
         )
@@ -536,12 +544,12 @@ let compute_hl () : string =
   if "-" = !symb then
     Hashtbl.fold (fun _ seqs str ->
         let seqs = List.sort compare seqs in
-        List.fold_left (fun acc s -> acc ^ Annotators.next_hl() ^ ") <s" ^ string_of_int s ^"|; ;>,\n") str seqs
+        List.fold_left (fun acc s -> acc ^ Annotators.next_hl() ^ ") <l" ^ string_of_int s ^"|; ;>,\n") str seqs
       ) hyperlabels ""
   else
     Hashtbl.fold (fun _ seqs str ->
         let seqs = List.sort compare seqs in
-        str ^ Annotators.next_hl() ^ ") <" ^ (String.concat !symb (List.map (fun s -> "s" ^ string_of_int s) seqs)) ^ "|; ;>,\n"
+        str ^ Annotators.next_hl() ^ ") <" ^ (String.concat !symb (List.map (fun s -> "l" ^ string_of_int s) seqs)) ^ "|; ;>,\n"
       ) hyperlabels ""
 
 let gen_hyperlabels () =
@@ -555,8 +563,8 @@ let gen_hyperlabels () =
   Options.feedback "Total number of hyperlabels = %d" (Annotators.getCurrentHLId())
 
 (** Successively pass the 2 visitors *)
-let visite (file : file) : unit =
-  Visitor.visitFramacFileSameGlobals (new addSequences :> Visitor.frama_c_visitor) file;
+let visite (file : file) mk_label : unit =
+  Visitor.visitFramacFileSameGlobals (new addSequences mk_label :> Visitor.frama_c_visitor) file;
   Cfg.clearFileCFG ~clear_id:false file;
   Cfg.computeFileCFG file;
   Ast.mark_as_changed ();
@@ -565,8 +573,8 @@ let visite (file : file) : unit =
 module ADC = Annotators.Register (struct
     let name = "ADC"
     let help = "All-Definitions Coverage"
-    let apply _ file =
-      visite file;
+    let apply mk_label file =
+      visite file mk_label;
       symb := "+";
       gen_hyperlabels ()
   end)
@@ -575,8 +583,8 @@ module ADC = Annotators.Register (struct
 module AUC = Annotators.Register (struct
     let name = "AUC"
     let help = "All-Uses Coverage"
-    let apply _ file =
-      visite file;
+    let apply mk_label file =
+      visite file mk_label;
       symb := ".";
       gen_hyperlabels ()
   end)
@@ -585,8 +593,8 @@ module AUC = Annotators.Register (struct
 module DUC = Annotators.Register (struct
     let name = "DUC"
     let help = "Definition-Use Coverage"
-    let apply _ file =
-      visite file;
+    let apply mk_label file =
+      visite file mk_label;
       symb := "-";
       gen_hyperlabels ()
   end)
