@@ -205,7 +205,7 @@ class remcastvisitor = object(selfobj)
                  let temp_var = (Cil.makeTempVar current_func (Cil.getReturnType (Cil.typeOf func))) in
                  let new_call = (Cil.mkStmtOneInstr (Call (Some (Cil.var temp_var),func , x,y))) in
                  stmt.skind <- new_call.skind;
-                 let new_assig = (Cil.mkStmtOneInstr (Set (lv , (Cil.mkCast (Cil.new_exp Cil_datatype.Location.unknown (Lval (Cil.var temp_var))) (Cil.typeOfLval lv)), Cil_datatype.Location.unknown))) in
+                 let new_assig = (Cil.mkStmtOneInstr (Set (lv , (Cil.mkCast (Cil.typeOfLval lv) (Cil.new_exp Cil_datatype.Location.unknown (Lval (Cil.var temp_var)))), Cil_datatype.Location.unknown))) in
                  let block = Stmt.block [stmt ; new_assig] in
                  let new_blok = Visitor.visitFramacStmt (selfobj :> Visitor.frama_c_visitor) block in
                  (Cil.ChangeTo new_blok)

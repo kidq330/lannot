@@ -65,7 +65,7 @@ module Exp = struct
     let oldt = Cil.typeOf e in
     let newt = Cil.integralPromotion oldt in
     (* make integral promotion explicit *)
-    let e' = Cil.mkCastT e oldt newt in
+    let e' = Cil.mkCastT oldt newt e in
     Cil.new_exp ~loc (UnOp (Neg, e', newt))
 
   let binop ?(loc=unk_loc) op left right =
@@ -76,13 +76,13 @@ module Exp = struct
        "if(pointer==(void 0)"*)
     let l =
       if Cil.isPointerType (Cil.typeOf left) then
-        Cil.new_exp ~loc (BinOp (Ne,left,(Cil.mkCast (Cil.zero ~loc) Cil.voidPtrType),Cil.intType))
+        Cil.new_exp ~loc (BinOp (Ne,left,(Cil.mkCast Cil.voidPtrType (Cil.zero ~loc)),Cil.intType))
       else
         left
     in
     let r =
       if Cil.isPointerType (Cil.typeOf right) then
-        Cil.new_exp ~loc (BinOp (Ne,right,(Cil.mkCast (Cil.zero ~loc) Cil.voidPtrType),Cil.intType))
+        Cil.new_exp ~loc (BinOp (Ne,right,(Cil.mkCast Cil.voidPtrType (Cil.zero ~loc)),Cil.intType))
       else
         right
     in

@@ -475,7 +475,6 @@ class addSequences = object(self)
         [Hashtbl.find to_add_cond sid]
       else []
     in
-    let compare (id1,_) (id2,_) = compare id1 id2 in
     let defs,uses = List.sort compare defs, List.sort compare uses in
     List.map (fun (_,s) -> s) defs, (List.map (fun (_,s) -> s) uses) @ cond
 
@@ -509,7 +508,6 @@ class addSequences = object(self)
             let after,before = self#get_seqs_sorted s.sid in
             (* if the statement has 1 or more labels, then moves it to
                the first statement of before if it exists *)
-
             if s.labels <> [] && before <> [] then begin
               s.skind <- Block (Block.mk (before @ [Stmt.mk s.skind]));
               aux t (acc @ [s] @ after)
