@@ -462,12 +462,12 @@ class addSequences = object(self)
   method private get_seqs_sorted sid =
     let defs =
       if Hashtbl.mem to_add_defs sid then
-        Hashtbl.find to_add_defs sid
+        List.sort compare @@ Hashtbl.find to_add_defs sid
       else []
     in
     let uses =
       if Hashtbl.mem to_add_uses sid then
-        Hashtbl.find to_add_uses sid
+        List.sort compare @@ Hashtbl.find to_add_uses sid
       else []
     in
     let cond =
@@ -475,7 +475,6 @@ class addSequences = object(self)
         [Hashtbl.find to_add_cond sid]
       else []
     in
-    let defs,uses = List.sort compare defs, List.sort compare uses in
     List.map (fun (_,s) -> s) defs, (List.map (fun (_,s) -> s) uses) @ cond
 
   method! vfunc (dec : fundec) : fundec Cil.visitAction =
