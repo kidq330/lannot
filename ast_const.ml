@@ -137,8 +137,8 @@ module Lval = struct
 end
 
 module Stmt = struct
-  let mk = Cil.mkStmt
-  let block stmts = Cil.mkStmt (Block (Cil.mkBlock stmts))
+  let mk = Cil.mkStmt ~valid_sid:true
+  let block stmts = Cil.mkStmt ~valid_sid:true (Block (Cil.mkBlock stmts))
 end
 
 module Block = struct
