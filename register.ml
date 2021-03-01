@@ -69,7 +69,7 @@ let annotate_on_project ann_names =
 
   let annotations = ref [] in
   let collect ann = annotations := ann :: !annotations in
-  Annotators.annotate (compute_outfile (Options.Output.get ()) (Kernel.Files.get ())) ann_names ~collect (Ast.get ());
+  Annotators.annotate filename ann_names ~collect (Ast.get ());
 
   let annotations = !annotations in
   (* output modified c file *)
