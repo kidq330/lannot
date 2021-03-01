@@ -354,12 +354,12 @@ module P() = struct
 
   (* For each definition statement, change the current state by
      adding or not new definition, removing older ones etc... *)
-  let do_def vid offset sid = function
+  let do_def ?(local=false) vid offset sid = function
     | Bottom -> Bottom
     | NonBottom (defs,uses) ->
       let vid = get_vid_with_field vid offset in
       let defs_clean =
-        if Options.CleanDataflow.get () then
+        if local || Options.CleanDataflow.get () then
           remove_def vid defs
         else
           defs
@@ -393,7 +393,7 @@ module P() = struct
           else List.map (fun x -> (x,!state)) stmt.succs
         | Local_init (v,_,_) ->
           if not (v.vname = "__retres") && not v.vtemp then begin
-            let res = do_def v.vid NoOffset stmt.sid !state in
+            let res = do_def ~local:true v.vid NoOffset stmt.sid !state in
             List.map (fun x -> (x,res)) stmt.succs
           end
           else List.map (fun x -> (x,!state)) stmt.succs
