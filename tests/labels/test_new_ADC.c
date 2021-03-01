@@ -16,3 +16,11 @@ int f(int wcond){
 	}
 	return wres;
 }
+
+int g(int a){
+ a = 12;
+ a = 13;
+
+ return a;
+
+}
