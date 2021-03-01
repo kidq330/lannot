@@ -95,7 +95,7 @@ let to_add_defs : (int, (int*stmt) list) Hashtbl.t = Hashtbl.create 32
 (* bind each new sequence (use)  to its corresponding statement *)
 let to_add_uses : (int, (int*stmt) list) Hashtbl.t = Hashtbl.create 32
 (* bind each new sequence (cond) to its corresponding statement *)
-let to_add_cond : (int, stmt) Hashtbl.t = Hashtbl.create 32
+let to_add_cond : (int, (int*stmt) list) Hashtbl.t = Hashtbl.create 32
 (* bind each new sequence (def) to its corresponding function (for formals)
    key : function id
    value : (sequence id * statement) list
@@ -267,9 +267,6 @@ class visit_defuse ((defs_set,uses_set):DefSet.t*UseSet.t) current_stmt kf mk_la
     let suse = mk_label use [] loc in
     (* Add sdef to either defs table or function table *)
     if def.stmtDef <> -1 then begin
-      (* Add a cond label for this def *)
-      if not (Hashtbl.mem to_add_cond def.stmtDef) then
-        Hashtbl.add to_add_cond def.stmtDef (self#mk_set ~loc vInfo 0);
       replace_or_add_list_front to_add_defs def.stmtDef (ids,self#mk_set ~loc vInfo 1);
       replace_or_add_list_front to_add_fun def.funId (ids,self#mk_init ~loc vInfo 0)
     end
@@ -480,11 +477,11 @@ class addSequences mk_label = object(self)
     in
     let cond =
       if Hashtbl.mem to_add_cond sid then
-        [Hashtbl.find to_add_cond sid]
+        Hashtbl.find to_add_cond sid
       else []
     in
-    let defs,uses = List.sort compare defs, List.sort compare uses in
-    List.map (fun (_,s) -> s) defs, (List.map (fun (_,s) -> s) uses) @ cond
+    let defs,uses,cond = List.sort compare defs, List.sort compare uses, List.sort compare cond in
+    List.map (fun (_,s) -> s) defs, (List.map (fun (_,s) -> s) uses) @ (List.map (fun (_,s) -> s) cond)
 
   method! vfunc (dec : fundec) : fundec Cil.visitAction =
     let id = dec.svar.vid in
