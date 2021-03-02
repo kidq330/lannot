@@ -17,8 +17,18 @@ int f(int wcond){
 	return wres;
 }
 
-int g(int a){
- a = 12;
- a = 13;
- return a;
+
+int g(int wa)
+{
+	wa = 12;
+	wa = 13;
+	int wi = 0;
+	while (1){
+		if(!(wi<10)) break;
+		int tmp = wi;
+		tmp++;
+        wi = tmp;
+	}
+
+	return wa;
 }
