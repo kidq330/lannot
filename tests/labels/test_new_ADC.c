@@ -3,8 +3,7 @@
  */
 
 int f(int wcond){
-	int wres=0, wx=1,a;
-	a = 12;
+	int wres=0, wx=1,a=1;
 	if(wcond){
 		a = a + 1;
 		wres = a;
@@ -12,23 +11,15 @@ int f(int wcond){
 	}
 	if(wx){
 		wres += 2*a;
-		wres*=a;
+		wres *= a;
 	}
 	return wres;
 }
 
 
-int g(int wa)
+int g(int n)
 {
-	wa = 12;
-	wa = 13;
-	int wi = 0;
-	while (1){
-		if(!(wi<10)) break;
-		int tmp = wi;
-		tmp++;
-        wi = tmp;
-	}
-
-	return wa;
+	int i;
+	for(i = 0;i<n;i = i + f(i));
+	return i;
 }
