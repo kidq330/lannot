@@ -100,7 +100,7 @@ class mutationVisitor mk_label = object(self)
     | _ -> ()
 
   method! vfunc f =
-    if Annotators.shouldInstrument f.svar then DoChildren else SkipChildren
+    if Annotators.shouldInstrumentFun f.svar then DoChildren else SkipChildren
 
   method! vstmt_aux stmt =
     begin match stmt.skind with

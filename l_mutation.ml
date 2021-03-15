@@ -112,7 +112,7 @@ class visitor mk_label = object(self)
           let local_init = AssignInit zero_init in
           let instr_init = Local_init(vi, local_init, unk_loc) in
           vi.vdefined <- true;
-          Cil.mkStmtOneInstr instr_init
+          Cil.mkStmtOneInstr ~valid_sid:true instr_init
         in
         let inits = List.rev @@ List.map f to_add in
         fdec.sbody.bstmts <- inits @ fdec.sbody.bstmts;

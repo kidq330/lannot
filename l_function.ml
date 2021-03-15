@@ -33,7 +33,7 @@ include Annotators.Register (struct
       inherit Visitor.frama_c_inplace
 
       method! vfunc dec =
-        if  Annotators.shouldInstrument dec.svar then begin
+        if  Annotators.shouldInstrumentFun dec.svar then begin
           let label = mk_label (Exp.one()) [] dec.svar.vdecl in
           dec.sbody.bstmts <- label :: dec.sbody.bstmts;
         end;
@@ -203,9 +203,9 @@ class remcastvisitor = object(selfobj)
              | Call (Some lv,func , x,y) ->
                if (Cil.need_cast (Cil.typeOfLval lv) (Cil.getReturnType (Cil.typeOf func))) then begin
                  let temp_var = (Cil.makeTempVar current_func (Cil.getReturnType (Cil.typeOf func))) in
-                 let new_call = (Cil.mkStmtOneInstr (Call (Some (Cil.var temp_var),func , x,y))) in
+                 let new_call = (Cil.mkStmtOneInstr ~valid_sid:true (Call (Some (Cil.var temp_var),func , x,y))) in
                  stmt.skind <- new_call.skind;
-                 let new_assig = (Cil.mkStmtOneInstr (Set (lv , (Cil.mkCast (Cil.typeOfLval lv) (Cil.new_exp Cil_datatype.Location.unknown (Lval (Cil.var temp_var)))), Cil_datatype.Location.unknown))) in
+                 let new_assig = (Cil.mkStmtOneInstr ~valid_sid:true (Set (lv , (Cil.mkCast (Cil.typeOfLval lv) (Cil.new_exp Cil_datatype.Location.unknown (Lval (Cil.var temp_var)))), Cil_datatype.Location.unknown))) in
                  let block = Stmt.block [stmt ; new_assig] in
                  let new_blok = Visitor.visitFramacStmt (selfobj :> Visitor.frama_c_visitor) block in
                  (Cil.ChangeTo new_blok)

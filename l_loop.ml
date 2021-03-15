@@ -50,7 +50,7 @@ let realloop = object(self)
     newStmt
 
   method! vfunc dec =
-    if Annotators.shouldInstrument dec.svar then
+    if Annotators.shouldInstrumentFun dec.svar then
       Cil.DoChildren
     else
       Cil.SkipChildren
@@ -104,7 +104,7 @@ let inner mk_label = object(_)
   val inLoopId = Stack.create ()
 
   method! vfunc dec =
-    if Annotators.shouldInstrument dec.svar then
+    if Annotators.shouldInstrumentFun dec.svar then
       Cil.DoChildren
     else
       Cil.SkipChildren
@@ -169,7 +169,7 @@ let outter () = object(_)
   val inLoopId = Stack.create ()
 
   method! vfunc dec =
-    if Annotators.shouldInstrument dec.svar then
+    if Annotators.shouldInstrumentFun dec.svar then
       Cil.DoChildren
     else
       Cil.SkipChildren

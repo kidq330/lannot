@@ -293,7 +293,7 @@ class visitor gen_labels all_boolean = object(self)
   val mutable bexprs = []
 
   method! vfunc dec =
-    if Annotators.shouldInstrument dec.svar then
+    if Annotators.shouldInstrumentFun dec.svar then
       Cil.DoChildren
     else
       Cil.SkipChildren

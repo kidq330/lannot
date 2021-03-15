@@ -45,7 +45,7 @@ let visitor mk_label = object(self)
   inherit Visitor.frama_c_inplace
 
   method! vfunc dec =
-    if Annotators.shouldInstrument dec.svar then
+    if Annotators.shouldInstrumentFun dec.svar then
       let l = mk_label (Exp.one()) [] (get_fundec_loc dec) in
       Cil.DoChildrenPost (fun res ->
           res.sbody.bstmts <- l :: res.sbody.bstmts;

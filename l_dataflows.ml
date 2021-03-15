@@ -223,7 +223,7 @@ let is_triv_equiv vid visited =
    expr/instr (except if CleanDuplicate is true) *)
 let should_instrument (v:varinfo) vid visited : bool =
   not v.vglob && not (v.vname = "__retres") && not v.vtemp
-  && not (is_triv_equiv vid visited)
+  && Annotators.shouldInstrumentVar v && not (is_triv_equiv vid visited)
 
 let init_vinfo ids =
   Cil.makeVarinfo false true
@@ -360,12 +360,12 @@ module P() = struct
 
   (* For each definition statement, change the current state by
      adding or not new definition, removing older ones etc... *)
-  let do_def vid offset sid = function
+  let do_def ?(local=false) vid offset sid = function
     | Bottom -> Bottom
     | NonBottom (defs,uses) ->
       let vid = get_vid_with_field vid offset in
       let defs_clean =
-        if Options.CleanDataflow.get () then
+        if local || Options.CleanDataflow.get () then
           remove_def vid defs
         else
           defs
@@ -399,7 +399,7 @@ module P() = struct
           else List.map (fun x -> (x,!state)) stmt.succs
         | Local_init (v,_,_) ->
           if not (v.vname = "__retres") && not v.vtemp then begin
-            let res = do_def v.vid NoOffset stmt.sid !state in
+            let res = do_def ~local:true v.vid NoOffset stmt.sid !state in
             List.map (fun x -> (x,res)) stmt.succs
           end
           else List.map (fun x -> (x,!state)) stmt.succs
@@ -487,7 +487,7 @@ class addSequences mk_label = object(self)
   method! vfunc (dec : fundec) : fundec Cil.visitAction =
     let id = dec.svar.vid in
     let kf = Option.get self#current_kf in
-    if Kernel_function.is_definition kf && Annotators.shouldInstrument dec.svar then begin
+    if Kernel_function.is_definition kf && Annotators.shouldInstrumentFun dec.svar then begin
       Cfg.clearCFGinfo ~clear_id:false dec;
       Cfg.cfgFun dec;
       do_function id kf mk_label;

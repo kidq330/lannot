@@ -139,7 +139,7 @@ module RegisterWithExtraTags (A : ANNOTATOR_WITH_EXTRA_TAGS) = struct
   let () = register_annotator self
 end
 
-let shouldInstrument fun_varinfo =
+let shouldInstrumentFun fun_varinfo =
   let do_names = Options.DoFunctionNames.get () in
   let skip_names = Options.SkipFunctionNames.get () in
   let f (kf : Cil_datatype.Kf.Set.elt ) =
@@ -151,3 +151,15 @@ let shouldInstrument fun_varinfo =
     not (fun_varinfo.vinline) || Options.Inline.get ()
   else
     Cil_datatype.Kf.Set.exists f do_names
+
+let shouldInstrumentVar varinfo =
+  let do_names = Options.DoVariableNames.get () in
+  let skip_names = Options.SkipVariableNames.get () in
+  let f (vname : Datatype.String.Set.elt ) =
+    vname =  varinfo.vname
+  in
+  not (Datatype.String.Set.exists f skip_names) &&
+  (* TODO filter builtin functions *)
+  if not (Datatype.String.Set.is_empty do_names) then
+    Datatype.String.Set.exists f do_names
+  else false
