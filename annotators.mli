@@ -68,7 +68,8 @@ val annotate_with : annotator -> ?id:(unit -> int) -> ?collect:(annotation -> un
 
 val annotate : string -> string list -> ?id:(unit->int) -> ?collect:(annotation -> unit) -> Cil_types.file -> unit
 
-val shouldInstrument : Cil_types.varinfo -> bool
+val shouldInstrumentFun : Cil_types.varinfo -> bool
+val shouldInstrumentVar : Cil_types.varinfo -> bool
 
 val print_help : Format.formatter -> unit
 

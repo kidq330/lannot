@@ -59,11 +59,23 @@ module DoFunctionNames = Kernel_function_set (struct
     let help = "filter by function names (disabled by default)"
   end)
 
-
 module SkipFunctionNames = Kernel_function_set (struct
     let arg_name = "funs"
     let option_name = "-lannot-skip-functions"
     let help = "filter by function names (disabled by default)"
+  end)
+
+module DoVariableNames = String_set (struct
+    let arg_name = "vars"
+    let option_name = "-lannot-vars"
+    let help = "filter by variable names (disabled by default)"
+  end)
+
+
+module SkipVariableNames = String_set (struct
+    let arg_name = "vars"
+    let option_name = "-lannot-skip-vars"
+    let help = "filter by variable names (disabled by default)"
   end)
 
 let () = Parameter_customize.set_group help

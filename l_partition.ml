@@ -164,7 +164,7 @@ class inputDomainVisitor max_depth max_width all_funs globals mk_label = object 
     Stmt.block (List.rev !acc)
 
   method! vfunc f =
-    if Annotators.shouldInstrument f.svar && (all_funs || f.svar.vname =
+    if Annotators.shouldInstrumentFun f.svar && (all_funs || f.svar.vname =
                                                           Kernel.MainFunction.get ()) then begin
       let oldBody = Stmt.mk (Block (f.sbody)) in
       f.sbody <- Block.mk (self#gformals (globals @ f.sformals) f.svar.vdecl :: [oldBody]);

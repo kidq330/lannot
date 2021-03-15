@@ -33,7 +33,7 @@ include Annotators.Register (struct
       inherit Visitor.frama_c_inplace
 
       method! vfunc dec =
-        if  Annotators.shouldInstrument dec.svar then begin
+        if  Annotators.shouldInstrumentFun dec.svar then begin
           let label = mk_label (Exp.one()) [] dec.svar.vdecl in
           dec.sbody.bstmts <- label :: dec.sbody.bstmts;
         end;

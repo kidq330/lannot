@@ -221,7 +221,7 @@ let is_triv_equiv vid visited =
    expr/instr (except if CleanDuplicate is true) *)
 let should_instrument (v:varinfo) vid visited : bool =
   not v.vglob && not (v.vname = "__retres") && not v.vtemp
-  && not (is_triv_equiv vid visited)
+  && Annotators.shouldInstrumentVar v && not (is_triv_equiv vid visited)
 
 (***********************************)
 (********* Defuse Criteria *********)
@@ -479,7 +479,7 @@ class addSequences = object(self)
 
   method! vfunc (dec : fundec) : fundec Cil.visitAction =
     let kf = Option.get self#current_kf in
-    if Kernel_function.is_definition kf && Annotators.shouldInstrument dec.svar then begin
+    if Kernel_function.is_definition kf && Annotators.shouldInstrumentFun dec.svar then begin
       Cfg.clearCFGinfo ~clear_id:false dec;
       Cfg.cfgFun dec;
       do_function kf;
