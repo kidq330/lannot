@@ -162,4 +162,4 @@ let shouldInstrumentVar varinfo =
   (* TODO filter builtin functions *)
   if not (Datatype.String.Set.is_empty do_names) then
     Datatype.String.Set.exists f do_names
-  else false
+  else true
