@@ -95,3 +95,5 @@ val sign_combine : pos:('a -> 'b) -> neg:('a -> 'b) -> 'a list -> 'b list list
 val rev_sign_combine : pos:('a -> 'b) -> neg:('a -> 'b) -> 'a list -> 'b list list
 
 val concat: 'a list list -> 'a list
+
+val get_bounds : ikind -> Z.t list

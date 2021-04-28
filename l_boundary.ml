@@ -29,28 +29,16 @@ let unk_loc = Cil_datatype.Location.unknown
 (* For each exp, limits equals [min;max] (signed) or [max] (unsigned)
    We create a label for each bound, plus a label for zero (which is
    min for unsigned types) *)
-let mk_bound mk_label (limits:Integer.t list) (exp:exp) (ik:ikind) (loc:location) : stmt list =
-  let exp_limits =
-    List.map (fun i -> Exp.kinteger64 ik i) limits
-  in
-  List.map (fun exp' ->
-      mk_label (Exp.binop Eq exp exp') [] loc
-    ) exp_limits
-
-(* Create bound labels for each "int type" argument *)
 let mk_bounds mk_label (loc:location) (exp:exp) : stmt list =
   match Cil.typeOf exp with
-  | TInt (kind,_) ->
-    let size = Cil.bitsSizeOfInt kind in
-    let limits =
-      if Cil.isSigned kind then
-        [Cil.min_signed_number size;
-         Cil.max_signed_number size]
-      else
-        [Integer.zero;
-         Cil.max_unsigned_number size]
+  | TInt (kind, _) ->
+    let limits = Utils.get_bounds kind in
+    let exp_limits =
+      List.map (fun i -> Exp.kinteger64 kind i) limits
     in
-    mk_bound mk_label limits exp kind loc
+    List.map (fun exp' ->
+        mk_label (Exp.binop Eq exp exp') [] loc
+      ) exp_limits
   | _ -> []
 
 (** Input Output Bound Visitor **)
