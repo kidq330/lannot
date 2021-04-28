@@ -225,3 +225,12 @@ let sign_combine ~pos ~neg l =
   List.rev (rev_sign_combine pos neg l)
 
 let concat l = List.fold_left (fun acc el -> acc @ el) [] l
+
+let get_bounds kind : Z.t list =
+  let size = Cil.bitsSizeOfInt kind in
+  if Cil.isSigned kind then
+    [Cil.min_signed_number size;
+     Cil.max_signed_number size]
+  else
+    [Integer.zero;
+     Cil.max_unsigned_number size]
