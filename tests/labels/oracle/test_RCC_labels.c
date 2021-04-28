@@ -17,7 +17,7 @@
 #define MAX_MUTATION 1
 unsigned int cpt_mutation = 0;
 
-/*@ assigns cpt_mutation;
+/*@ assigns cpt_mutation, \result;
     behavior can_mutate:
         assumes cpt_mutation < MAX_MUTATION;
         ensures  \result <==> cpt_mutation == \at(cpt_mutation, Pre) + 1;
@@ -40,9 +40,9 @@ sectrue = 0xaa55aa55
 typedef enum __anonenum_secbool_1 secbool;
 int f1(int password)
 {
-  int lannot_mut_2;
-  int lannot_mut_1;
   int __retres;
+  int lannot_mut_1 = 0;
+  int lannot_mut_2 = 0;
   ;
   lannot_mut_1 = mutated();
   if (lannot_mut_1 && ! (password != 12345) || ! lannot_mut_1 && password != 12345) {
@@ -61,9 +61,9 @@ int f1(int password)
 
 int f2(int password)
 {
-  int lannot_mut_4;
-  int lannot_mut_3;
   int __retres;
+  int lannot_mut_3 = 0;
+  int lannot_mut_4 = 0;
   ;
   ;
   lannot_mut_3 = mutated();
@@ -80,10 +80,10 @@ int f2(int password)
 
 int f3(int password)
 {
-  int lannot_mut_7;
-  int lannot_mut_6;
-  int lannot_mut_5;
   int __retres;
+  int lannot_mut_5 = 0;
+  int lannot_mut_6 = 0;
+  int lannot_mut_7 = 0;
   ;
   lannot_mut_5 = mutated();
   if (lannot_mut_5 && ! (password == 12345) || ! lannot_mut_5 && password == 12345) {
@@ -108,8 +108,8 @@ int f3(int password)
 
 __inline static int check__fc_inline(int p1, int p2)
 {
-  int lannot_mut_8;
   int __retres;
+  int lannot_mut_8 = 0;
   ;
   lannot_mut_8 = mutated();
   if (lannot_mut_8 && ! (p1 != p2) || ! lannot_mut_8 && p1 != p2) {
@@ -123,13 +123,13 @@ __inline static int check__fc_inline(int p1, int p2)
 
 int f4(int password)
 {
-  int lannot_mut_11;
-  int lannot_mut_10;
-  int lannot_mut_9;
   int __retres;
   int tmp;
   int tmp_0;
   int tmp_1;
+  int lannot_mut_9 = 0;
+  int lannot_mut_10 = 0;
+  int lannot_mut_11 = 0;
   ;
   {
     int __retres_7;
@@ -201,9 +201,9 @@ int f5(int password)
 
 int f6(int password)
 {
-  int lannot_mut_13;
-  int lannot_mut_12;
   int __retres;
+  int lannot_mut_12 = 0;
+  int lannot_mut_13 = 0;
   ;
   ;
   lannot_mut_12 = mutated();
@@ -292,11 +292,11 @@ __inline static secbool check_code_integrity__fc_inline(void)
 
 int f7(void)
 {
-  int lannot_mut_15;
-  int lannot_mut_14;
   secbool __inline_tmp_9;
   secbool __inline_tmp;
   int __retres;
+  int lannot_mut_14 = 0;
+  int lannot_mut_15 = 0;
   ;
   {
     secbool __retres_8;
