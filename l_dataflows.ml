@@ -225,11 +225,6 @@ let should_instrument (v:varinfo) vid visited : bool =
   not v.vglob && not (v.vname = "__retres") && not v.vtemp
   && Annotators.shouldInstrumentVar v && not (is_triv_equiv vid visited)
 
-let init_vinfo ids =
-  Cil.makeVarinfo false true
-    ("__SEQ_STATUS_" ^ string_of_int ids)
-    (TInt(IInt,[]))
-
 let unk_loc = Cil_datatype.Location.unknown
 
 
@@ -242,6 +237,9 @@ let unk_loc = Cil_datatype.Location.unknown
 class visit_defuse ((defs_set,uses_set):DefSet.t*UseSet.t) current_stmt kf mk_label = object(self)
   inherit Visitor.frama_c_inplace
   val mutable visited = []
+
+  method private init_vinfo name =
+    Cil.makeVarinfo false false name (TInt(IInt,[]))
 
   method private mk_set ?(loc=unk_loc) vInfo value =
     let lval = Cil.var vInfo in
@@ -261,7 +259,7 @@ class visit_defuse ((defs_set,uses_set):DefSet.t*UseSet.t) current_stmt kf mk_la
   (* Create a def-use sequence for the given def *)
   method private mkSeq loc (def:def) : unit =
     let ids = Annotators.getCurrentLabelId () + 1 in (* sequence id *)
-    let vInfo = init_vinfo ids in
+    let vInfo = self#init_vinfo ("__SEQ_STATUS_" ^ string_of_int ids) in
     let use = self#mk_comp ~loc vInfo 1 in
     let suse = mk_label use [] loc in
     let cond = self#mk_set vInfo 0 in
