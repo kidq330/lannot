@@ -542,26 +542,32 @@ class addSequences mk_label = object(self)
 
 end
 
-(** Hyperlabel's type *)
-let symb : string ref = ref "."
+type criterion = ADC | AUC | DUC
+
+let string_of_criterion = function
+  | ADC -> "+"
+  | AUC -> "."
+  | DUC -> ""
 
 (** Create all hyperlabels *)
-let compute_hl () : string =
-  if "-" = !symb then
-    Hashtbl.fold (fun _ seqs str ->
+let compute_hl crit =
+  match crit with
+  | DUC ->
+    IntPair.Hashtbl.fold (fun _ seqs str ->
         let seqs = List.sort compare seqs in
         List.fold_left (fun acc s -> acc ^ Annotators.next_hl() ^ ") <l" ^ string_of_int s ^"|; ;>,\n") str seqs
       ) hyperlabels ""
-  else
-    Hashtbl.fold (fun _ seqs str ->
+  | ADC | AUC ->
+    let symb = string_of_criterion crit in
+    IntPair.Hashtbl.fold (fun _ seqs str ->
         let seqs = List.sort compare seqs in
-        str ^ Annotators.next_hl() ^ ") <" ^ (String.concat !symb (List.map (fun s -> "l" ^ string_of_int s) seqs)) ^ "|; ;>,\n"
+        str ^ Annotators.next_hl() ^ ") <" ^ (String.concat symb (List.map (fun s -> "l" ^ string_of_int s) seqs)) ^ "|; ;>,\n"
       ) hyperlabels ""
 
-let gen_hyperlabels () =
+let gen_hyperlabels crit =
   let data_filename = (Filename.chop_extension (Annotators.get_file_name ())) ^ ".hyperlabels" in
   Options.feedback "write hyperlabel data (to %s)" data_filename;
-  let data = compute_hl () in
+  let data = compute_hl crit in
   let out = open_out_gen [Open_creat; Open_append] 0o644 data_filename in
   output_string out data;
   close_out out;
@@ -571,8 +577,6 @@ let gen_hyperlabels () =
 (** Successively pass the 2 visitors *)
 let visite (file : file) mk_label : unit =
   Visitor.visitFramacFileSameGlobals (new addSequences mk_label :> Visitor.frama_c_visitor) file;
-  (* Cfg.clearFileCFG ~clear_id:false file;
-  Cfg.computeFileCFG file; *)
   Ast.mark_as_changed ()
 
 (** All-defs annotator *)
@@ -581,8 +585,7 @@ module ADC = Annotators.Register (struct
     let help = "All-Definitions Coverage"
     let apply mk_label file =
       visite file mk_label;
-      symb := "+";
-      gen_hyperlabels ()
+      gen_hyperlabels ADC
   end)
 
 (** All-uses annotator *)
@@ -591,8 +594,7 @@ module AUC = Annotators.Register (struct
     let help = "All-Uses Coverage"
     let apply mk_label file =
       visite file mk_label;
-      symb := ".";
-      gen_hyperlabels ()
+      gen_hyperlabels AUC
   end)
 
 (** Def-Use annotator *)
@@ -601,6 +603,5 @@ module DUC = Annotators.Register (struct
     let help = "Definition-Use Coverage"
     let apply mk_label file =
       visite file mk_label;
-      symb := "-";
-      gen_hyperlabels ()
+      gen_hyperlabels DUC
   end)
