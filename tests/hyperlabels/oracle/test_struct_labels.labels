@@ -1,1 +1,5 @@
 # id, status, tag, origin_loc, current_loc, emitter, drivers, exec_time
+1, unknown, AUC, test_struct.c:14, , LAnnot, , 0.
+2, unknown, AUC, test_struct.c:15, , LAnnot, , 0.
+3, unknown, AUC, test_struct.c:17, , LAnnot, , 0.
+4, unknown, AUC, test_struct.c:17, , LAnnot, , 0.

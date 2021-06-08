@@ -21,7 +21,6 @@
 (**************************************************************************)
 
 open Cil_types
-open Ast_const
 open Cil_datatype
 
 module VarOfst =
@@ -196,6 +195,8 @@ let should_instrument (v,offset) visited =
   not v.vglob && not (Datatype.String.equal v.vname "__retres") && not v.vtemp
   && Annotators.shouldInstrumentVar v && not (is_triv_equiv (v,offset) visited)
 
+let unk_loc = Location.unknown
+
 (***********************************)
 (********* Defuse Criteria *********)
 (***********************************)
@@ -206,45 +207,76 @@ class visit_defuse (defs_set,uses_set) current_stmt kf mk_label to_add_fun = obj
   inherit Visitor.frama_c_inplace
   val mutable visited = []
 
+  method private zero () = Cil.zero unk_loc
+  method private one () = Cil.one unk_loc
+
   method private init_vinfo name =
     Cil.makeVarinfo false false name (TInt(IInt,[]))
 
-  method private mk_set ?(loc=Location.unknown) vInfo value =
-    let lval = Cil.var vInfo in
-    let new_value = Cil.integer ~loc value in
-    let set = Ast_info.mkassign lval new_value loc in
+  method private mk_set ?(loc=unk_loc) ?(offset=NoOffset) vi value =
+    let set = Ast_info.mkassign (Var vi, offset) value loc in
     Cil.mkStmtOneInstr ~valid_sid:true set
 
-  method private mk_comp ?(loc=Location.unknown) vInfo value =
-    let lval = Ast_const.Exp.var ~loc vInfo in
-    Ast_const.Exp.binop Eq lval (Ast_const.Exp.integer value)
+  method private mk_comp ?(loc=unk_loc) ?(offset=NoOffset) vi value =
+    let new_exp = Cil.new_exp loc (Lval (Var vi, offset)) in
+    Ast_const.Exp.binop Cil_types.Eq new_exp value
 
-  method private mk_init ?(loc=Location.unknown) vi value =
-    let new_value = Cil.integer loc value in
-    let set = Local_init(vi,AssignInit(SingleInit(new_value)),loc) in
+  method private mk_init ?(loc=unk_loc) vi value =
+    let set = Local_init(vi,AssignInit(SingleInit(value)),loc) in
     Cil.mkStmtOneInstr ~valid_sid:true set
 
-  (* Create a def-use sequence for the given def *)
-  method private mkSeq loc (_,defId,varId_def,stmtDef) : unit =
-    let ids = Annotators.getCurrentLabelId () + 1 in (* sequence id *)
-    let vInfo = self#init_vinfo ("__SEQ_STATUS_" ^ string_of_int ids) in
-    let use = self#mk_comp ~loc vInfo 1 in
-    let suse = mk_label use [] loc in
-    let cond = self#mk_set vInfo 0 in
-    VarOfst_lst.add_list_front varofst_to_vinfos varId_def (ids,cond);
+  method private register_seq (_,defId,varData,stmtDef) ids vInfo cond suse =
+    VarOfst_lst.add_list_front varofst_to_vinfos varData (ids,cond);
     begin match stmtDef with
       | Kglobal ->
-        to_add_fun := (ids,self#mk_init ~loc vInfo 1) :: !to_add_fun
+        to_add_fun := (ids,self#mk_init vInfo (self#one ())) :: !to_add_fun
       | Kstmt stmt ->
-        Stmt_lst.add_list_front to_add_defs stmt (ids,self#mk_set ~loc vInfo 1);
-        to_add_fun := (ids,self#mk_init ~loc vInfo 0) :: !to_add_fun
+        to_add_fun := (ids,self#mk_init vInfo (self#zero ())) :: !to_add_fun;
+        Stmt_lst.add_list_front to_add_defs stmt (ids,self#mk_set vInfo (self#one ()))
     end;
     (* Add the use *)
     Stmt_lst.add_list_front to_add_uses current_stmt (ids,suse);
     (* Register this sequence to its hyperlabel *)
-    let id = get_id_of_varofset varId_def in
+    let id = get_id_of_varofset varData in
     IntPair_lst.add_list_front hyperlabels (id, defId) ids;
     incr nb_seqs
+
+  (* Create a def-use sequence for the given def *)
+  method private mkSeq_aux loc def bound =
+    let _,_,(vi,offset),stmtDef = def in
+    let ids = Annotators.getCurrentLabelId () + 1 in (* sequence id *)
+    let vInfo = self#init_vinfo ("__SEQ_STATUS_" ^ string_of_int ids) in
+    let cond = self#mk_set vInfo (self#zero ()) in
+    let use = self#mk_comp vInfo (self#one ()) in
+    let suse = match bound with
+      | None -> mk_label use [] loc
+      | Some (bound,kind) ->
+        let pred_vInfo = self#init_vinfo ("__SEQ_BOUND_" ^ string_of_int ids) in
+        let lval_vInfo = Cil.new_exp unk_loc (Lval (Var pred_vInfo,NoOffset)) in
+        let bound = Cil.kinteger64 ~loc:unk_loc ~kind bound in
+        let pred = self#mk_comp vi ~offset bound in
+        begin match stmtDef with
+          | Kglobal ->
+            to_add_fun := (ids,self#mk_init pred_vInfo pred) :: !to_add_fun
+          | Kstmt stmt ->
+            to_add_fun := (ids,self#mk_init pred_vInfo (self#zero ())) :: !to_add_fun;
+            Stmt_lst.add_list_front to_add_defs stmt (ids,self#mk_set pred_vInfo pred)
+        end;
+        let use = Ast_const.Exp.binop Cil_types.LAnd use lval_vInfo in
+        mk_label use [] loc
+    in
+    self#register_seq def ids vInfo cond suse
+
+  (* Create a def-use sequence for the given def *)
+  method private mkSeq loc def =
+    let _,_,(vi,offset),_ = def in
+    match Cil.typeOfLval (Var vi, offset) with
+    | TInt (kind, _) ->
+      if Options.BoundedDataflow.get () then
+        let bounds = Utils.get_limits kind in
+        List.iter (fun b -> self#mkSeq_aux loc def (Some(b,kind))) bounds
+      else self#mkSeq_aux loc def None
+    | _ -> self#mkSeq_aux loc def None
 
   (* Visit all expressions and sub expressions to find lvals *)
   method! vexpr expr =
@@ -254,7 +286,7 @@ class visit_defuse (defs_set,uses_set) current_stmt kf mk_label to_add_fun = obj
       if should_instrument varofst visited then begin
         visited <- varofst :: visited;
         (* Keeps defs related to this variable *)
-        let all_varofst_defs = Def.Set.filter (fun (_,_,varId_def,_) -> VarOfst.equal varId_def varofst) defs_set in
+        let all_varofst_defs = Def.Set.filter (fun (_,_,varData,_) -> VarOfst.equal varData varofst) defs_set in
         if not (Def.Set.is_empty all_varofst_defs) then
           if not (Options.CleanEquiv.get ())
           || not (is_equivalent varofst current_stmt kf uses_set) then
@@ -294,7 +326,7 @@ module Inst = struct
 
   (* Return a new set after removing all definitions of a variable *)
   let remove_def varofst s =
-    Def.Set.filter (fun (_,_,varId_def,_) -> not (VarOfst.equal varId_def varofst)) s
+    Def.Set.filter (fun (_,_,varData,_) -> not (VarOfst.equal varData varofst)) s
 
   (* Return a new set after removing all uses of a variable *)
   let remove_use varofst s =

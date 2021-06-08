@@ -50,7 +50,7 @@ module Exp : sig
 
   val lval : ?loc:location -> lval -> exp
 
-  val mem : ?loc:location -> addr:exp -> off:offset -> exp
+  val mem : ?loc:location -> exp -> offset -> exp
 
   (** Logical not *)
   val lnot : ?loc:location -> exp -> exp

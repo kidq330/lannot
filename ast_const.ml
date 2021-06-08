@@ -55,7 +55,7 @@ module Exp = struct
   let lval ?(loc=Cil_datatype.Location.unknown) lval =
     Cil.new_exp ~loc (Lval lval)
 
-  let mem ?(loc=unk_loc) ~addr ~off =
+  let mem ?(loc=unk_loc) addr off =
     Cil.new_exp ~loc (Lval (Cil.mkMem ~addr ~off))
 
   let lnot ?(loc=unk_loc) e =

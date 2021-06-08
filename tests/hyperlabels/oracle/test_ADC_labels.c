@@ -19,144 +19,184 @@
 #define pc_label_sequence_condition(...) do{}while(0)
 #endif
 
-/*@ requires valid_read_string(format);
-     assigns \result, __fc_stdout->__fc_FILE_data;
-     assigns \result
-       \from (indirect: __fc_stdout->__fc_FILE_id),
-             (indirect: __fc_stdout->__fc_FILE_data),
-             (indirect: *(format + (0 ..))), (indirect: param1),
-             (indirect: param0);
-     assigns __fc_stdout->__fc_FILE_data
-       \from (indirect: __fc_stdout->__fc_FILE_id),
-             __fc_stdout->__fc_FILE_data, (indirect: *(format + (0 ..))),
-             param1, param0;
-  */
- int printf_va_1(char const * __restrict format, int param0, int param1);
-
-/*@ requires valid_read_string(format);
-    assigns \result, __fc_stdout->__fc_FILE_data;
-    assigns \result
-      \from (indirect: __fc_stdout->__fc_FILE_id),
-            (indirect: __fc_stdout->__fc_FILE_data),
-            (indirect: *(format + (0 ..))), (indirect: param0);
-    assigns __fc_stdout->__fc_FILE_data
-      \from (indirect: __fc_stdout->__fc_FILE_id),
-            __fc_stdout->__fc_FILE_data, (indirect: *(format + (0 ..))),
-            param0;
- */
-int printf_va_2(char const * __restrict format, int param0);
-
 int armstrong(int low, int high)
-{
-  int __retres;
-  int i;
-  int temp1;
-  int temp2;
-  int remainder_0;
-  pc_label_sequence(1,1UL,1,2,"1947",0);
-  pc_label_sequence(1,2UL,1,2,"1948",0);
-  pc_label_sequence_condition(0,"1954");
-  int n = 0;
-  pc_label_sequence(1,11UL,1,2,"1954",0);
-  pc_label_sequence(1,19UL,1,2,"1954",0);
-  pc_label_sequence_condition(0,"1955");
-  int result = 0;
-  pc_label_sequence(1,22UL,1,2,"1955",0);
-  pc_label_sequence(1,25UL,1,2,"1955",0);
-  pc_label_sequence(1,1UL,2,2,"1947",0);
-  pc_label_sequence(1,2UL,2,2,"1948",0);
-  printf_va_1("Armstrong numbers between %d an %d are: ",low,high);
-  pc_label_sequence_condition(0,"1949");
-  i = low + 1;
-  pc_label_sequence(1,3UL,1,2,"1949",0);
-  pc_label_sequence(1,5UL,1,2,"1949",0);
-  pc_label_sequence(1,28UL,1,2,"1949",0);
-  while (1) {
-    pc_label_sequence(1,3UL,2,2,"1949",0);
-    pc_label_sequence(1,4UL,2,2,"1949",0);
-    if (! (i < high)) break;
-    pc_label_sequence(1,5UL,2,2,"1949",0);
-    pc_label_sequence(1,6UL,2,2,"1949",0);
-    pc_label_sequence_condition(0,"1951");
-    temp2 = i;
-    pc_label_sequence(1,14UL,1,2,"1951",0);
-    pc_label_sequence(1,16UL,1,2,"1951",0);
-    pc_label_sequence_condition(0,"1950");
-    temp1 = i;
-    pc_label_sequence(1,7UL,1,2,"1950",0);
-    pc_label_sequence(1,9UL,1,2,"1950",0);
-    loop: ;
-    pc_label_sequence(1,7UL,2,2,"1950",0);
-    pc_label_sequence(1,8UL,2,2,"1950",0);
-    if (temp1 == 0) goto skip;
-    pc_label_sequence(1,9UL,2,2,"1950",0);
-    pc_label_sequence(1,10UL,2,2,"1950",0);
-    pc_label_sequence_condition(0,"1950");
-    temp1 /= 10;
-    pc_label_sequence(1,8UL,1,2,"1950",0);
-    pc_label_sequence(1,10UL,1,2,"1950",0);
-    pc_label_sequence(1,11UL,2,2,"1954",0);
-    pc_label_sequence(1,12UL,2,2,"1954",0);
-    pc_label_sequence(1,13UL,2,2,"1954",0);
-    pc_label_sequence_condition(0,"1954");
-    n ++;
-    pc_label_sequence(1,12UL,1,2,"1954",0);
-    pc_label_sequence(1,20UL,1,2,"1954",0);
-    goto loop;
-    skip:
-    while (1) {
-      pc_label_sequence(1,14UL,2,2,"1951",0);
-      pc_label_sequence(1,15UL,2,2,"1951",0);
-      if (! (temp2 != 0)) break;
-      {
-        double tmp;
-        pc_label_sequence(1,16UL,2,2,"1951",0);
-        pc_label_sequence(1,17UL,2,2,"1951",0);
-        pc_label_sequence_condition(0,"1953");
-        remainder_0 = temp2 % 10;
-        pc_label_sequence(1,18UL,1,2,"1953",0);
-        pc_label_sequence(1,18UL,2,2,"1953",0);
-        pc_label_sequence(1,19UL,2,2,"1954",0);
-        pc_label_sequence(1,20UL,2,2,"1954",0);
-        pc_label_sequence(1,21UL,2,2,"1954",0);
-        tmp = pow((double)remainder_0,(double)n);
-        pc_label_sequence(1,22UL,2,2,"1955",0);
-        pc_label_sequence(1,23UL,2,2,"1955",0);
-        pc_label_sequence(1,24UL,2,2,"1955",0);
-        pc_label_sequence_condition(0,"1955");
-        result = (int)((double)result + tmp);
-        pc_label_sequence(1,23UL,1,2,"1955",0);
-        pc_label_sequence(1,26UL,1,2,"1955",0);
-        pc_label_sequence_condition(0,"1951");
-        temp2 /= 10;
-        pc_label_sequence(1,15UL,1,2,"1951",0);
-        pc_label_sequence(1,17UL,1,2,"1951",0);
-      }
-    }
-    pc_label_sequence(1,25UL,2,2,"1955",0);
-    pc_label_sequence(1,26UL,2,2,"1955",0);
-    pc_label_sequence(1,27UL,2,2,"1955",0);
-    if (result == i) {
-      pc_label_sequence(1,28UL,2,2,"1949",0);
-      pc_label_sequence(1,29UL,2,2,"1949",0);
-      printf_va_2("%d ",i);
-    }
-    pc_label_sequence_condition(0,"1954");
-    n = 0;
-    pc_label_sequence(1,13UL,1,2,"1954",0);
-    pc_label_sequence(1,21UL,1,2,"1954",0);
-    pc_label_sequence_condition(0,"1955");
-    result = 0;
-    pc_label_sequence(1,24UL,1,2,"1955",0);
-    pc_label_sequence(1,27UL,1,2,"1955",0);
-    pc_label_sequence_condition(0,"1949");
-    i ++;
-    pc_label_sequence(1,4UL,1,2,"1949",0);
-    pc_label_sequence(1,6UL,1,2,"1949",0);
-    pc_label_sequence(1,29UL,1,2,"1949",0);
-  }
-  __retres = 0;
-  return __retres;
-}
+ {
+   int __retres;
+   int i;
+   int temp1;
+   int temp2;
+   int remainder_0;
+   int __SEQ_STATUS_1 = 1;
+   int __SEQ_STATUS_2 = 1;
+   int __SEQ_STATUS_3 = 0;
+   int __SEQ_STATUS_4 = 0;
+   int __SEQ_STATUS_5 = 0;
+   int __SEQ_STATUS_6 = 0;
+   int __SEQ_STATUS_7 = 0;
+   int __SEQ_STATUS_8 = 0;
+   int __SEQ_STATUS_9 = 0;
+   int __SEQ_STATUS_10 = 0;
+   int __SEQ_STATUS_11 = 0;
+   int __SEQ_STATUS_12 = 0;
+   int __SEQ_STATUS_13 = 0;
+   int __SEQ_STATUS_14 = 0;
+   int __SEQ_STATUS_15 = 0;
+   int __SEQ_STATUS_16 = 0;
+   int __SEQ_STATUS_17 = 0;
+   int __SEQ_STATUS_18 = 0;
+   int __SEQ_STATUS_19 = 0;
+   int __SEQ_STATUS_20 = 0;
+   int __SEQ_STATUS_21 = 0;
+   int __SEQ_STATUS_22 = 0;
+   int __SEQ_STATUS_23 = 0;
+   int __SEQ_STATUS_24 = 0;
+   int __SEQ_STATUS_25 = 0;
+   int __SEQ_STATUS_26 = 0;
+   int __SEQ_STATUS_27 = 0;
+   int __SEQ_STATUS_28 = 0;
+   int __SEQ_STATUS_29 = 0;
+   int n = 0;
+   __SEQ_STATUS_11 = 1;
+   __SEQ_STATUS_19 = 1;
+   int result = 0;
+   __SEQ_STATUS_22 = 1;
+   __SEQ_STATUS_25 = 1;
+   pc_label(__SEQ_STATUS_1 == 1,1,"ADC");
+   pc_label(__SEQ_STATUS_2 == 1,2,"ADC");
+   printf("Armstrong numbers between %d an %d are: ",low,high);
+   __SEQ_STATUS_3 = 0;
+   __SEQ_STATUS_4 = 0;
+   __SEQ_STATUS_5 = 0;
+   __SEQ_STATUS_6 = 0;
+   __SEQ_STATUS_28 = 0;
+   __SEQ_STATUS_29 = 0;
+   i = low + 1;
+   __SEQ_STATUS_3 = 1;
+   __SEQ_STATUS_5 = 1;
+   __SEQ_STATUS_28 = 1;
+   while (1) {
+     pc_label(__SEQ_STATUS_3 == 1,3,"ADC");
+     pc_label(__SEQ_STATUS_4 == 1,4,"ADC");
+     if (! (i < high)) break;
+     pc_label(__SEQ_STATUS_5 == 1,5,"ADC");
+     pc_label(__SEQ_STATUS_6 == 1,6,"ADC");
+     __SEQ_STATUS_14 = 0;
+     __SEQ_STATUS_15 = 0;
+     __SEQ_STATUS_16 = 0;
+     __SEQ_STATUS_17 = 0;
+     temp2 = i;
+     __SEQ_STATUS_14 = 1;
+     __SEQ_STATUS_16 = 1;
+     __SEQ_STATUS_7 = 0;
+     __SEQ_STATUS_8 = 0;
+     __SEQ_STATUS_9 = 0;
+     __SEQ_STATUS_10 = 0;
+     temp1 = i;
+     __SEQ_STATUS_7 = 1;
+     __SEQ_STATUS_9 = 1;
+     loop: ;
+     pc_label(__SEQ_STATUS_7 == 1,7,"ADC");
+     pc_label(__SEQ_STATUS_8 == 1,8,"ADC");
+     if (temp1 == 0) goto skip;
+     pc_label(__SEQ_STATUS_9 == 1,9,"ADC");
+     pc_label(__SEQ_STATUS_10 == 1,10,"ADC");
+     __SEQ_STATUS_7 = 0;
+     __SEQ_STATUS_8 = 0;
+     __SEQ_STATUS_9 = 0;
+     __SEQ_STATUS_10 = 0;
+     temp1 /= 10;
+     __SEQ_STATUS_8 = 1;
+     __SEQ_STATUS_10 = 1;
+     pc_label(__SEQ_STATUS_11 == 1,11,"ADC");
+     pc_label(__SEQ_STATUS_12 == 1,12,"ADC");
+     pc_label(__SEQ_STATUS_13 == 1,13,"ADC");
+     __SEQ_STATUS_11 = 0;
+     __SEQ_STATUS_12 = 0;
+     __SEQ_STATUS_13 = 0;
+     __SEQ_STATUS_19 = 0;
+     __SEQ_STATUS_20 = 0;
+     __SEQ_STATUS_21 = 0;
+     n ++;
+     __SEQ_STATUS_12 = 1;
+     __SEQ_STATUS_20 = 1;
+     goto loop;
+     skip:
+     while (1) {
+       pc_label(__SEQ_STATUS_14 == 1,14,"ADC");
+       pc_label(__SEQ_STATUS_15 == 1,15,"ADC");
+       if (! (temp2 != 0)) break;
+       {
+         double tmp;
+         pc_label(__SEQ_STATUS_16 == 1,16,"ADC");
+         pc_label(__SEQ_STATUS_17 == 1,17,"ADC");
+         __SEQ_STATUS_18 = 0;
+         remainder_0 = temp2 % 10;
+         __SEQ_STATUS_18 = 1;
+         pc_label(__SEQ_STATUS_18 == 1,18,"ADC");
+         pc_label(__SEQ_STATUS_19 == 1,19,"ADC");
+         pc_label(__SEQ_STATUS_20 == 1,20,"ADC");
+         pc_label(__SEQ_STATUS_21 == 1,21,"ADC");
+         tmp = pow((double)remainder_0,(double)n);
+         pc_label(__SEQ_STATUS_22 == 1,22,"ADC");
+         pc_label(__SEQ_STATUS_23 == 1,23,"ADC");
+         pc_label(__SEQ_STATUS_24 == 1,24,"ADC");
+         __SEQ_STATUS_22 = 0;
+         __SEQ_STATUS_23 = 0;
+         __SEQ_STATUS_24 = 0;
+         __SEQ_STATUS_25 = 0;
+         __SEQ_STATUS_26 = 0;
+         __SEQ_STATUS_27 = 0;
+         result = (int)((double)result + tmp);
+         __SEQ_STATUS_23 = 1;
+         __SEQ_STATUS_26 = 1;
+         __SEQ_STATUS_14 = 0;
+         __SEQ_STATUS_15 = 0;
+         __SEQ_STATUS_16 = 0;
+         __SEQ_STATUS_17 = 0;
+         temp2 /= 10;
+         __SEQ_STATUS_15 = 1;
+         __SEQ_STATUS_17 = 1;
+       }
+     }
+     pc_label(__SEQ_STATUS_25 == 1,25,"ADC");
+     pc_label(__SEQ_STATUS_26 == 1,26,"ADC");
+     pc_label(__SEQ_STATUS_27 == 1,27,"ADC");
+     if (result == i) {
+       pc_label(__SEQ_STATUS_28 == 1,28,"ADC");
+       pc_label(__SEQ_STATUS_29 == 1,29,"ADC");
+       printf("%d ",i);
+     }
+     __SEQ_STATUS_11 = 0;
+     __SEQ_STATUS_12 = 0;
+     __SEQ_STATUS_13 = 0;
+     __SEQ_STATUS_19 = 0;
+     __SEQ_STATUS_20 = 0;
+     __SEQ_STATUS_21 = 0;
+     n = 0;
+     __SEQ_STATUS_13 = 1;
+     __SEQ_STATUS_21 = 1;
+     __SEQ_STATUS_22 = 0;
+     __SEQ_STATUS_23 = 0;
+     __SEQ_STATUS_24 = 0;
+     __SEQ_STATUS_25 = 0;
+     __SEQ_STATUS_26 = 0;
+     __SEQ_STATUS_27 = 0;
+     result = 0;
+     __SEQ_STATUS_24 = 1;
+     __SEQ_STATUS_27 = 1;
+     __SEQ_STATUS_3 = 0;
+     __SEQ_STATUS_4 = 0;
+     __SEQ_STATUS_5 = 0;
+     __SEQ_STATUS_6 = 0;
+     __SEQ_STATUS_28 = 0;
+     __SEQ_STATUS_29 = 0;
+     i ++;
+     __SEQ_STATUS_4 = 1;
+     __SEQ_STATUS_6 = 1;
+     __SEQ_STATUS_29 = 1;
+   }
+   __retres = 0;
+   return __retres;
+ }
 
 

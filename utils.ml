@@ -234,3 +234,13 @@ let get_bounds kind : Z.t list =
   else
     [Integer.zero;
      Cil.max_unsigned_number size]
+
+let get_limits kind : Z.t list =
+  let size = Cil.bitsSizeOfInt kind in
+  if Cil.isSigned kind then
+    [Cil.min_signed_number size;
+     Integer.zero;
+     Cil.max_signed_number size]
+  else
+    [Integer.zero;
+     Cil.max_unsigned_number size]

@@ -17,16 +17,16 @@
 int main(int x)
  {
    int __retres;
-   pc_label_sequence(1,1UL,1,2,"24",0);
-   pc_label_sequence(1,1UL,2,2,"24",0);
-   pc_label_sequence_condition(0,"25");
+   int __SEQ_STATUS_1 = 1;
+   int __SEQ_STATUS_2 = 0;
+   int __SEQ_STATUS_3 = 0;
+   pc_label(__SEQ_STATUS_1 == 1,1,"AUC");
    int a = x - x;
-   pc_label_sequence(1,2UL,1,2,"25",0);
-   pc_label_sequence(1,2UL,2,2,"25",0);
-   pc_label_sequence_condition(0,"26");
+   __SEQ_STATUS_2 = 1;
+   pc_label(__SEQ_STATUS_2 == 1,2,"AUC");
    int b = (a - a) * a;
-   pc_label_sequence(1,3UL,1,2,"26",0);
-   pc_label_sequence(1,3UL,2,2,"26",0);
+   __SEQ_STATUS_3 = 1;
+   pc_label(__SEQ_STATUS_3 == 1,3,"AUC");
    __retres = b * b + a * a;
    return __retres;
  }
