@@ -37,12 +37,6 @@ int main(char *line)
    int __SEQ_STATUS_12 = 1;
    int __SEQ_STATUS_13 = 0;
    int __SEQ_STATUS_14 = 0;
-   __SEQ_STATUS_2 = 0;
-   __SEQ_STATUS_3 = 0;
-   __SEQ_STATUS_5 = 0;
-   __SEQ_STATUS_6 = 0;
-   __SEQ_STATUS_7 = 0;
-   __SEQ_STATUS_8 = 0;
    i = 0;
    __SEQ_STATUS_2 = 1;
    __SEQ_STATUS_5 = 1;

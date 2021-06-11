@@ -17,17 +17,11 @@
 int main(int a)
  {
    int __SEQ_STATUS_1 = 0;
-   __SEQ_STATUS_1 = 0;
    a = 0;
-   __SEQ_STATUS_1 = 0;
    a = 1;
-   __SEQ_STATUS_1 = 0;
    a = 2;
-   __SEQ_STATUS_1 = 0;
    a = 3;
-   __SEQ_STATUS_1 = 0;
    a = 4;
-   __SEQ_STATUS_1 = 0;
    a = 5;
    __SEQ_STATUS_1 = 1;
    pc_label(__SEQ_STATUS_1 == 1,1,"AUC");

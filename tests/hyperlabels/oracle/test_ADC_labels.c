@@ -64,12 +64,6 @@ int armstrong(int low, int high)
    pc_label(__SEQ_STATUS_1 == 1,1,"ADC");
    pc_label(__SEQ_STATUS_2 == 1,2,"ADC");
    printf("Armstrong numbers between %d an %d are: ",low,high);
-   __SEQ_STATUS_3 = 0;
-   __SEQ_STATUS_4 = 0;
-   __SEQ_STATUS_5 = 0;
-   __SEQ_STATUS_6 = 0;
-   __SEQ_STATUS_28 = 0;
-   __SEQ_STATUS_29 = 0;
    i = low + 1;
    __SEQ_STATUS_3 = 1;
    __SEQ_STATUS_5 = 1;

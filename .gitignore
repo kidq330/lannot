@@ -24,4 +24,3 @@ Makefile
 .vscode
 testcases*/
 pathcrawler_*
-dse

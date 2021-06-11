@@ -37,12 +37,6 @@ int main(int n1, int n2)
   pc_label(__SEQ_STATUS_1 == 1,1,"AUC");
   pc_label(__SEQ_STATUS_2 == 1,2,"AUC");
   printf("Prime numbers between %d and %d are: ",n1,n2);
-  __SEQ_STATUS_3 = 0;
-  __SEQ_STATUS_4 = 0;
-  __SEQ_STATUS_5 = 0;
-  __SEQ_STATUS_6 = 0;
-  __SEQ_STATUS_8 = 0;
-  __SEQ_STATUS_9 = 0;
   i = n1 + 1;
   __SEQ_STATUS_3 = 1;
   __SEQ_STATUS_5 = 1;
@@ -92,12 +86,6 @@ int checkPrimeNumber(int n)
   int __SEQ_STATUS_19 = 0;
   int flag = 1;
   __SEQ_STATUS_18 = 1;
-  __SEQ_STATUS_10 = 0;
-  __SEQ_STATUS_11 = 0;
-  __SEQ_STATUS_14 = 0;
-  __SEQ_STATUS_15 = 0;
-  __SEQ_STATUS_16 = 0;
-  __SEQ_STATUS_17 = 0;
   j = 2;
   __SEQ_STATUS_10 = 1;
   __SEQ_STATUS_14 = 1;
@@ -112,7 +100,6 @@ int checkPrimeNumber(int n)
     pc_label(__SEQ_STATUS_15 == 1,15,"AUC");
     if (n % j == 0) {
       __SEQ_STATUS_18 = 0;
-      __SEQ_STATUS_19 = 0;
       flag = 0;
       __SEQ_STATUS_19 = 1;
       break;

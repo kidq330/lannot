@@ -27,11 +27,9 @@ int f(int x, int y)
   int __SEQ_STATUS_3 = 0;
   int __SEQ_STATUS_4 = 0;
   pc_label(__SEQ_STATUS_1 == 1,1,"AUC");
-  __SEQ_STATUS_3 = 0;
   test.x = x;
   __SEQ_STATUS_3 = 1;
   pc_label(__SEQ_STATUS_2 == 1,2,"AUC");
-  __SEQ_STATUS_4 = 0;
   test.y = y;
   __SEQ_STATUS_4 = 1;
   pc_label(__SEQ_STATUS_3 == 1,3,"AUC");

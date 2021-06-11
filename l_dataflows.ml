@@ -61,6 +61,7 @@ end
 module VarOfst_lst = Listtbl(VarOfst.Hashtbl)
 module IntPair_lst = Listtbl(IntPair.Hashtbl)
 module Stmt_lst = Listtbl(Stmt.Hashtbl)
+module Def_lst = Listtbl(Def.Hashtbl)
 
 (* Represent states in our analysis*)
 type t =
@@ -90,9 +91,10 @@ let seen_def = Stmt.Hashtbl.create 32
 let to_add_defs = Stmt.Hashtbl.create 32
 (* bind each new sequence (use) to its corresponding statement *)
 let to_add_uses : (int* stmt) list Stmt.Hashtbl.t = Stmt.Hashtbl.create 32
+let to_add_conds_stmt = Stmt.Hashtbl.create 32
 (* when creating vInfo for sequences' status' variables , bind them to the
    corresponding VarOfst.t *)
-let varofst_to_vinfos = VarOfst.Hashtbl.create 32
+let def_to_conds = Def.Hashtbl.create 32
 
 (* Assign an unique ID to each VarOfst.t *)
 let varofst_to_id = VarOfst.Hashtbl.create 32
@@ -117,17 +119,17 @@ let print_use ((vi,ofst),stmt) =
     Cil_printer.pp_lval (Var vi, ofst) stmt.sid
 
 let print_uses set =
-  Printf.printf "Uses : @.";
-  Use.Set.iter (fun elt -> Printf.printf "    @."; print_use elt) set
+  Printf.printf "Uses : \n%!";
+  Use.Set.iter (fun elt -> Printf.printf "    %!"; print_use elt) set
 
 let print_defs set =
-  Printf.printf "Defs : @.";
-  Def.Set.iter (fun elt -> Printf.printf "    @."; print_def elt) set
+  Printf.printf "Defs : \n%!";
+  Def.Set.iter (fun elt -> Printf.printf "    %!"; print_def elt) set
 
 let pretty _ = function
-  | Bottom -> Printf.printf "Bottom\n@."
+  | Bottom -> Printf.printf "Bottom\n%!"
   | NonBottom (defs,uses) ->
-    Printf.printf "NonBottom : \n@.";
+    Printf.printf "NonBottom : \n%!";
     print_defs defs;
     print_uses uses
 
@@ -135,8 +137,9 @@ let pretty _ = function
 let reset_all () =
   Stmt.Hashtbl.reset to_add_defs;
   Stmt.Hashtbl.reset to_add_uses;
+  Stmt.Hashtbl.reset to_add_conds_stmt;
   Stmt.Hashtbl.reset seen_def;
-  VarOfst.Hashtbl.reset varofst_to_vinfos;
+  Def.Hashtbl.reset def_to_conds;
   VarOfst.Hashtbl.reset def_id
 
 (* Given a variable id, increment the number of defs seen
@@ -225,8 +228,8 @@ class visit_defuse (defs_set,uses_set) current_stmt kf mk_label to_add_fun = obj
     let set = Local_init(vi,AssignInit(SingleInit(value)),loc) in
     Cil.mkStmtOneInstr ~valid_sid:true set
 
-  method private register_seq (_,defId,varData,stmtDef) ids vInfo cond suse =
-    VarOfst_lst.add_list_front varofst_to_vinfos varData (ids,cond);
+  method private register_seq ((_,defId,varData,stmtDef) as def) ids vInfo cond suse =
+    Def_lst.add_list_front def_to_conds def (ids,cond);
     begin match stmtDef with
       | Kglobal ->
         to_add_fun := (ids,self#mk_init vInfo (self#one ())) :: !to_add_fun
@@ -277,6 +280,21 @@ class visit_defuse (defs_set,uses_set) current_stmt kf mk_label to_add_fun = obj
         List.iter (fun b -> self#mkSeq_aux loc def (Some(b,kind))) bounds
       else self#mkSeq_aux loc def None
     | _ -> self#mkSeq_aux loc def None
+
+  method! vstmt_aux stmt =
+    match stmt.skind with
+    | Instr i when not (Utils.is_label i) ->
+      begin match i with
+        | Set ((Var v,offset),_,_)
+        | Call (Some (Var v,offset),_,_,_) ->
+          let t = Def.Set.filter (fun (_,_,varData,_) ->
+              VarOfst.equal varData (v, offset)) defs_set in
+          if not @@ Def.Set.is_empty t then
+            Stmt.Hashtbl.add to_add_conds_stmt stmt t;
+          Cil.DoChildren
+        | _ -> Cil.DoChildren
+      end
+    | _ -> assert false
 
   (* Visit all expressions and sub expressions to find lvals *)
   method! vexpr expr =
@@ -438,7 +456,7 @@ let do_function kf mk_label to_add_fun =
       begin
         match stmt.skind with
         | Instr i when not (Utils.is_label i) ->
-          ignore(Cil.visitCilInstr (new visit_defuse t stmt kf mk_label to_add_fun :> Cil.cilVisitor) i);
+          ignore(Cil.visitCilStmt (new visit_defuse t stmt kf mk_label to_add_fun :> Cil.cilVisitor) stmt);
         | Return (Some e,_)
         | If (e,_,_,_)
         | Switch (e,_,_,_) ->
@@ -515,21 +533,28 @@ class addSequences mk_label = object(self)
         block
       )
 
-  method! vstmt s =
-    match s.skind with
-    | Instr i when not (Utils.is_label i) ->
-      begin match i with
-        | Set ((Var v,offset),_,_)
-        | Call (Some (Var v,offset),_,_,_) ->
-          let varofst = (v, trunc_fields offset) in
-          if VarOfst.Hashtbl.mem varofst_to_vinfos varofst then
-            Stmt.Hashtbl.add to_add_conds s (VarOfst.Hashtbl.find varofst_to_vinfos varofst);
-          Cil.DoChildren
-        | _ -> Cil.DoChildren
-      end
-    | UnspecifiedSequence v ->
-      s.skind <- Block (Cil.block_from_unspecified_sequence v); Cil.DoChildren
-    | _ -> Cil.DoChildren
+  method! vstmt_aux s =
+    if Stmt.Hashtbl.mem to_add_conds_stmt s then
+      match s.skind with
+      | Instr i when not (Utils.is_label i) ->
+        begin match i with
+          | Set ((Var _,_),_,_)
+          | Call (Some (Var _,_),_,_,_) ->
+            let def_set = Stmt.Hashtbl.find to_add_conds_stmt s in
+            Def.Set.iter (fun def ->
+                if Def.Hashtbl.mem def_to_conds def then
+                  let conds = Def.Hashtbl.find def_to_conds def in
+                  List.iter (fun c -> Stmt_lst.add_list_front to_add_conds s c) conds
+              ) def_set;
+            Cil.DoChildren
+          | _ -> assert false
+        end
+      | _ -> assert false
+    else
+      match s.skind with
+      | UnspecifiedSequence v ->
+        s.skind <- Block (Cil.block_from_unspecified_sequence v); Cil.DoChildren
+      | _ -> Cil.DoChildren
 
 end
 

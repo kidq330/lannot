@@ -33,10 +33,6 @@ void f(void)
   int __SEQ_STATUS_2 = 0;
   int __SEQ_STATUS_3 = 0;
   int __SEQ_STATUS_4 = 0;
-  __SEQ_STATUS_1 = 0;
-  __SEQ_STATUS_2 = 0;
-  __SEQ_STATUS_3 = 0;
-  __SEQ_STATUS_4 = 0;
   x = 0;
   __SEQ_STATUS_1 = 1;
   __SEQ_STATUS_3 = 1;
