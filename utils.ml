@@ -226,21 +226,26 @@ let sign_combine ~pos ~neg l =
 
 let concat l = List.fold_left (fun acc el -> acc @ el) [] l
 
-let get_bounds kind : Z.t list =
-  let size = Cil.bitsSizeOfInt kind in
-  if Cil.isSigned kind then
-    [Cil.min_signed_number size;
-     Cil.max_signed_number size]
+let with_delta op value kind =
+  let open Ast_const in
+  let delta = Options.LimitDelta.get () in
+  if delta < 0 then Options.fatal "Delta value must be positive";
+  let op' = match op, delta with
+    | _, 0 -> Eq
+    | MinusA, _ -> Ge
+    | PlusA, _ -> Le
+    | _ -> assert false
+  in
+  if delta = 0 then
+    op', Exp.kinteger64 kind value
   else
-    [Integer.zero;
-     Cil.max_unsigned_number size]
+    op', Exp.binop op (Exp.kinteger64 kind value) (Exp.integer delta)
 
-let get_limits kind : Z.t list =
+let get_bounds kind : (binop*exp) list =
   let size = Cil.bitsSizeOfInt kind in
   if Cil.isSigned kind then
-    [Cil.min_signed_number size;
-     Integer.zero;
-     Cil.max_signed_number size]
+    [with_delta PlusA (Cil.min_signed_number size) kind;
+     with_delta MinusA (Cil.max_signed_number size) kind]
   else
-    [Integer.zero;
-     Cil.max_unsigned_number size]
+    [with_delta PlusA Integer.zero kind;
+     with_delta MinusA (Cil.max_unsigned_number size) kind]

@@ -32,13 +32,10 @@ let unk_loc = Cil_datatype.Location.unknown
 let mk_bounds mk_label (loc:location) (exp:exp) : stmt list =
   match Cil.typeOf exp with
   | TInt (kind, _) ->
-    let limits = Utils.get_bounds kind in
-    let exp_limits =
-      List.map (fun i -> Exp.kinteger64 kind i) limits
-    in
-    List.map (fun exp' ->
-        mk_label (Exp.binop Eq exp exp') [] loc
-      ) exp_limits
+    Utils.get_bounds kind |>
+    List.map (fun (op,exp') ->
+        mk_label (Exp.binop op exp exp') [] loc
+      )
   | _ -> []
 
 (** Input Output Bound Visitor **)

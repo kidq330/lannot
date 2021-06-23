@@ -96,5 +96,4 @@ val rev_sign_combine : pos:('a -> 'b) -> neg:('a -> 'b) -> 'a list -> 'b list li
 
 val concat: 'a list list -> 'a list
 
-val get_bounds : ikind -> Z.t list
-val get_limits : ikind -> Z.t list
+val get_bounds : ikind -> (binop*exp) list

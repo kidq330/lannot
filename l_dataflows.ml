@@ -241,7 +241,8 @@ let unk_loc = Location.unknown
 (***********************************)
 
 (** Perform the part 5- of the heading comment *)
-class visit_defuse (defs_set,uses_set) current_stmt kf mk_label to_add_fun = object(self)
+class visit_defuse (defs_set,uses_set) current_stmt kf
+    (mk_label:exp -> 'a list -> location -> stmt) to_add_fun = object(self)
   inherit Visitor.frama_c_inplace
 
   (** Used to avoid trivially equivalent uses *)
@@ -260,9 +261,9 @@ class visit_defuse (defs_set,uses_set) current_stmt kf mk_label to_add_fun = obj
     Cil.mkStmtOneInstr ~valid_sid:true set
 
   (** Create a expression : Lval(vi,offset) == value *)
-  method private mk_comp ?(loc=unk_loc) ?(offset=NoOffset) vi value =
+  method private mk_comp ?(loc=unk_loc) ?(op=Cil_types.Eq) ?(offset=NoOffset) vi value =
     let new_exp = Cil.new_exp loc (Lval (Var vi, offset)) in
-    Ast_const.Exp.binop Cil_types.Eq new_exp value
+    Ast_const.Exp.binop op new_exp value
 
   (** Create a statement : typ vi = value; where typ is the type of vi *)
   method private mk_init ?(loc=unk_loc) vi value =
@@ -295,13 +296,13 @@ class visit_defuse (defs_set,uses_set) current_stmt kf mk_label to_add_fun = obj
     let vInfo = self#init_vinfo ("__SEQ_STATUS_" ^ string_of_int ids) in
     let cond = self#mk_set vInfo (self#zero ()) in
     let use = self#mk_comp vInfo (self#one ()) in
-    let (suse:stmt) = match bound with
+    let suse = match bound with
       | None -> mk_label use [] loc
-      | Some (bound,kind) ->
+      | Some (op,bound) ->
         let pred_vInfo = self#init_vinfo ("__SEQ_BOUND_" ^ string_of_int ids) in
         let lval_vInfo = Cil.new_exp unk_loc (Lval (Var pred_vInfo,NoOffset)) in
-        let bound = Cil.kinteger64 ~loc:unk_loc ~kind bound in
-        let pred = self#mk_comp vi ~offset bound in
+        (* let bound = Cil.kinteger64 ~loc:unk_loc ~kind bound in *)
+        let pred = self#mk_comp ~offset ~op vi bound in
         begin match stmtDef with
           | Kglobal ->
             to_add_fun := (ids,self#mk_init pred_vInfo pred) :: !to_add_fun
@@ -320,8 +321,8 @@ class visit_defuse (defs_set,uses_set) current_stmt kf mk_label to_add_fun = obj
     match Cil.typeOfLval (Var vi, offset) with
     | TInt (kind, _) ->
       if Options.BoundedDataflow.get () then
-        let bounds = Utils.get_limits kind in
-        List.iter (fun b -> self#mkSeq_aux loc def (Some(b,kind))) bounds
+        let bounds = Utils.get_bounds kind in
+        List.iter (fun b -> self#mkSeq_aux loc def (Some b)) bounds
       else self#mkSeq_aux loc def None
     | _ -> self#mkSeq_aux loc def None
 
@@ -473,7 +474,7 @@ module Inst = struct
     | If (e,_,_,_)
     | Switch (e,_,_,_) ->
       let state = ref state in
-      ignore(Cil.visitCilExpr  (new visit_use state stmt :> Cil.cilVisitor) e);
+      ignore(Cil.visitCilExpr (new visit_use state stmt :> Cil.cilVisitor) e);
       List.map (fun x -> (x,!state)) stmt.succs
     | _ -> List.map (fun x -> (x,state)) stmt.succs
 
