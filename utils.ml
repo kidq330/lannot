@@ -229,7 +229,6 @@ let concat l = List.fold_left (fun acc el -> acc @ el) [] l
 let with_delta op value kind =
   let open Ast_const in
   let delta = Options.LimitDelta.get () in
-  if delta < 0 then Options.fatal "Delta value must be positive";
   let op' = match op, delta with
     | _, 0 -> Eq
     | MinusA, _ -> Ge

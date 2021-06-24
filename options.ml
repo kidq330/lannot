@@ -158,6 +158,7 @@ module LimitDelta = Int (struct
     let help = "Set the precision of limit labels (Default : 0)"
     let default = 0
   end)
+let () = LimitDelta.set_range ~min:0 ~max:max_int
 
 module Inline = True (struct
     let option_name = "-lannot-inline"

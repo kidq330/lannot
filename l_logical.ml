@@ -242,7 +242,6 @@ class visitExp = object(self)
        cf. COQ proof in file LIMIT_proof.v
     *)
     let delta = Options.LimitDelta.get () in
-    if delta < 0 then Options.fatal "Delta value must be positive";
     let posComp = Exp.binop Le exp (Exp.integer delta) in
     let negComp = Exp.binop Le (Exp.neg exp) (Exp.integer delta) in
     let abs = Exp.binop LAnd posComp negComp in
