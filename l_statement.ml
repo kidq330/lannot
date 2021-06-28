@@ -63,7 +63,7 @@ let visitor mk_label = object(self)
       if not lbl then
         Cil.ChangeTo (Stmt.block ([l;stmt]))
       else begin
-        stmt.skind <- Block (Block.mk (l :: [Stmt.mk stmt.skind]));
+        stmt.skind <- Block (Cil.mkBlock (l :: [Stmt.mk stmt.skind]));
         Cil.ChangeTo stmt
       end
     | If (e,b1,b2,loc) ->
@@ -102,7 +102,7 @@ let visitor mk_label = object(self)
                | Block b ->
                  b.bstmts <- lb::b.bstmts;
                  res.skind
-               | _ -> Block (Block.mk (lb :: [Stmt.mk res.skind])));
+               | _ -> Block (Cil.mkBlock (lb :: [Stmt.mk res.skind])));
             res
           end
           else

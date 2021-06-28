@@ -123,7 +123,7 @@ let mk_call ?(loc=Cil_datatype.Location.unknown) ?result fname args =
     | _ -> Cil.voidType in
   let ty = TFun(t, None, false, []) in
   let f = new_lval loc (Cil.makeGlobalVar fname ty) in
-  Cil.mkStmt ~valid_sid:true (Instr (Call (result, f, args, loc)))
+  Ast_const.Stmt.mk (Instr (Call (result, f, args, loc)))
 
 (* val mkdir: string -> unit *)
 let mkdir x =

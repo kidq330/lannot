@@ -104,24 +104,27 @@ class visitor mk_label = object(self)
     aux vinfos None
 
   (* Clears all parameters after each function *)
-  method! vfunc _ =
-    Cil.DoChildrenPost( fun fdec ->
-        Stack.clear is_inlined_block;
-        let f vi =
-          let zero_init = Cil.makeZeroInit ~loc:unk_loc vi.vtype in
-          let local_init = AssignInit zero_init in
-          let instr_init = Local_init(vi, local_init, unk_loc) in
-          vi.vdefined <- true;
-          Cil.mkStmtOneInstr ~valid_sid:true instr_init
-        in
-        let inits = List.rev @@ List.map f to_add in
-        fdec.sbody.bstmts <- inits @ fdec.sbody.bstmts;
-        seen_vinfos <- [];
-        to_add <- [];
-        started <- false;
-        seen_double <- false;
-        fdec
-      )
+  method! vfunc dec =
+    if not @@ Annotators.shouldInstrumentFun dec.svar then
+      Cil.SkipChildren
+    else
+      Cil.DoChildrenPost( fun fdec ->
+          Stack.clear is_inlined_block;
+          let f vi =
+            let zero_init = Cil.makeZeroInit ~loc:unk_loc vi.vtype in
+            let local_init = AssignInit zero_init in
+            let instr_init = Local_init(vi, local_init, unk_loc) in
+            vi.vdefined <- true;
+            Cil.mkStmtOneInstr ~valid_sid:true instr_init
+          in
+          let inits = List.rev @@ List.map f to_add in
+          fdec.sbody.bstmts <- inits @ fdec.sbody.bstmts;
+          seen_vinfos <- [];
+          to_add <- [];
+          started <- false;
+          seen_double <- false;
+          fdec
+        )
 
   (* Handles inlined block to avoid annotating them *)
   method! vblock b =
@@ -186,7 +189,7 @@ class visitor mk_label = object(self)
       let thenb' = (Cil.visitCilBlock (self :> Cil.cilVisitor) thenb) in
       let elseb' = (Cil.visitCilBlock (self :> Cil.cilVisitor) elseb) in
       let new_if = Stmt.mk (If (new_exp,thenb',elseb',loc)) in
-      stmt.skind <- Block (Block.mk (mutate_calls @ [new_if]));
+      stmt.skind <- Block (Cil.mkBlock (mutate_calls @ [new_if]));
       Cil.SkipChildren
     | _ -> Cil.DoChildren
 

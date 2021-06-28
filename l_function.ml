@@ -83,9 +83,13 @@ class visitor mk_label = object(self)
     newStmt
 
   method! vfunc dec =
-    fname <- dec.svar.vname;
-    floc <- dec.svar.vdecl;
-    Cil.DoChildren
+    if Annotators.shouldInstrumentFun dec.svar then begin
+      fname <- dec.svar.vname;
+      floc <- dec.svar.vdecl;
+      Cil.DoChildren
+    end
+    else
+      Cil.SkipChildren
 
   method! vstmt_aux stmt =
     begin match stmt.skind with

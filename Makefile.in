@@ -37,7 +37,7 @@ PLUGIN_DIR ?=.
 PLUGIN_ENABLE:=@ENABLE_LANNOTATE@
 PLUGIN_NAME:=LAnnotate
 
-PLUGIN_CMO:= options ast_const utils bes simplify annotators \
+PLUGIN_CMO:= options ast_const utils bes simplify visibility annotators \
              l_wm l_logical l_boundary l_mutation l_partition l_dataflows \
              l_function l_statement l_loop register
 

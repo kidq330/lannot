@@ -89,7 +89,8 @@ let annotate filename names ?(id=next) ?(collect=nocollect) ast =
       annotate_with ~id ~collect ann ast
     with Not_found -> Options.warning "unknown annotators `%s`" name
   in
-  List.iter f names
+  List.iter f names;
+  if Options.Visibility.get () then Visibility.to_visibility ast
 
 let print_help fmt =
   let annotators = Hashtbl.fold (fun _k v acc -> v :: acc) annotators [] in
@@ -107,6 +108,11 @@ let mk_label id collect tag cond mvars loc =
       Simplify.simplify_exp cond
     else
       cond
+  in
+  let tag =
+    if !label_function_name = "pc_label" && Options.Visibility.get () then
+      "V_"^tag
+    else tag
   in
   collect (id,tag,cond,loc);
   let tagExp = Exp.mk (Const (CStr tag)) in

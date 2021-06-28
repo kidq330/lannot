@@ -24,8 +24,8 @@ open Cil_types
 open Utils
 open Ast_const
 
-let pos atom = Exp.copy atom
-let neg atom = Exp.lnot (Exp.copy atom)
+let pos atom = Cil.copy_exp atom
+let neg atom = Exp.lnot (Cil.copy_exp atom)
 
 let array_to_string l r = l ^ ",\n" ^ r
 
@@ -80,8 +80,8 @@ let gen_labels_gacc_for mk_label whole part =
   (* rather than to test w0 != w1, do (w0 && !w1) || (!w0 && w1) *)
   let indep = Exp.niff w0 w1 in
 
-  let a_indep = Exp.binop LAnd (pos part) (Exp.copy indep) in
-  let na_indep = Exp.binop LAnd (neg part) (Exp.copy indep) in
+  let a_indep = Exp.binop LAnd (pos part) (Cil.copy_exp indep) in
+  let na_indep = Exp.binop LAnd (neg part) (Cil.copy_exp indep) in
 
   Stmt.block (List.map (fun e -> mk_label e [] loc) [a_indep; na_indep])
 
@@ -104,8 +104,8 @@ let gen_labels_cacc_for mk_label whole part =
   (* rather than to test w0 != w1, do (w0 && !w1) || (!w0 && w1) *)
   let indep = Exp.niff w0 w1 in
 
-  let a_indep = Exp.binop LAnd (pos part) (Exp.copy indep) in
-  let na_indep = Exp.binop LAnd (neg part) (Exp.copy indep) in
+  let a_indep = Exp.binop LAnd (pos part) (Cil.copy_exp indep) in
+  let na_indep = Exp.binop LAnd (neg part) (Cil.copy_exp indep) in
 
   let l = mk_label a_indep [Exp.integer binding_id; Exp.integer 1 ; Exp.mk (Const (CStr "pa")) ; whole] loc in
   let idl = Annotators.getCurrentLabelId () in
@@ -154,8 +154,8 @@ let gen_labels_racc_for mk_label whole atoms part =
   (* rather than to test w0 != w1, do (w0 && !w1) || (!w0 && w1) *)
   let indep = Exp.niff w0 w1 in
 
-  let a_indep = Exp.binop LAnd (pos part) (Exp.copy indep) in
-  let na_indep = Exp.binop LAnd (neg part) (Exp.copy indep) in
+  let a_indep = Exp.binop LAnd (pos part) (Cil.copy_exp indep) in
+  let na_indep = Exp.binop LAnd (neg part) (Cil.copy_exp indep) in
 
   let atoms_without_current = List.filter (fun a -> part <> a) atoms in
   let l = mk_label a_indep (List.concat [[Exp.integer binding_id; Exp.integer (List.length atoms_without_current)] ; List.fold_left handle_list_l [] atoms_without_current]) loc in
@@ -311,8 +311,8 @@ class visitor gen_labels all_boolean = object(self)
       (* handle visits manually to skip visit of e *)
       let thenb = Visitor.visitFramacBlock (self :> Visitor.frama_c_visitor) thenb in
       let elseb = Visitor.visitFramacBlock (self :> Visitor.frama_c_visitor) elseb in
-      stmt.skind <- If (e, thenb, elseb, loc);
-      Cil.ChangeTo (Stmt.block [labels_stmt; stmt])
+      stmt.skind <- Block (Cil.mkBlock [labels_stmt; Stmt.mk (If (e, thenb, elseb, loc))]);
+      Cil.SkipChildren
     | _ ->
       if all_boolean then
         Cil.DoChildrenPost (fun stmt -> self#vstmt_post stmt)

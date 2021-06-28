@@ -198,6 +198,12 @@ module MaxContextPath = Int (struct
     let default = 1024
   end)
 
+let () = Parameter_customize.set_group dataflow
+module Visibility = False (struct
+    let option_name = "-lannot-visibility"
+    let help = "Transform labels into sequences (from label to return) (Default : false)"
+  end)
+
 (* There is no way to determine the original loop form after the CIL transformation.
    Since loops criterias depend on if we are in a while or do..while.. I added this option to
    tell to Lannotate if we support do..while.. or not. See doc/LOOPS.markdown for examples

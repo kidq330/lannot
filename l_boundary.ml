@@ -43,23 +43,26 @@ class io_visitor mk_label = object(self)
   inherit Visitor.frama_c_inplace
 
   (* visit each function and annotate formals and return statement*)
-  method! vfunc _ =
-    let kf = Option.get self#current_kf in
-    let args = Kernel_function.get_formals kf in
-    let exp_args = List.map (fun arg -> Exp.lval (Lval.var arg)) args in
-    let loc = Kernel_function.get_location kf in
-    let bounds_labels = List.concat_map (mk_bounds mk_label loc) exp_args in
-    Cil.DoChildrenPost( fun fdec ->
-        fdec.sbody.bstmts <- bounds_labels @ fdec.sbody.bstmts;
-        fdec
-      )
+  method! vfunc dec =
+    if not @@ Annotators.shouldInstrumentFun dec.svar then
+      Cil.SkipChildren
+    else
+      let kf = Option.get self#current_kf in
+      let args = Kernel_function.get_formals kf in
+      let exp_args = List.map (fun arg -> Exp.lval (Cil.var arg)) args in
+      let loc = Kernel_function.get_location kf in
+      let bounds_labels = List.concat_map (mk_bounds mk_label loc) exp_args in
+      Cil.DoChildrenPost( fun fdec ->
+          fdec.sbody.bstmts <- bounds_labels @ fdec.sbody.bstmts;
+          fdec
+        )
 
   (* Create bound labels for return statement  *)
   method! vstmt_aux stmt =
     begin match stmt.skind with
       | Return (Some exp, loc) ->
         let bounds_labels = mk_bounds mk_label loc exp in
-        stmt.skind <- Block (Block.mk (bounds_labels @ [Stmt.mk stmt.skind]));
+        stmt.skind <- Block (Cil.mkBlock (bounds_labels @ [Stmt.mk stmt.skind]));
         Cil.SkipChildren
       | _ -> Cil.DoChildren
     end
@@ -100,6 +103,12 @@ end
 class c_visitor mk_label = object(self)
   inherit Visitor.frama_c_inplace
 
+  method! vfunc dec =
+    if Annotators.shouldInstrumentFun dec.svar then
+      Cil.DoChildren
+    else
+      Cil.SkipChildren
+
   (* Create bound labels for return statement  *)
   method! vstmt_aux stmt =
     begin match stmt.skind with
@@ -110,7 +119,7 @@ class c_visitor mk_label = object(self)
         let thenb = Visitor.visitFramacBlock (self :> Visitor.frama_c_visitor) thenb in
         let elseb = Visitor.visitFramacBlock (self :> Visitor.frama_c_visitor) elseb in
         let old_stmt = Stmt.mk (If (e, thenb, elseb, loc)) in
-        stmt.skind <- Block (Block.mk (List.rev !atoms_labels @ [old_stmt]));
+        stmt.skind <- Block (Cil.mkBlock (List.rev !atoms_labels @ [old_stmt]));
         Cil.SkipChildren
       | _ -> Cil.DoChildren
     end

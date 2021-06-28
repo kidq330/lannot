@@ -540,7 +540,7 @@ class addSequences mk_label = object(self)
     List.map (fun (_,s) -> s) defs, (List.map (fun (_,s) -> s) uses) @ (List.map (fun (_,s) -> s) conds)
 
   (** Part 1- and 2- of the heading comment *)
-  method! vfunc (dec : fundec) : fundec Cil.visitAction =
+  method! vfunc dec =
     let kf = Option.get self#current_kf in
     if Kernel_function.is_definition kf && Annotators.shouldInstrumentFun dec.svar then begin
       let to_add_fun = ref [] in
@@ -570,7 +570,7 @@ class addSequences mk_label = object(self)
                the first statement of before if it exists *)
 
             if s.labels <> [] && before <> [] then begin
-              s.skind <- Block (Ast_const.Block.mk (before @ [Ast_const.Stmt.mk s.skind]));
+              s.skind <- Block (Cil.mkBlock (before @ [Ast_const.Stmt.mk s.skind]));
               aux t (acc @ [s] @ after)
             end
             else

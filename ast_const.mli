@@ -76,22 +76,10 @@ module Exp : sig
   (** Joins some expressions (at least one) with a binary operator. *)
   val join : ?loc:location -> binop -> exp list -> exp
   val rev_join : ?loc:location -> binop -> exp list -> exp
-
-  val copy : exp -> exp
-end
-
-module Lval : sig
-  val var : varinfo -> lval
-  val mem : addr:exp -> off:offset -> lval
-  val addOffset: off:offset -> base:lval -> lval
 end
 
 module Stmt : sig
   val mk : ?ghost:bool -> ?sattr:attributes  -> stmtkind -> stmt
   (** Make a block statement from a list of statements. *)
   val block : stmt list -> stmt
-end
-
-module Block : sig
-  val mk : stmt list -> block
 end
