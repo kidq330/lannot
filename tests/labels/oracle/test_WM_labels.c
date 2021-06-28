@@ -47,8 +47,10 @@ int maintest(int a, int b)
      __retres = (a + b) * 4;
      goto return_label;
    }
-   pc_label(__retres < 0,23,"WM ABS");
-   return_label: return __retres;
+   return_label: {
+                   pc_label(__retres < 0,23,"WM ABS");
+                   return __retres;
+                 }
  }
 
 
