@@ -34,7 +34,7 @@ include Annotators.Register (struct
 
       method! vfunc dec =
         if  Annotators.shouldInstrumentFun dec.svar then begin
-          let label = mk_label (Exp.one()) [] dec.svar.vdecl in
+          let label = mk_label (Exp_builder.one()) [] dec.svar.vdecl in
           dec.sbody.bstmts <- label :: dec.sbody.bstmts;
         end;
         Cil.SkipChildren
@@ -77,7 +77,7 @@ class visitor mk_label = object(self)
   val mutable floc = Cil_datatype.Location.unknown
 
   method private mk_call v =
-    let newStmt = mk_label (Exp.one()) [] floc in
+    let newStmt = mk_label (Exp_builder.one()) [] floc in
     Hashtbl.add disjunctions (fname,v.vname) (Annotators.getCurrentLabelId());
     hyperlabels := (HL.add (fname,v.vname) !hyperlabels);
     newStmt
@@ -98,7 +98,8 @@ class visitor mk_label = object(self)
           | Call (_,{eid = _;enode = Lval(Var v,_);eloc = _},_,_)
           | Local_init (_,ConsInit(v, _,_),_) ->
             let newStmt = self#mk_call v in
-            Cil.ChangeTo (Stmt.block [newStmt; stmt])
+            stmt.skind <- Block (Cil.mkBlock [newStmt; Stmt_builder.mk stmt.skind]);
+            Cil.SkipChildren
           | _ -> Cil.DoChildren
         end
       | _ -> Cil.DoChildren
@@ -187,76 +188,67 @@ class remcastvisitor = object(selfobj)
 
   method! vstmt stmt =
     if !in_func then begin
-      let saved_labels = stmt.labels in
-      stmt.labels <- [];
+      let f res =
+        if not (List.length !list_convert = 0) then begin
+          let listr = List.rev !list_convert in
+          list_convert := [];
+          res.skind <- Block (Cil.mkBlock (listr @ [Stmt_builder.mk res.skind]));
+        end
+      in
+      let f' res = f res; res in
       let follow () =
         begin
-          let f res =
-            stmt.labels <- saved_labels;
-            if not ((List.length !list_convert)=0) then begin
-              let listr = List.rev (!list_convert) in
-              list_convert := [];
-              (Stmt.block (listr @ [ res ]) )
-            end
-            else
-              res
-          in
           match stmt.skind with
           | Instr i ->
-            (match i with
-             | Call (Some lv,func , x,y) ->
-               if (Cil.need_cast (Cil.typeOfLval lv) (Cil.getReturnType (Cil.typeOf func))) then begin
-                 let temp_var = (Cil.makeTempVar current_func (Cil.getReturnType (Cil.typeOf func))) in
-                 let new_call = (Cil.mkStmtOneInstr ~valid_sid:true (Call (Some (Cil.var temp_var),func , x,y))) in
-                 stmt.skind <- new_call.skind;
-                 let new_assig = (Cil.mkStmtOneInstr ~valid_sid:true (Set (lv , (Cil.mkCast (Cil.typeOfLval lv) (Cil.new_exp Cil_datatype.Location.unknown (Lval (Cil.var temp_var)))), Cil_datatype.Location.unknown))) in
-                 let block = Stmt.block [stmt ; new_assig] in
-                 let new_blok = Visitor.visitFramacStmt (selfobj :> Visitor.frama_c_visitor) block in
-                 (Cil.ChangeTo new_blok)
-               end
-               else (Cil.DoChildrenPost f)
-             | _ -> (Cil.DoChildrenPost f))
-          | _ -> (Cil.DoChildrenPost f)
+            begin match i with
+              | Call (Some lv,func , x,y) ->
+                if Cil.need_cast (Cil.typeOfLval lv) (Cil.getReturnType (Cil.typeOf func)) then begin
+                  let temp_var = Cil.makeTempVar current_func (Cil.getReturnType (Cil.typeOf func)) in
+                  let new_call = Stmt_builder.instr (Call (Some (Cil.var temp_var),func , x,y)) in
+                  stmt.skind <- new_call.skind;
+                  let new_assig =
+                    Stmt_builder.instr (
+                      Set (lv , (Cil.mkCast (Cil.typeOfLval lv)
+                                   (Cil.new_exp Cil_datatype.Location.unknown (Lval (Cil.var temp_var)))),
+                           Cil_datatype.Location.unknown)) in
+                  let block = Stmt_builder.block [stmt ; new_assig] in
+                  let new_blok = Visitor.visitFramacStmt (selfobj :> Visitor.frama_c_visitor) block in
+                  Cil.ChangeTo new_blok
+                end
+                else Cil.DoChildrenPost f'
+              | _ -> Cil.DoChildrenPost f'
+            end
+          | _ -> Cil.DoChildrenPost f'
         end
       in
       match stmt.skind with
       | Instr i ->
-        (match i with
-         | Call (None,func , _,_) ->
-           (match func.enode with
-            | Lval (Var v,_) ->
-              if v.vname = "__builtin_va_arg" then
-                (stmt.labels <- saved_labels; Cil.SkipChildren)
-              else
-                follow ()
-            | _ -> follow ())
-         | _ -> follow ())
+        begin match i with
+          | Call (None,func , _,_) ->
+            begin match func.enode with
+              | Lval (Var v,_) ->
+                if v.vname = "__builtin_va_arg" then
+                  Cil.SkipChildren
+                else
+                  follow ()
+              | _ -> follow ()
+            end
+          | _ -> follow ()
+        end
       | If (e, thenb, elseb, loc) ->
         (* handle visits manually to skip visit of e *)
         let thenb = Visitor.visitFramacBlock (selfobj :> Visitor.frama_c_visitor) thenb in
         let elseb = Visitor.visitFramacBlock (selfobj :> Visitor.frama_c_visitor) elseb in
         let e = Visitor.visitFramacExpr (selfobj :> Visitor.frama_c_visitor) e in
-        stmt.labels <- saved_labels;
         stmt.skind <- If (e, thenb, elseb, loc);
-        if not ((List.length !list_convert)=0) then begin
-          let listr = List.rev (!list_convert) in
-          list_convert := [];
-          Cil.ChangeTo (Stmt.block (listr @ [ stmt ]) )
-        end
-        else
-          Cil.ChangeTo stmt
+        f stmt;
+        Cil.SkipChildren
       | Switch (e,block,ll,loc) ->
         let block = Visitor.visitFramacBlock (selfobj :> Visitor.frama_c_visitor) block in
         let e = Visitor.visitFramacExpr (selfobj :> Visitor.frama_c_visitor) e in
-        stmt.labels <- saved_labels;
         stmt.skind <- Switch (e,block,ll,loc);
-        if not ((List.length !list_convert)=0) then begin
-          let listr = List.rev (!list_convert) in
-          list_convert := [];
-          Cil.ChangeTo (Stmt.block (listr @ [ stmt ]) )
-        end
-        else
-          Cil.ChangeTo stmt
+        f stmt;
+        Cil.SkipChildren
       | _ -> (follow ())
     end
     else

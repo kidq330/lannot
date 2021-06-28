@@ -24,7 +24,7 @@ open Cil_types
 
 let unk_loc = Cil_datatype.Location.unknown
 
-module Exp = struct
+module Exp_builder = struct
   let mk ?(loc=unk_loc) =
     Cil.new_exp ~loc
 
@@ -109,7 +109,8 @@ module Exp = struct
     rev_join ~loc op (List.rev l)
 end
 
-module Stmt = struct
+module Stmt_builder = struct
   let mk = Cil.mkStmt ~valid_sid:true
+  let instr = Cil.mkStmtOneInstr ~valid_sid:true
   let block stmts = mk (Block (Cil.mkBlock stmts))
 end

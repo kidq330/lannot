@@ -22,7 +22,7 @@
 
 open Cil_types
 
-module Exp : sig
+module Exp_builder : sig
   val mk : ?loc:location -> exp_node -> exp
 
   (** [int] zero *)
@@ -78,8 +78,9 @@ module Exp : sig
   val rev_join : ?loc:location -> binop -> exp list -> exp
 end
 
-module Stmt : sig
+module Stmt_builder : sig
   val mk : ?ghost:bool -> ?sattr:attributes  -> stmtkind -> stmt
+  val instr : ?ghost:bool -> ?sattr:attributes  -> instr -> stmt
   (** Make a block statement from a list of statements. *)
   val block : stmt list -> stmt
 end

@@ -112,7 +112,7 @@ let inner mk_label = object(_)
   method! vstmt_aux stmt =
     match stmt.skind with
     | Loop (_,_,l,_,_) ->
-      let label = mk_label (Exp.one()) [] l in
+      let label = mk_label (Exp_builder.one()) [] l in
       Cil.DoChildrenPost (fun stmt ->
           begin
             match stmt.skind with
@@ -147,18 +147,18 @@ end
 
 (** Create a pc_label_sequence *)
 let mkSeq (sid : int) (lid : int) (nb : int) : Cil_types.stmt =
-  let idExp = Exp.kinteger IULong sid in
-  let oneExp = Exp.one () in
-  let curr = Exp.integer nb in
-  let slen = Exp.integer 2 in
-  let varExp = Exp.string (string_of_int lid) in
-  let zeroExp = Exp.zero () in
+  let idExp = Exp_builder.kinteger IULong sid in
+  let oneExp = Exp_builder.one () in
+  let curr = Exp_builder.integer nb in
+  let slen = Exp_builder.integer 2 in
+  let varExp = Exp_builder.string (string_of_int lid) in
+  let zeroExp = Exp_builder.zero () in
   Utils.mk_call "pc_label_sequence" ([oneExp;idExp;curr;slen;varExp;zeroExp])
 
 (** Create a pc_label_sequence_condiion *)
 let mkCond (sid : int) : Cil_types.stmt =
-  let zeroExp = Exp.zero () in
-  let ccExp = Exp.string (string_of_int sid) in
+  let zeroExp = Exp_builder.zero () in
+  let ccExp = Exp_builder.string (string_of_int sid) in
   Utils.mk_call "pc_label_sequence_condition" ([zeroExp;ccExp])
 
 (** Add a label in each loop, to see if we enter in it *)
@@ -210,7 +210,7 @@ let outter () = object(_)
               stmt
             | _ -> assert false
           in
-          Stmt.block [set;newLoop;use]
+          Stmt_builder.block [set;newLoop;use]
         )
     | _ ->
       Cil.DoChildren

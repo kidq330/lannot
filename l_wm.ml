@@ -42,8 +42,8 @@ class mutationVisitor mk_label = object(self)
   method private mk_op_labels e lop lexp rexp ty wm opt =
     if opt = true then
       List.iter (fun op ->
-          let newExp = Ast_const.Exp.mk(BinOp(op, lexp, rexp, ty)) in
-          let labelExp = Ast_const.Exp.mk(BinOp(Ne, newExp, e, ty)) in
+          let newExp = Exp_builder.mk (BinOp (op, lexp, rexp, ty)) in
+          let labelExp = Exp_builder.mk (BinOp (Ne, newExp, e, ty)) in
           self#makeLabel labelExp wm
         ) lop;
     self#traitExp lexp;
@@ -85,7 +85,7 @@ class mutationVisitor mk_label = object(self)
       self#traitExp rexp
     | UnOp(Neg, exp, ty) ->
       if !aorOption = true then begin
-        let labelExp = Ast_const.Exp.mk(BinOp(Ne, exp, e, ty)) in
+        let labelExp = Exp_builder.mk (BinOp (Ne, exp, e, ty)) in
         self#makeLabel labelExp "AOR"
       end;
       self#traitExp exp
@@ -93,14 +93,17 @@ class mutationVisitor mk_label = object(self)
       self#traitExp exp
     | Lval(_l) ->
       if !absOption = true then begin
-        let zeroExp = Ast_const.Exp.mk (Const(CInt64(Integer.of_int(0),IInt,None))) in
-        let labelExp = Ast_const.Exp.mk(BinOp(Lt, e, zeroExp, intType)) in
+        let zeroExp = Exp_builder.mk (Const (CInt64(Integer.of_int(0),IInt,None))) in
+        let labelExp = Exp_builder.mk (BinOp (Lt, e, zeroExp, intType)) in
         self#makeLabel labelExp "ABS"
       end
     | _ -> ()
 
   method! vfunc f =
-    if Annotators.shouldInstrumentFun f.svar then DoChildren else SkipChildren
+    if Annotators.shouldInstrumentFun f.svar then
+      DoChildren
+    else
+      SkipChildren
 
   method! vstmt_aux stmt =
     begin match stmt.skind with
@@ -128,8 +131,8 @@ class mutationVisitor mk_label = object(self)
         match stmtExprsLabels with
         | [] -> stmt
         | _ ->
-          let finalList = List.append stmtExprsLabels [stmt] in
-          Stmt.block finalList
+          stmt.skind <- Block (Cil.mkBlock (stmtExprsLabels @ [Stmt_builder.mk stmt.skind]));
+          stmt
       )
 end
 

@@ -21,6 +21,7 @@
 (**************************************************************************)
 
 open Cil_types
+open Ast_const
 
 let print_std_includes fmt globs =
   if not (Kernel.PrintLibc.get ()) then begin
@@ -123,7 +124,7 @@ let mk_call ?(loc=Cil_datatype.Location.unknown) ?result fname args =
     | _ -> Cil.voidType in
   let ty = TFun(t, None, false, []) in
   let f = new_lval loc (Cil.makeGlobalVar fname ty) in
-  Ast_const.Stmt.mk (Instr (Call (result, f, args, loc)))
+  Stmt_builder.mk (Instr (Call (result, f, args, loc)))
 
 (* val mkdir: string -> unit *)
 let mkdir x =
@@ -227,7 +228,6 @@ let sign_combine ~pos ~neg l =
 let concat l = List.fold_left (fun acc el -> acc @ el) [] l
 
 let with_delta op value kind =
-  let open Ast_const in
   let delta = Options.LimitDelta.get () in
   let op' = match op, delta with
     | _, 0 -> Eq
@@ -236,9 +236,9 @@ let with_delta op value kind =
     | _ -> assert false
   in
   if delta = 0 then
-    op', Exp.kinteger64 kind value
+    op', Exp_builder.kinteger64 kind value
   else
-    op', Exp.binop op (Exp.kinteger64 kind value) (Exp.integer delta)
+    op', Exp_builder.binop op (Exp_builder.kinteger64 kind value) (Exp_builder.integer delta)
 
 let get_bounds kind : (binop*exp) list =
   let size = Cil.bitsSizeOfInt kind in

@@ -46,7 +46,7 @@ let visitor mk_label = object(self)
 
   method! vfunc dec =
     if Annotators.shouldInstrumentFun dec.svar then
-      let l = mk_label (Exp.one()) [] (get_fundec_loc dec) in
+      let l = mk_label (Exp_builder.one()) [] (get_fundec_loc dec) in
       Cil.DoChildrenPost (fun res ->
           res.sbody.bstmts <- l :: res.sbody.bstmts;
           res
@@ -55,31 +55,26 @@ let visitor mk_label = object(self)
       Cil.SkipChildren
 
   method! vstmt_aux stmt =
-    let lbl = List.length stmt.labels <> 0 in
     match stmt.skind with
     | Goto (_, loc)
     | Return (_, loc) ->
-      let l = mk_label (Exp.one()) [] loc in
-      if not lbl then
-        Cil.ChangeTo (Stmt.block ([l;stmt]))
-      else begin
-        stmt.skind <- Block (Cil.mkBlock (l :: [Stmt.mk stmt.skind]));
-        Cil.ChangeTo stmt
-      end
+      let l = mk_label (Exp_builder.one()) [] loc in
+      stmt.skind <- Block (Cil.mkBlock [l; Stmt_builder.mk stmt.skind]);
+      Cil.SkipChildren
     | If (e,b1,b2,loc) ->
-      let l1 = mk_label (Exp.one()) [] loc in
+      let l1 = mk_label (Exp_builder.one()) [] loc in
       let nb1 = Cil.visitCilBlock (self :> Cil.cilVisitor) b1 in
-      let l2 = mk_label (Exp.one()) [] loc in
+      let l2 = mk_label (Exp_builder.one()) [] loc in
       let nb2 = Cil.visitCilBlock (self :> Cil.cilVisitor) b2 in
       nb1.bstmts <- l1 :: nb1.bstmts;
       nb2.bstmts <- l2 :: nb2.bstmts;
       stmt.skind <- (If (e,nb1,nb2,loc));
-      Cil.ChangeTo stmt
+      Cil.SkipChildren
     | Loop _ ->
       Cil.DoChildrenPost (fun res ->
           match res.skind with
           | Loop  (ca, b, loc, s1, s2) ->
-            let lb = mk_label (Exp.one()) [] loc in
+            let lb = mk_label (Exp_builder.one()) [] loc in
             b.bstmts<- lb :: b.bstmts;
             res.skind <- (Loop (ca,b,loc,s1,s2));
             res
@@ -87,22 +82,19 @@ let visitor mk_label = object(self)
         )
     | _ ->
       Cil.DoChildrenPost (fun res ->
-          if lbl then begin
+          if res.labels <> [] then begin
             let loc =
               match List.hd stmt.labels with
               | Label (_,l,_)
               | Case (_,l)
               | Default l -> l
             in
-            let lb = mk_label (Exp.one()) [] loc in
+            let lb = mk_label (Exp_builder.one()) [] loc in
             res.skind <-
-              (match res.skind with
-               | Instr(Skip _) ->
-                 lb.skind
-               | Block b ->
-                 b.bstmts <- lb::b.bstmts;
-                 res.skind
-               | _ -> Block (Cil.mkBlock (lb :: [Stmt.mk res.skind])));
+              begin match res.skind with
+                | Instr(Skip _) -> lb.skind
+                | _ -> Block (Cil.mkBlock [lb; Stmt_builder.mk res.skind]);
+              end;
             res
           end
           else

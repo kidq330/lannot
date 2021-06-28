@@ -22,6 +22,7 @@
 
 open Cil_types
 open Cil_datatype
+open Ast_const
 
 (** This file is used to generate dataflow criteria and is structured this way :
     The main AST visitor is addSequences :
@@ -248,27 +249,24 @@ class visit_defuse (defs_set,uses_set) current_stmt kf
   (** Used to avoid trivially equivalent uses *)
   val mutable visited = []
 
-  method private zero () = Cil.zero unk_loc
-  method private one () = Cil.one unk_loc
-
   (** Create a new varinfo *)
   method private init_vinfo name =
     Cil.makeVarinfo false false name (TInt(IInt,[]))
 
   (** Create a statement : vi = value; *)
   method private mk_set ?(loc=unk_loc) vi value =
-    let set = Ast_info.mkassign (Var vi, NoOffset) value loc in
-    Cil.mkStmtOneInstr ~valid_sid:true set
+    Ast_info.mkassign (Var vi, NoOffset) value loc
+    |> Stmt_builder.instr
 
   (** Create a expression : Lval(vi,offset) == value *)
   method private mk_comp ?(loc=unk_loc) ?(op=Cil_types.Eq) ?(offset=NoOffset) vi value =
-    let new_exp = Cil.new_exp loc (Lval (Var vi, offset)) in
-    Ast_const.Exp.binop op new_exp value
+    let new_exp = Exp_builder.mk ~loc (Lval (Var vi, offset)) in
+    Exp_builder.binop op new_exp value
 
   (** Create a statement : typ vi = value; where typ is the type of vi *)
   method private mk_init ?(loc=unk_loc) vi value =
-    let set = Local_init(vi,AssignInit(SingleInit(value)),loc) in
-    Cil.mkStmtOneInstr ~valid_sid:true set
+    Local_init(vi,AssignInit(SingleInit(value)),loc)
+    |> Stmt_builder.instr
 
   (** Register in Hashtbls the different parts of our sequences (Def / Use / Cond)
       Plus the initialization (depending on the type of stmtDef, cf. Def type)
@@ -277,10 +275,10 @@ class visit_defuse (defs_set,uses_set) current_stmt kf
   method private register_seq ((_,_,stmtDef) as def) ids vInfo cond suse =
     begin match stmtDef with
       | Kglobal ->
-        to_add_fun := (ids,self#mk_init vInfo (self#one ())) :: !to_add_fun
+        to_add_fun := (ids,self#mk_init vInfo (Exp_builder.one ())) :: !to_add_fun
       | Kstmt stmt ->
-        to_add_fun := (ids,self#mk_init vInfo (self#zero ())) :: !to_add_fun;
-        Stmt_lst.add_element_front to_add_defs stmt (ids,self#mk_set vInfo (self#one ()))
+        to_add_fun := (ids,self#mk_init vInfo (Exp_builder.zero ())) :: !to_add_fun;
+        Stmt_lst.add_element_front to_add_defs stmt (ids,self#mk_set vInfo (Exp_builder.one ()))
     end;
     Def_lst.add_element_front def_to_conds def (ids,cond);
     Stmt_lst.add_element_front to_add_uses current_stmt (ids,suse);
@@ -294,23 +292,22 @@ class visit_defuse (defs_set,uses_set) current_stmt kf
     let _,(vi,offset),stmtDef = def in
     let ids = Annotators.getCurrentLabelId () + 1 in (* sequence id *)
     let vInfo = self#init_vinfo ("__SEQ_STATUS_" ^ string_of_int ids) in
-    let cond = self#mk_set vInfo (self#zero ()) in
-    let use = self#mk_comp vInfo (self#one ()) in
+    let cond = self#mk_set vInfo (Exp_builder.zero ()) in
+    let use = self#mk_comp vInfo (Exp_builder.one ()) in
     let suse = match bound with
       | None -> mk_label use [] loc
       | Some (op,bound) ->
         let pred_vInfo = self#init_vinfo ("__SEQ_BOUND_" ^ string_of_int ids) in
-        let lval_vInfo = Cil.new_exp unk_loc (Lval (Var pred_vInfo,NoOffset)) in
-        (* let bound = Cil.kinteger64 ~loc:unk_loc ~kind bound in *)
+        let lval_vInfo = Exp_builder.mk (Lval (Var pred_vInfo,NoOffset)) in
         let pred = self#mk_comp ~offset ~op vi bound in
         begin match stmtDef with
           | Kglobal ->
             to_add_fun := (ids,self#mk_init pred_vInfo pred) :: !to_add_fun
           | Kstmt stmt ->
-            to_add_fun := (ids,self#mk_init pred_vInfo (self#zero ())) :: !to_add_fun;
+            to_add_fun := (ids,self#mk_init pred_vInfo (Exp_builder.zero ())) :: !to_add_fun;
             Stmt_lst.add_element_front to_add_defs stmt (ids,self#mk_set pred_vInfo pred)
         end;
-        let use = Ast_const.Exp.binop Cil_types.LAnd use lval_vInfo in
+        let use = Exp_builder.binop Cil_types.LAnd use lval_vInfo in
         mk_label use [] loc
     in
     self#register_seq def ids vInfo cond suse
@@ -569,12 +566,8 @@ class addSequences mk_label = object(self)
             (* if the statement has 1 or more labels, then moves it to
                the first statement of before if it exists *)
 
-            if s.labels <> [] && before <> [] then begin
-              s.skind <- Block (Cil.mkBlock (before @ [Ast_const.Stmt.mk s.skind]));
-              aux t (acc @ [s] @ after)
-            end
-            else
-              aux t (acc @ before @ [s] @ after)
+            s.skind <- Block (Cil.mkBlock (before @ [Stmt_builder.mk s.skind]));
+            aux t (acc @ [s] @ after)
         in block.bstmts <- aux block.bstmts [];
         block
       )

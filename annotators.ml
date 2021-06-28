@@ -21,7 +21,6 @@
 (**************************************************************************)
 
 open Cil_types
-open Ast_const
 
 let filen = ref ""
 
@@ -115,8 +114,8 @@ let mk_label id collect tag cond mvars loc =
     else tag
   in
   collect (id,tag,cond,loc);
-  let tagExp = Exp.mk (Const (CStr tag)) in
-  let idExp = Exp.integer id in
+  let tagExp = Ast_const.Exp_builder.mk (Const (CStr tag)) in
+  let idExp = Ast_const.Exp_builder.integer id in
   Utils.mk_call !label_function_name (List.concat [ [ cond; idExp; tagExp ] ; mvars])
 
 let mk_apply apply name id collect ast =

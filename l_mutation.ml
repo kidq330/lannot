@@ -64,8 +64,8 @@ class visitor mk_label = object(self)
     let mutate_lval = Cil.var (self#get_new_tmp_var ()) in
     let loc = exp.eloc in
     let mutate_exp = Cil.new_exp ~loc (Lval mutate_lval) in
-    let mutation_side = Cil.mkBinOp ~loc LAnd mutate_exp (Exp.lnot exp) in
-    let no_mutation_side = Cil.mkBinOp ~loc LAnd (Exp.lnot mutate_exp) exp in
+    let mutation_side = Cil.mkBinOp ~loc LAnd mutate_exp (Exp_builder.lnot exp) in
+    let no_mutation_side = Cil.mkBinOp ~loc LAnd (Exp_builder.lnot mutate_exp) exp in
     let mutate_call = Utils.mk_call ~result:mutate_lval "mutated" [] in
     mutate_call, Cil.mkBinOp ~loc LOr mutation_side no_mutation_side
 
@@ -115,7 +115,7 @@ class visitor mk_label = object(self)
             let local_init = AssignInit zero_init in
             let instr_init = Local_init(vi, local_init, unk_loc) in
             vi.vdefined <- true;
-            Cil.mkStmtOneInstr ~valid_sid:true instr_init
+            Stmt_builder.instr instr_init
           in
           let inits = List.rev @@ List.map f to_add in
           fdec.sbody.bstmts <- inits @ fdec.sbody.bstmts;
@@ -186,9 +186,9 @@ class visitor mk_label = object(self)
     | If (exp,thenb,elseb,loc) when started && Stack.is_empty is_inlined_block ->
       let mutate_calls, new_exp = self#generate_if_exp exp in
       seen_double <- false;
-      let thenb' = (Cil.visitCilBlock (self :> Cil.cilVisitor) thenb) in
-      let elseb' = (Cil.visitCilBlock (self :> Cil.cilVisitor) elseb) in
-      let new_if = Stmt.mk (If (new_exp,thenb',elseb',loc)) in
+      let thenb' = Cil.visitCilBlock (self :> Cil.cilVisitor) thenb in
+      let elseb' = Cil.visitCilBlock (self :> Cil.cilVisitor) elseb in
+      let new_if = Stmt_builder.mk (If (new_exp,thenb',elseb',loc)) in
       stmt.skind <- Block (Cil.mkBlock (mutate_calls @ [new_if]));
       Cil.SkipChildren
     | _ -> Cil.DoChildren

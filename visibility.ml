@@ -1,4 +1,5 @@
 open Cil_types
+open Ast_const
 
 class to_visibility = object(self)
   inherit Visitor.frama_c_inplace
@@ -7,12 +8,12 @@ class to_visibility = object(self)
   val unk_loc = Cil_datatype.Location.unknown
 
   method private mk_init ?(loc=unk_loc) vi value =
-    let set = Local_init(vi,AssignInit(SingleInit(value)),loc) in
-    Cil.mkStmtOneInstr ~valid_sid:true set
+    Local_init(vi,AssignInit(SingleInit(value)),loc)
+    |> Stmt_builder.instr
 
   method private mk_comp ?(loc=unk_loc) op vi value =
     let new_exp = Cil.new_exp ~loc (Lval (Var vi, NoOffset)) in
-    Ast_const.Exp.binop op new_exp value
+    Exp_builder.binop op new_exp value
 
   method! vfunc _ =
     Cil.DoChildrenPost (fun f ->
@@ -36,7 +37,7 @@ class to_visibility = object(self)
             match l with
             | [] -> acc
             | s' :: t when Cil_datatype.Stmt.equal s s' ->
-              s'.skind <- Block (Cil.mkBlock (lbls @ [Ast_const.Stmt.mk s'.skind]));
+              s'.skind <- Block (Cil.mkBlock (lbls @ [Stmt_builder.mk s'.skind]));
               aux t (acc @ [s'])
             | s' :: t -> aux t (acc @ [s'])
           in

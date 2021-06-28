@@ -42,7 +42,7 @@ let rec partition_lval ~depth ~width ~(emit: exp -> unit) typ lval =
     (* "Expressible" type *)
     | TInt _ | TFloat _ | TPtr _ | TEnum _ ->
       (* simple lval, do not use for struct or union *)
-      let exp () = Exp.lval (lval ()) in
+      let exp () = Exp_builder.lval (lval ()) in
       partition_exp ~depth ~width ~emit typ exp
 
     (* Named type *)
@@ -72,16 +72,16 @@ let rec partition_lval ~depth ~width ~(emit: exp -> unit) typ lval =
           (* let's generate labels for each element (in the limit of [width] elements) *)
           let l = if Integer.lt l (Integer.of_int width) then Integer.to_int l else width in
           for i = 0 to l-1 do
-            let lval' () = Cil.addOffsetLval (Index (Exp.integer i, NoOffset)) (lval ()) in
+            let lval' () = Cil.addOffsetLval (Index (Exp_builder.integer i, NoOffset)) (lval ()) in
             partition_lval ~depth:(depth-1) ~width ~emit typ lval'
           done
         | _ ->
           (* Symbolic length *)
-          emit (Exp.binop Eq (Cil.copy_exp length) (Exp.zero ()));
+          emit (Exp_builder.binop Eq (Cil.copy_exp length) (Exp_builder.zero ()));
           for i = 0 to width-1 do
-            let emit' cond = emit (Exp.binop LAnd (Exp.binop Gt (Cil.copy_exp length)
-                                                     (Exp.integer i)) cond) in
-            let lval' () = Cil.addOffsetLval (Index (Exp.integer i, NoOffset))
+            let emit' cond = emit (Exp_builder.binop LAnd (Exp_builder.binop Gt (Cil.copy_exp length)
+                                                             (Exp_builder.integer i)) cond) in
+            let lval' () = Cil.addOffsetLval (Index (Exp_builder.integer i, NoOffset))
                 (lval ()) in
             partition_lval ~depth:(depth-1) ~width ~emit:emit' typ lval'
           done
@@ -89,7 +89,7 @@ let rec partition_lval ~depth ~width ~(emit: exp -> unit) typ lval =
 
     | TArray (typ, None, _, _) ->
       (* unknown size: let's check the first element *)
-      let lval' () = Cil.addOffsetLval (Index (Exp.zero (), NoOffset)) (lval ()) in
+      let lval' () = Cil.addOffsetLval (Index (Exp_builder.zero (), NoOffset)) (lval ()) in
       partition_lval ~depth:(depth-1) ~width ~emit typ lval'
 
     | TBuiltin_va_list _ ->
@@ -108,23 +108,23 @@ and partition_exp ~depth ~width ~(emit : exp -> unit) typ exp =
     (* Unsigned integers *)
     | TInt ((IUChar|IUShort|IUInt|IULong|IULongLong|IBool),_) ->
       List.iter emit [
-        Exp.binop Eq (exp ()) (Exp.zero ());
-        Exp.binop Ne (exp ()) (Exp.zero ())
+        Exp_builder.binop Eq (exp ()) (Exp_builder.zero ());
+        Exp_builder.binop Ne (exp ()) (Exp_builder.zero ())
       ];
 
       (* Signed integer and floating point numbers *)
     | TInt _ | TFloat _ ->
       List.iter emit [
-        Exp.binop Eq (exp ()) (Exp.zero ());
-        Exp.binop Gt (exp ()) (Exp.zero ());
-        Exp.binop Lt (exp ()) (Exp.zero ())
+        Exp_builder.binop Eq (exp ()) (Exp_builder.zero ());
+        Exp_builder.binop Gt (exp ()) (Exp_builder.zero ());
+        Exp_builder.binop Lt (exp ()) (Exp_builder.zero ())
       ]
 
     (* Pointers *)
     | TPtr (typ, _) ->
-      emit (Exp.binop Eq (exp ()) (Exp.zero ()));
-      emit (Exp.binop Ne (exp ()) (Exp.zero ()));
-      let emit' cond = emit (Exp.binop LAnd (Exp.binop Ne (exp ()) (Exp.zero ())) cond) in
+      emit (Exp_builder.binop Eq (exp ()) (Exp_builder.zero ()));
+      emit (Exp_builder.binop Ne (exp ()) (Exp_builder.zero ()));
+      let emit' cond = emit (Exp_builder.binop LAnd (Exp_builder.binop Ne (exp ()) (Exp_builder.zero ())) cond) in
       let lval' () = Cil.mkMem (exp ()) NoOffset in
       partition_lval ~depth:(depth-1) ~width ~emit:emit' typ lval'
 
@@ -135,7 +135,7 @@ and partition_exp ~depth ~width ~(emit : exp -> unit) typ exp =
     (* Enumeration *)
     | TEnum (enum,_) ->
       let onitem item =
-        emit (Exp.binop Eq (exp ()) (Cil.copy_exp item.eival));
+        emit (Exp_builder.binop Eq (exp ()) (Cil.copy_exp item.eival));
       in
       List.iter onitem enum.eitems
 
@@ -161,13 +161,13 @@ class inputDomainVisitor max_depth max_width all_funs globals mk_label = object 
       partition_lval max_depth max_width emit var.vtype (fun () -> Cil.var var)
     in
     List.iter gen_for_var vars;
-    Stmt.block (List.rev !acc)
+    List.rev !acc
 
   method! vfunc f =
-    if Annotators.shouldInstrumentFun f.svar && (all_funs || f.svar.vname =
-                                                          Kernel.MainFunction.get ()) then begin
-      let oldBody = Stmt.mk (Block (f.sbody)) in
-      f.sbody <- Cil.mkBlock (self#gformals (globals @ f.sformals) f.svar.vdecl :: [oldBody]);
+    if Annotators.shouldInstrumentFun f.svar &&
+       (all_funs || f.svar.vname = Kernel.MainFunction.get ()) then begin
+      let lbls = self#gformals (globals @ f.sformals) f.svar.vdecl in
+      f.sbody.bstmts <- lbls @ f.sbody.bstmts
     end;
     Cil.SkipChildren
 end

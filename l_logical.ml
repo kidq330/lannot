@@ -23,9 +23,7 @@
 open Cil_types
 open Utils
 open Ast_const
-
-let pos atom = Cil.copy_exp atom
-let neg atom = Exp.lnot (Cil.copy_exp atom)
+open Exp_builder
 
 let array_to_string l r = l ^ ",\n" ^ r
 
@@ -47,7 +45,7 @@ let gen_labels_ncc mk_label n (bexpr : exp) : stmt =
   (* For each signed subset of atoms, *)
   let for_signed_subset (acc : stmt list) (signed_subset : exp list) : stmt list =
     (* Get conjunction as an expression*)
-    let exp = Exp.join LAnd signed_subset in
+    let exp = join LAnd signed_subset in
     (* Create a label and put it in front of acc *)
     mk_label exp [] loc :: acc
   in
@@ -55,71 +53,74 @@ let gen_labels_ncc mk_label n (bexpr : exp) : stmt =
   (* For each subset of atoms, *)
   let for_subset (acc : stmt list) (subset : exp list) : stmt list =
     (* Compute signed subsets *)
-    let signed_subsets = sign_combine pos neg subset in
+    let signed_subsets = sign_combine (fun id -> id) lnot subset in
     (* Create labels for each signed subset (taken in rev. order)
        and put them in rev. in front of acc (N.B. [rev rev l = l]) *)
     List.fold_left for_signed_subset acc signed_subsets
   in
-  let stmts = List.rev (List.fold_left for_subset [] subsets) in
-  Stmt.block stmts
+  List.rev (List.fold_left for_subset [] subsets)
+  |> Stmt_builder.block
 
 (** Generate DC labels for the given Boolean formula *)
 let gen_labels_dc mk_label bexpr =
   let loc = bexpr.eloc in
-  let l1 = mk_label (pos bexpr) [] loc in
-  let l2 = mk_label (neg bexpr) [] loc in
-  let labels = [l1;l2] in
-  Stmt.block labels
+  let l1 = mk_label bexpr [] loc in
+  let l2 = mk_label (lnot bexpr) [] loc in
+  Stmt_builder.block [l1;l2]
 
 (** Generate GACC labels for one particular active clause *)
 let gen_labels_gacc_for mk_label whole part =
   let loc = whole.eloc in
-  let w0 = Exp.replace whole part (Exp.one ()) in
-  let w1 = Exp.replace whole part (Exp.zero ()) in
+  let w0 = replace whole part (one ()) in
+  let w1 = replace whole part (zero ()) in
 
   (* rather than to test w0 != w1, do (w0 && !w1) || (!w0 && w1) *)
-  let indep = Exp.niff w0 w1 in
+  let indep = niff w0 w1 in
 
-  let a_indep = Exp.binop LAnd (pos part) (Cil.copy_exp indep) in
-  let na_indep = Exp.binop LAnd (neg part) (Cil.copy_exp indep) in
+  let a_indep = binop LAnd part indep in
+  let na_indep = binop LAnd (lnot part) indep in
 
-  Stmt.block (List.map (fun e -> mk_label e [] loc) [a_indep; na_indep])
+  List.map (fun e -> mk_label e [] loc) [a_indep; na_indep]
 
 let hlab_cacc = ref [| |]
 
 (** Generate GACC labels for the given Boolean formula *)
 let gen_labels_gacc mk_label bexpr =
-  let atoms = atomic_conditions bexpr in
-  Stmt.block (List.map (gen_labels_gacc_for mk_label bexpr) atoms)
+  atomic_conditions bexpr
+  |> List.map (gen_labels_gacc_for mk_label bexpr)
+  |> List.flatten
+  |> Stmt_builder.block
 
 (** Generate CACC labels for one particular active clause *)
 let gen_labels_cacc_for mk_label whole part =
   Annotators.label_function_name := "pc_label_bindings";
   let loc = whole.eloc in
-  let w0 = Exp.replace whole part (Exp.one ()) in
-  let w1 = Exp.replace whole part (Exp.zero ()) in
+  let w0 = replace whole part (one ()) in
+  let w1 = replace whole part (zero ()) in
 
   let binding_id = Annotators.next_binding () in
 
   (* rather than to test w0 != w1, do (w0 && !w1) || (!w0 && w1) *)
-  let indep = Exp.niff w0 w1 in
+  let indep = niff w0 w1 in
 
-  let a_indep = Exp.binop LAnd (pos part) (Cil.copy_exp indep) in
-  let na_indep = Exp.binop LAnd (neg part) (Cil.copy_exp indep) in
+  let a_indep = binop LAnd part (Cil.copy_exp indep) in
+  let na_indep = binop LAnd (lnot part) (Cil.copy_exp indep) in
 
-  let l = mk_label a_indep [Exp.integer binding_id; Exp.integer 1 ; Exp.mk (Const (CStr "pa")) ; whole] loc in
+  let l = mk_label a_indep [integer binding_id; integer 1 ; mk (Const (CStr "pa")) ; whole] loc in
   let idl = Annotators.getCurrentLabelId () in
-  let r = mk_label na_indep [Exp.integer binding_id; Exp.integer 1 ; Exp.mk (Const (CStr "pb")) ; whole] loc in
+  let r = mk_label na_indep [integer binding_id; integer 1 ; mk (Const (CStr "pb")) ; whole] loc in
   let idr = Annotators.getCurrentLabelId () in
 
   hlab_cacc := Array.append !hlab_cacc [| (idl,idr) |];
   Annotators.label_function_name := "pc_label";
-  Stmt.block [ l ; r ]
+  [ l ; r ]
 
 (** Generate CACC labels for the given Boolean formula *)
 let gen_labels_cacc mk_label bexpr =
-  let atoms = atomic_conditions bexpr in
-  Stmt.block (List.map (gen_labels_cacc_for mk_label bexpr) atoms)
+  atomic_conditions bexpr
+  |> List.map (gen_labels_cacc_for mk_label bexpr)
+  |> List.flatten
+  |> Stmt_builder.block
 
 (** Generate CACC hyperlabels *)
 let couple_to_string c = Annotators.next_hl() ^ ") <l" ^ (string_of_int (fst c)) ^ ".l" ^ (string_of_int (snd c)) ^ "|;pa!=pb;>"
@@ -139,38 +140,40 @@ let gen_hyperlabels_cacc = ref (fun () ->
 
 let hlab_racc = ref [| |]
 
-let handle_list_l la a = List.concat [ la ; [  Exp.mk (Const (CStr ("cA" ^ (string_of_int ((List.length la) / 2 + 1))))) ; a ] ]
-let handle_list_r la a = List.concat [ la ; [  Exp.mk (Const (CStr ("cB" ^ (string_of_int ((List.length la) / 2 + 1))))) ; a ] ]
+let handle_list_l la a = List.concat [ la ; [  mk (Const (CStr ("cA" ^ (string_of_int ((List.length la) / 2 + 1))))) ; a ] ]
+let handle_list_r la a = List.concat [ la ; [  mk (Const (CStr ("cB" ^ (string_of_int ((List.length la) / 2 + 1))))) ; a ] ]
 
 (** Generate RACC labels for one particular active clause *)
 let gen_labels_racc_for mk_label whole atoms part =
   Annotators.label_function_name := "pc_label_bindings";
   let loc = whole.eloc in
-  let w0 = Exp.replace whole part (Exp.one ()) in
-  let w1 = Exp.replace whole part (Exp.zero ()) in
+  let w0 = replace whole part (one ()) in
+  let w1 = replace whole part (zero ()) in
 
   let binding_id = Annotators.next_binding () in
 
   (* rather than to test w0 != w1, do (w0 && !w1) || (!w0 && w1) *)
-  let indep = Exp.niff w0 w1 in
+  let indep = niff w0 w1 in
 
-  let a_indep = Exp.binop LAnd (pos part) (Cil.copy_exp indep) in
-  let na_indep = Exp.binop LAnd (neg part) (Cil.copy_exp indep) in
+  let a_indep = binop LAnd part indep in
+  let na_indep = binop LAnd (lnot part) indep in
 
   let atoms_without_current = List.filter (fun a -> part <> a) atoms in
-  let l = mk_label a_indep (List.concat [[Exp.integer binding_id; Exp.integer (List.length atoms_without_current)] ; List.fold_left handle_list_l [] atoms_without_current]) loc in
+  let l = mk_label a_indep (List.concat [[integer binding_id; integer (List.length atoms_without_current)] ; List.fold_left handle_list_l [] atoms_without_current]) loc in
   let idl = Annotators.getCurrentLabelId () in
-  let r = mk_label na_indep (List.concat [[Exp.integer binding_id; Exp.integer (List.length atoms_without_current)] ; List.fold_left handle_list_r [] atoms_without_current]) loc in
+  let r = mk_label na_indep (List.concat [[integer binding_id; integer (List.length atoms_without_current)] ; List.fold_left handle_list_r [] atoms_without_current]) loc in
   let idr = Annotators.getCurrentLabelId () in
 
   hlab_racc := Array.append !hlab_racc [| (idl,(idr,(List.length atoms_without_current))) |];
   Annotators.label_function_name := "pc_label";
-  Stmt.block [ l ; r ]
+  [ l ; r ]
 
 (** Generate RACC labels for the given Boolean formula *)
 let gen_labels_racc mk_label bexpr =
   let atoms = atomic_conditions bexpr in
-  Stmt.block (List.map (gen_labels_racc_for mk_label bexpr atoms) atoms)
+  List.map (gen_labels_racc_for mk_label bexpr atoms) atoms
+  |> List.flatten
+  |> Stmt_builder.block
 
 (** Generate RACC hyperlabels *)
 let rec generate_equalities i =
@@ -201,29 +204,30 @@ let gen_hyperlabels_racc = ref (fun () ->
 let gen_labels_gicc_for mk_label whole part =
   let loc = whole.eloc in
   (* Compute negative and positive Shannon's factors wrt to part *)
-  let factor0 = Exp.replace whole part (Exp.one ()) in
-  let factor1 = Exp.replace whole part (Exp.one ()) in
+  let factor0 = replace whole part (one ()) in
+  let factor1 = replace whole part (one ()) in
   (* Check the inactivity of part *)
-  let inactive = Exp.iff factor0 factor1 in
+  let inactive = iff factor0 factor1 in
 
-  let true_inactive = Exp.binop LAnd (pos part) inactive in
-  let false_inactive = Exp.binop LAnd (neg part) inactive in
-  let true_inactive_true = Exp.binop LAnd true_inactive (pos whole) in
-  let true_inactive_false = Exp.binop LAnd true_inactive (neg whole) in
-  let false_inactive_true = Exp.binop LAnd false_inactive (pos whole) in
-  let false_inactive_false = Exp.binop LAnd false_inactive (neg whole) in
-  Stmt.block (List.map (fun e -> mk_label e [] loc) [
+  let true_inactive = binop LAnd part inactive in
+  let false_inactive = binop LAnd (lnot part) inactive in
+  let true_inactive_true = binop LAnd true_inactive whole in
+  let true_inactive_false = binop LAnd true_inactive (lnot whole) in
+  let false_inactive_true = binop LAnd false_inactive whole in
+  let false_inactive_false = binop LAnd false_inactive (lnot whole) in
+  List.map (fun e -> mk_label e [] loc) [
       true_inactive_true;
       true_inactive_false;
       false_inactive_true;
       false_inactive_false;
-    ])
+    ]
 
 (** Generate GICC labels for the given Boolean formula *)
 let gen_labels_gicc mk_label bexpr =
-  let atoms = atomic_conditions bexpr in
-  Stmt.block (List.map (gen_labels_gicc_for mk_label bexpr) atoms)
-
+  atomic_conditions bexpr
+  |> List.map (gen_labels_gicc_for mk_label bexpr)
+  |> List.flatten
+  |> Stmt_builder.block
 
 (** Visotor that will store all limits expressions *)
 class visitExp = object(self)
@@ -242,26 +246,26 @@ class visitExp = object(self)
        cf. COQ proof in file LIMIT_proof.v
     *)
     let delta = Options.LimitDelta.get () in
-    let posComp = Exp.binop Le exp (Exp.integer delta) in
-    let negComp = Exp.binop Le (Exp.neg exp) (Exp.integer delta) in
-    let abs = Exp.binop LAnd posComp negComp in
-    Exp.binop LAnd cond abs
+    let posComp = binop Le exp (integer delta) in
+    let negComp = binop Le (neg exp) (integer delta) in
+    let abs = binop LAnd posComp negComp in
+    binop LAnd cond abs
 
   method! vexpr cond =
     match cond.enode with
     | BinOp ((Lt | Le | Gt | Ge) as op, e1, e2, _) ->
       ignore (Visitor.visitFramacExpr (self :> Visitor.frama_c_visitor) e1);
       ignore (Visitor.visitFramacExpr (self :> Visitor.frama_c_visitor) e2);
-      let e = Exp.binop MinusA e1 e2 in
+      let e = binop MinusA e1 e2 in
       let isInt = Cil.isIntegralType (Cil.typeOf e) in
       if isInt then begin
         begin match op with
           | Lt ->
-            let to_zero = Exp.binop PlusA e (Exp.one()) in
+            let to_zero = binop PlusA e (one()) in
             let new_exp = self#mk_limit cond to_zero in
             bexprs <- new_exp :: bexprs
           | Gt ->
-            let to_zero = Exp.binop MinusA e (Exp.one()) in
+            let to_zero = binop MinusA e (one()) in
             let new_exp = self#mk_limit cond to_zero in
             bexprs <- new_exp :: bexprs
           | Le | Ge ->
@@ -279,7 +283,8 @@ let gen_labels_limit mk_label bexpr =
   let loc = bexpr.eloc in
   let ve = new visitExp in
   ignore (Visitor.visitFramacExpr (ve :> Visitor.frama_c_visitor) bexpr);
-  Stmt.block (List.map (fun exp -> mk_label exp [] loc) (ve#get_exprs()))
+  List.map (fun exp -> mk_label exp [] loc) (ve#get_exprs())
+  |> Stmt_builder.block
 
 (**
    Frama-C in-place visitor that injects labels at each condition/boolean
@@ -296,14 +301,6 @@ class visitor gen_labels all_boolean = object(self)
     else
       Cil.SkipChildren
 
-  method private vstmt_post stmt =
-    match bexprs with
-    | [] -> stmt
-    | _ ->
-      let labels = Stmt.block (List.rev_map gen_labels bexprs) in
-      bexprs <- [];
-      Stmt.block [labels; stmt]
-
   method! vstmt_aux stmt =
     match stmt.skind with
     | If (e, thenb, elseb, loc) ->
@@ -311,11 +308,19 @@ class visitor gen_labels all_boolean = object(self)
       (* handle visits manually to skip visit of e *)
       let thenb = Visitor.visitFramacBlock (self :> Visitor.frama_c_visitor) thenb in
       let elseb = Visitor.visitFramacBlock (self :> Visitor.frama_c_visitor) elseb in
-      stmt.skind <- Block (Cil.mkBlock [labels_stmt; Stmt.mk (If (e, thenb, elseb, loc))]);
+      stmt.skind <- Block (Cil.mkBlock [labels_stmt; Stmt_builder.mk (If (e, thenb, elseb, loc))]);
       Cil.SkipChildren
     | _ ->
       if all_boolean then
-        Cil.DoChildrenPost (fun stmt -> self#vstmt_post stmt)
+        Cil.DoChildrenPost (fun stmt ->
+            match bexprs with
+            | [] -> stmt
+            | _ ->
+              let labels = List.rev_map gen_labels bexprs in
+              bexprs <- [];
+              stmt.skind <- Block (Cil.mkBlock (labels @ [Stmt_builder.mk stmt.skind]));
+              stmt
+          )
       else
         Cil.DoChildren
 
