@@ -7,6 +7,11 @@ class to_visibility = object(self)
   val mutable to_add_ret = None,[]
   val unk_loc = Cil_datatype.Location.unknown
 
+  method! vvdec v =
+    if v.vname = "__retres" then
+      v.vname <- "__retres_hidden_from_pc_view";
+    SkipChildren
+
   method private mk_init ?(loc=unk_loc) vi value =
     Local_init(vi,AssignInit(SingleInit(value)),loc)
     |> Stmt_builder.instr
