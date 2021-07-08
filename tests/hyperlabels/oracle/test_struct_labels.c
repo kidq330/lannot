@@ -22,18 +22,18 @@ int f(int x, int y)
 {
   int __retres;
   struct coord test;
-  int __SEQ_STATUS_1 = 1;
-  int __SEQ_STATUS_2 = 1;
-  int __SEQ_STATUS_3 = 0;
-  int __SEQ_STATUS_4 = 0;
-  pc_label(__SEQ_STATUS_1 == 1,1,"AUC");
+  int __SEQ_STATUS_x_1 = 1;
+  int __SEQ_STATUS_y_2 = 1;
+  int __SEQ_STATUS_test_3 = 0;
+  int __SEQ_STATUS_test_4 = 0;
+  pc_label(__SEQ_STATUS_x_1 == 1,1,"AUC");
   test.x = x;
-  __SEQ_STATUS_3 = 1;
-  pc_label(__SEQ_STATUS_2 == 1,2,"AUC");
+  __SEQ_STATUS_test_3 = 1;
+  pc_label(__SEQ_STATUS_y_2 == 1,2,"AUC");
   test.y = y;
-  __SEQ_STATUS_4 = 1;
-  pc_label(__SEQ_STATUS_3 == 1,3,"AUC");
-  pc_label(__SEQ_STATUS_4 == 1,4,"AUC");
+  __SEQ_STATUS_test_4 = 1;
+  pc_label(__SEQ_STATUS_test_3 == 1,3,"AUC");
+  pc_label(__SEQ_STATUS_test_4 == 1,4,"AUC");
   __retres = test.x + test.y;
   return __retres;
 }

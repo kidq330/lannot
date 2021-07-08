@@ -86,7 +86,7 @@ module Listtbl (T : Hashtbl.S) = struct
 
   (** Add an element in front of the existing binding, else bind to a new list
       containing this element *)
-  let add_element_front tbl key elt =
+  let add tbl key elt =
     if T.mem tbl key then
       let old = T.find tbl key in
       T.replace tbl key (elt::old)
@@ -94,7 +94,7 @@ module Listtbl (T : Hashtbl.S) = struct
       T.add tbl key [elt]
 
   (** Add a list in front of the existing binding, else create a new binding *)
-  let add_list_front tbl key elt =
+  let add_list tbl key elt =
     if T.mem tbl key then
       let old = T.find tbl key in
       T.replace tbl key (elt@old)
@@ -228,12 +228,21 @@ let is_triv_equiv varofst visited =
   Options.CleanEquiv.get() &&
   List.exists (fun varofst' -> VarOfst.equal varofst' varofst) visited
 
+let seq_status_prefix = "__SEQ_STATUS"
+
+let mk_name ?(pre=seq_status_prefix) s id = pre ^ "_" ^ s ^ "_" ^ string_of_int id
+
 (** Test if a VarOfst V should be instrumented, i.e. if it's not a global,
     a temp variable or if it's the first time we see it in the current
     expr/instr (except if CleanDuplicate is false) *)
-let should_instrument (v,offset) visited =
-  not v.vglob && not (Datatype.String.equal v.vname "__retres") && not v.vtemp
-  && Annotators.shouldInstrumentVar v && not (is_triv_equiv (v,offset) visited)
+let should_instrument ?visited (v,offset) =
+  not v.vglob && not v.vtemp
+  && not (Datatype.String.equal v.vname "__retres")
+  && not @@ Extlib.string_prefix seq_status_prefix v.vname
+  && Annotators.shouldInstrumentVar v
+  && match visited with
+  | None -> true
+  | Some visited -> not (is_triv_equiv (v,offset) visited)
 
 let unk_loc = Location.unknown
 
@@ -242,8 +251,8 @@ let unk_loc = Location.unknown
 (***********************************)
 
 (** Perform the part 5- of the heading comment *)
-class visit_defuse (defs_set,uses_set) current_stmt kf
-    (mk_label:exp -> 'a list -> location -> stmt) to_add_fun = object(self)
+class visit_defuse ~annot_bound (defs_set,uses_set) current_stmt kf
+    (mk_label: exp -> 'a list -> location -> stmt) to_add_fun = object(self)
   inherit Visitor.frama_c_inplace
 
   (** Used to avoid trivially equivalent uses *)
@@ -272,54 +281,48 @@ class visit_defuse (defs_set,uses_set) current_stmt kf
       Plus the initialization (depending on the type of stmtDef, cf. Def type)
       and add this sequence id to its hyperlabel
   *)
-  method private register_seq ((_,_,stmtDef) as def) ids vInfo cond suse =
+  method private register_seq def id_seqs vInfo def_lbl cond use_lbl =
+    let _,_,stmtDef = def in
     begin match stmtDef with
       | Kglobal ->
-        to_add_fun := (ids,self#mk_init vInfo (Exp_builder.one ())) :: !to_add_fun
+        let init = self#mk_init vInfo def_lbl in
+        to_add_fun := (id_seqs, init) :: !to_add_fun
       | Kstmt stmt ->
-        to_add_fun := (ids,self#mk_init vInfo (Exp_builder.zero ())) :: !to_add_fun;
-        Stmt_lst.add_element_front to_add_defs stmt (ids,self#mk_set vInfo (Exp_builder.one ()))
+        let init = self#mk_init vInfo (Exp_builder.zero ()) in
+        to_add_fun := (id_seqs, init) :: !to_add_fun;
+        Stmt_lst.add to_add_defs stmt (def_lbl, self#mk_set vInfo def_lbl)
     end;
-    Def_lst.add_element_front def_to_conds def (ids,cond);
-    Stmt_lst.add_element_front to_add_uses current_stmt (ids,suse);
-    Def_lst.add_element_front hyperlabels def ids;
+    Def_lst.add def_to_conds def (id_seqs,cond);
+    Stmt_lst.add to_add_uses current_stmt (id_seqs,use_lbl);
+    Def_lst.add hyperlabels def id_seqs;
     incr nb_seqs
 
   (** Create a def-use sequence for the given def/bounds
       and register it in Hashtbls
   *)
   method private mkSeq_aux loc def bound =
-    let _,(vi,offset),stmtDef = def in
-    let ids = Annotators.getCurrentLabelId () + 1 in (* sequence id *)
-    let vInfo = self#init_vinfo ("__SEQ_STATUS_" ^ string_of_int ids) in
-    let cond = self#mk_set vInfo (Exp_builder.zero ()) in
-    let use = self#mk_comp vInfo (Exp_builder.one ()) in
-    let suse = match bound with
-      | None -> mk_label use [] loc
-      | Some (op,bound) ->
-        let pred_vInfo = self#init_vinfo ("__SEQ_BOUND_" ^ string_of_int ids) in
-        let lval_vInfo = Exp_builder.mk (Lval (Var pred_vInfo,NoOffset)) in
-        let pred = self#mk_comp ~offset ~op vi bound in
-        begin match stmtDef with
-          | Kglobal ->
-            to_add_fun := (ids,self#mk_init pred_vInfo pred) :: !to_add_fun
-          | Kstmt stmt ->
-            to_add_fun := (ids,self#mk_init pred_vInfo (Exp_builder.zero ())) :: !to_add_fun;
-            Stmt_lst.add_element_front to_add_defs stmt (ids,self#mk_set pred_vInfo pred)
-        end;
-        let use = Exp_builder.binop Cil_types.LAnd use lval_vInfo in
-        mk_label use [] loc
+    let _,(vi,offset),_ = def in
+    let id_seq = Annotators.getCurrentLabelId () + 1 in (* sequence id *)
+    let vInfo = self#init_vinfo (mk_name vi.vname id_seq) in
+    let def_lbl =
+      match bound with
+      | None -> Exp_builder.one ()
+      | Some (op,bound) -> self#mk_comp ~offset ~op vi bound
     in
-    self#register_seq def ids vInfo cond suse
+    let break_seq = self#mk_set vInfo (Exp_builder.zero ()) in
+    let use = self#mk_comp vInfo (Exp_builder.one ()) in
+    let use_lbl = mk_label use [] loc in
+    self#register_seq def id_seq vInfo def_lbl break_seq use_lbl
 
   (** Create a def-use sequence for the given def and bounds *)
   method private mkSeq loc def =
     let _,(vi,offset),_ = def in
-    match Cil.typeOfLval (Var vi, offset) with
-    | TInt (kind, _) ->
-      if Options.BoundedDataflow.get () then
-        let bounds = Utils.get_bounds kind in
-        List.iter (fun b -> self#mkSeq_aux loc def (Some b)) bounds
+    match Cil.typeOfLval (Var vi, offset) |> Cil.unrollType with
+    | TInt (kind, _)
+    | TEnum ({ekind = kind}, _) ->
+      if annot_bound then
+        Utils.get_bounds kind
+        |> List.iter (fun b -> self#mkSeq_aux loc def (Some b))
       else self#mkSeq_aux loc def None
     | _ -> self#mkSeq_aux loc def None
 
@@ -331,10 +334,12 @@ class visit_defuse (defs_set,uses_set) current_stmt kf
         | Set ((Var v,offset),_,_)
         | Call (Some (Var v,offset),_,_,_) ->
           let varofst = (v,trunc_fields offset) in
-          let t = Def.Set.filter (fun (_,varData,_) ->
-              VarOfst.equal varData varofst) defs_set in
-          if not @@ Def.Set.is_empty t then
-            Stmt.Hashtbl.add to_add_conds_stmt stmt t;
+          if should_instrument varofst then begin
+            let t = Def.Set.filter (fun (_,varData,_) ->
+                VarOfst.equal varData varofst) defs_set in
+            if not @@ Def.Set.is_empty t then
+              Stmt.Hashtbl.add to_add_conds_stmt stmt t;
+          end;
           Cil.DoChildren
         | _ -> Cil.DoChildren
       end
@@ -345,10 +350,13 @@ class visit_defuse (defs_set,uses_set) current_stmt kf
     match expr.enode with
     | Lval (Var v, offset) ->
       let varofst = (v,trunc_fields offset) in
-      if should_instrument varofst visited then begin
+      if should_instrument ~visited varofst then begin
         visited <- varofst :: visited;
         (* Keeps defs related to this variable *)
-        let all_varofst_defs = Def.Set.filter (fun (_,varData,_) -> VarOfst.equal varData varofst) defs_set in
+        let all_varofst_defs =
+          Def.Set.filter (fun (_,varData,_) ->
+              VarOfst.equal varData varofst) defs_set
+        in
         if not (Def.Set.is_empty all_varofst_defs) then
           if not (Options.CleanEquiv.get ())
           || not (is_equivalent varofst current_stmt kf uses_set) then
@@ -374,7 +382,7 @@ class visit_use state stmt = object(_)
       match expr.enode with
       | Lval (Var v, offset) ->
         let varofst = (v,trunc_fields offset) in
-        if should_instrument varofst visited then begin
+        if should_instrument ~visited varofst then begin
           visited <- varofst :: visited;
           let new_uses = Use.Set.add (varofst,stmt) uses in
           state := NonBottom (defs, new_uses);
@@ -501,18 +509,18 @@ let do_function kf mk_label to_add_fun =
       begin
         match stmt.skind with
         | Instr i when not (Utils.is_label i) ->
-          ignore(Cil.visitCilStmt (new visit_defuse t stmt kf mk_label to_add_fun :> Cil.cilVisitor) stmt);
+          ignore(Cil.visitCilStmt (new visit_defuse ~annot_bound t stmt kf mk_label to_add_fun :> Cil.cilVisitor) stmt);
         | Return (Some e,_)
         | If (e,_,_,_)
         | Switch (e,_,_,_) ->
-          ignore(Cil.visitCilExpr  (new visit_defuse t stmt kf mk_label to_add_fun :> Cil.cilVisitor) e);
+          ignore(Cil.visitCilExpr (new visit_defuse ~annot_bound t stmt kf mk_label to_add_fun :> Cil.cilVisitor) e);
         | _ -> ()
       end
   in
   Results.iter_on_result visit_stmt
 
 (** Part 1- and 2- of the heading comment *)
-class addSequences mk_label = object(self)
+class addSequences ~annot_bound mk_label = object(self)
   inherit Visitor.frama_c_inplace
   val to_add_conds = Stmt.Hashtbl.create 17
 
@@ -534,23 +542,25 @@ class addSequences mk_label = object(self)
         List.sort compare @@ Stmt.Hashtbl.find to_add_conds stmt
       else []
     in
-    List.map (fun (_,s) -> s) defs, (List.map (fun (_,s) -> s) uses) @ (List.map (fun (_,s) -> s) conds)
+    (List.map (fun (_,s) -> s) uses) @ (List.map (fun (_,s) -> Stmt_builder.mk s.skind) conds),
+    List.map (fun (_,s) -> s) defs
 
   (** Part 1- and 2- of the heading comment *)
   method! vfunc dec =
     let kf = Option.get self#current_kf in
-    if Kernel_function.is_definition kf && Annotators.shouldInstrumentFun dec.svar then begin
+    if Kernel_function.is_definition kf
+    && Annotators.shouldInstrumentFun dec.svar then begin
       let to_add_fun = ref [] in
-      Cfg.clearCFGinfo ~clear_id:false dec;
-      Cfg.cfgFun dec;
-      do_function kf mk_label to_add_fun;
+      do_function ~annot_bound kf mk_label to_add_fun;
 
-      Cil.DoChildrenPost (fun f ->
+      Cil.DoChildrenPost (fun new_dec ->
           let defs = List.sort compare !to_add_fun in
-          f.sbody.bstmts <- (List.map (fun (_,s) -> s) defs) @ f.sbody.bstmts;
-          reset_all ();
+          new_dec.sbody.bstmts <- (List.map (fun (_,s) -> s) defs) @ new_dec.sbody.bstmts;
           Stmt.Hashtbl.reset to_add_conds;
-          f
+          reset_all ();
+          Cfg.clearCFGinfo ~clear_id:false new_dec;
+          Cfg.cfgFun new_dec;
+          new_dec
         )
     end
     else Cil.SkipChildren
@@ -562,10 +572,7 @@ class addSequences mk_label = object(self)
           match l with
           | [] -> acc
           | s :: t ->
-            let after,before = self#get_seqs_sorted s in
-            (* if the statement has 1 or more labels, then moves it to
-               the first statement of before if it exists *)
-
+            let before,after = self#get_seqs_sorted s in
             s.skind <- Block (Cil.mkBlock (before @ [Stmt_builder.mk s.skind]));
             aux t (acc @ [s] @ after)
         in block.bstmts <- aux block.bstmts [];
@@ -584,7 +591,7 @@ class addSequences mk_label = object(self)
             Def.Set.iter (fun def ->
                 if Def.Hashtbl.mem def_to_conds def then
                   Def.Hashtbl.find def_to_conds def
-                  |> Stmt_lst.add_list_front to_add_conds s
+                  |> Stmt_lst.add_list to_add_conds s
               ) def_set;
             Cil.DoChildren
           | _ -> assert false
@@ -598,23 +605,24 @@ class addSequences mk_label = object(self)
 
 end
 
-type criterion = ADC | AUC | DUC
+type criterion = ADC | AUC | DUC | BADC | BAUC | BDUC
 
-let string_of_criterion = function
-  | ADC -> "+"
-  | AUC -> "."
-  | DUC -> ""
+let operator_of_criterion crit =
+  match crit with
+  | ADC | BADC -> "+"
+  | AUC | BAUC -> "."
+  | DUC | BDUC -> assert false
 
 (** Create all hyperlabels *)
 let compute_hl crit =
   match crit with
-  | DUC ->
+  | DUC | BDUC ->
     Def.Hashtbl.fold (fun _ seqs str ->
         let seqs = List.sort compare seqs in
         List.fold_left (fun acc s -> acc ^ Annotators.next_hl() ^ ") <l" ^ string_of_int s ^"|; ;>,\n") str seqs
       ) hyperlabels ""
-  | ADC | AUC ->
-    let symb = string_of_criterion crit in
+  | _ ->
+    let symb = operator_of_criterion crit in
     Def.Hashtbl.fold (fun _ seqs str ->
         let seqs = List.sort compare seqs in
         str ^ Annotators.next_hl() ^ ") <" ^ (String.concat symb (List.map (fun s -> "l" ^ string_of_int s) seqs)) ^ "|; ;>,\n"
@@ -631,18 +639,36 @@ let gen_hyperlabels crit =
   Options.feedback "Total number of sequences = %d" !nb_seqs;
   Options.feedback "Total number of hyperlabels = %d" (Annotators.getCurrentHLId())
 
+let visited = ref (false,false)
+
+let is_visited crit =
+  match crit, !visited with
+  | (ADC | AUC | DUC), (v, _) -> v
+  | (BADC | BAUC | BDUC), (_, v) -> v
+
+let set_visited crit =
+  match crit, !visited with
+  | (ADC | AUC | DUC),    (_, old) -> visited := (true,old)
+  | (BADC | BAUC | BDUC), (old, _) -> visited := (old,true)
+
 (** Visit the file with our main visitor addSequences, and mark the new AST as
     changed *)
-let visite file mk_label : unit =
-  Visitor.visitFramacFileSameGlobals (new addSequences mk_label :> Visitor.frama_c_visitor) file;
-  Ast.mark_as_changed ()
+let visite ?(annot_bound=false) crit file mk_label : unit =
+  if not (is_visited crit) then begin
+    Visitor.visitFramacFileSameGlobals
+      (new addSequences ~annot_bound mk_label :> Visitor.frama_c_visitor) file;
+    Ast.mark_as_changed ();
+    set_visited crit
+  end
+  else
+    Options.feedback "Avoid annotating with 2 dataflow criteria at the same time"
 
 (** All-defs annotator *)
 module ADC = Annotators.Register (struct
     let name = "ADC"
     let help = "All-Definitions Coverage"
     let apply mk_label file =
-      visite file mk_label;
+      visite ADC file mk_label;
       gen_hyperlabels ADC
   end)
 
@@ -651,7 +677,7 @@ module AUC = Annotators.Register (struct
     let name = "AUC"
     let help = "All-Uses Coverage"
     let apply mk_label file =
-      visite file mk_label;
+      visite AUC file mk_label;
       gen_hyperlabels AUC
   end)
 
@@ -660,6 +686,33 @@ module DUC = Annotators.Register (struct
     let name = "DUC"
     let help = "Definition-Use Coverage"
     let apply mk_label file =
-      visite file mk_label;
+      visite DUC file mk_label;
       gen_hyperlabels DUC
+  end)
+
+(** Bounded All-defs annotator *)
+module BADC = Annotators.Register (struct
+    let name = "BADC"
+    let help = "Bounded All-Definitions Coverage"
+    let apply mk_label file =
+      visite ~annot_bound:true BADC file mk_label;
+      gen_hyperlabels BADC
+  end)
+
+(** Bounded All-uses annotator *)
+module BAUC = Annotators.Register (struct
+    let name = "BAUC"
+    let help = "Bounded All-Uses Coverage"
+    let apply mk_label file =
+      visite ~annot_bound:true BAUC file mk_label;
+      gen_hyperlabels BAUC
+  end)
+
+(** Bounded Def-Use annotator *)
+module BDUC = Annotators.Register (struct
+    let name = "BDUC"
+    let help = "Bounded Definition-Use Coverage"
+    let apply mk_label file =
+      visite ~annot_bound:true BDUC file mk_label;
+      gen_hyperlabels BDUC
   end)

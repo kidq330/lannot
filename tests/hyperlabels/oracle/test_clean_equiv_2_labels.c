@@ -29,28 +29,28 @@ int j(void)
 void f(void)
 {
   int x;
-  int __SEQ_STATUS_1 = 0;
-  int __SEQ_STATUS_2 = 0;
-  int __SEQ_STATUS_3 = 0;
-  int __SEQ_STATUS_4 = 0;
+  int __SEQ_STATUS_x_1 = 0;
+  int __SEQ_STATUS_x_2 = 0;
+  int __SEQ_STATUS_x_3 = 0;
+  int __SEQ_STATUS_x_4 = 0;
   x = 0;
-  __SEQ_STATUS_1 = 1;
-  __SEQ_STATUS_3 = 1;
+  __SEQ_STATUS_x_1 = 1;
+  __SEQ_STATUS_x_3 = 1;
   while (1) {
-    pc_label(__SEQ_STATUS_1 == 1,1,"AUC");
-    pc_label(__SEQ_STATUS_2 == 1,2,"AUC");
+    pc_label(__SEQ_STATUS_x_1 == 1,1,"AUC");
+    pc_label(__SEQ_STATUS_x_2 == 1,2,"AUC");
     if (! (x < 10)) break;
-    pc_label(__SEQ_STATUS_3 == 1,3,"AUC");
-    pc_label(__SEQ_STATUS_4 == 1,4,"AUC");
+    pc_label(__SEQ_STATUS_x_3 == 1,3,"AUC");
+    pc_label(__SEQ_STATUS_x_4 == 1,4,"AUC");
     g(x);
     g(x);
-    __SEQ_STATUS_1 = 0;
-    __SEQ_STATUS_2 = 0;
-    __SEQ_STATUS_3 = 0;
-    __SEQ_STATUS_4 = 0;
+    __SEQ_STATUS_x_1 = 0;
+    __SEQ_STATUS_x_2 = 0;
+    __SEQ_STATUS_x_3 = 0;
+    __SEQ_STATUS_x_4 = 0;
     x ++;
-    __SEQ_STATUS_2 = 1;
-    __SEQ_STATUS_4 = 1;
+    __SEQ_STATUS_x_2 = 1;
+    __SEQ_STATUS_x_4 = 1;
   }
   return;
 }

@@ -185,12 +185,6 @@ module CleanEquiv = True (struct
   end)
 
 let () = Parameter_customize.set_group dataflow
-module BoundedDataflow = False (struct
-    let option_name = "-lannot-bounded-dataflow"
-    let help = "Test bound for dataflows (Default : false)"
-  end)
-
-let () = Parameter_customize.set_group dataflow
 module MaxContextPath = Int (struct
     let option_name = "-lannot-maxpath"
     let arg_name = "NUM"
