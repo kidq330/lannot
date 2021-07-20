@@ -160,6 +160,12 @@ module LimitDelta = Int (struct
   end)
 let () = LimitDelta.set_range ~min:0 ~max:max_int
 
+let () = Parameter_customize.set_group crit_group
+module BoundPostpone = False (struct
+    let option_name = "-lannot-bound-postpone"
+    let help = "Postpone bound evaluation to the use label (Default : false)"
+  end)
+
 module Inline = True (struct
     let option_name = "-lannot-inline"
     let help = "Annotate inline functions (Default : true)"

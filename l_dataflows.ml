@@ -126,6 +126,9 @@ let def_id = VarOfst.Hashtbl.create 32
 *)
 let seen_def = Stmt.Hashtbl.create 32
 
+let postpone_def = Def.Hashtbl.create 32
+
+
 (** bind each new sequence to its corresponding statement, sequence id (int) is
     used to sort them at the end
     key : statement
@@ -146,34 +149,6 @@ let def_to_conds = Def.Hashtbl.create 32
     value : int list
 *)
 let hyperlabels = Def.Hashtbl.create 32
-
-let print_def (defId,(vi,ofst),stmt) =
-  let stmt =
-    match stmt with
-    | Kglobal -> "Function parameter"
-    | Kstmt stmt -> "Stmt " ^ string_of_int stmt.sid
-  in
-  Format.printf "defId: %d / var : %a / stmtDef: %s\n%!"
-    defId Cil_printer.pp_lval (Var vi, ofst) stmt
-
-let print_use ((vi,ofst),stmt) =
-  Format.printf "var: %a / sid: %d\n%!"
-    Cil_printer.pp_lval (Var vi, ofst) stmt.sid
-
-let print_uses set =
-  Printf.printf "Uses : \n%!";
-  Use.Set.iter (fun elt -> Printf.printf "    %!"; print_use elt) set
-
-let print_defs set =
-  Printf.printf "Defs : \n%!";
-  Def.Set.iter (fun elt -> Printf.printf "    %!"; print_def elt) set
-
-let pretty _ = function
-  | Bottom -> Printf.printf "Bottom\n%!"
-  | NonBottom (defs,uses) ->
-    Printf.printf "NonBottom : \n%!";
-    print_defs defs;
-    print_uses uses
 
 (** Clear all hashtbls after each function in addSequences *)
 let reset_all () =
@@ -229,6 +204,7 @@ let is_triv_equiv varofst visited =
   List.exists (fun varofst' -> VarOfst.equal varofst' varofst) visited
 
 let seq_status_prefix = "__SEQ_STATUS"
+let seq_tmp_prefix = "__SEQ_TMP"
 
 let mk_name ?(pre=seq_status_prefix) s id = pre ^ "_" ^ s ^ "_" ^ string_of_int id
 
@@ -259,8 +235,8 @@ class visit_defuse ~annot_bound (defs_set,uses_set) current_stmt kf
   val mutable visited = []
 
   (** Create a new varinfo *)
-  method private init_vinfo name =
-    Cil.makeVarinfo false false name (TInt(IInt,[]))
+  method private init_vinfo ?(typ=TInt(IInt,[])) name =
+    Cil.makeVarinfo false false name typ
 
   (** Create a statement : vi = value; *)
   method private mk_set ?(loc=unk_loc) vi value =
@@ -281,17 +257,18 @@ class visit_defuse ~annot_bound (defs_set,uses_set) current_stmt kf
       Plus the initialization (depending on the type of stmtDef, cf. Def type)
       and add this sequence id to its hyperlabel
   *)
-  method private register_seq def id_seqs vInfo def_lbl cond use_lbl =
+  method private register_seq def id_seqs to_register cond use_lbl =
     let _,_,stmtDef = def in
-    begin match stmtDef with
-      | Kglobal ->
-        let init = self#mk_init vInfo def_lbl in
-        to_add_fun := (id_seqs, init) :: !to_add_fun
-      | Kstmt stmt ->
-        let init = self#mk_init vInfo (Exp_builder.zero ()) in
-        to_add_fun := (id_seqs, init) :: !to_add_fun;
-        Stmt_lst.add to_add_defs stmt (def_lbl, self#mk_set vInfo def_lbl)
-    end;
+    List.iter (fun (vInfo,def_exp) ->
+        match stmtDef with
+        | Kglobal ->
+          let init = self#mk_init vInfo def_exp in
+          to_add_fun := (id_seqs, init) :: !to_add_fun
+        | Kstmt stmt ->
+          let init = self#mk_init vInfo (Exp_builder.zero ()) in
+          to_add_fun := (id_seqs, init) :: !to_add_fun;
+          Stmt_lst.add to_add_defs stmt (id_seqs, self#mk_set vInfo def_exp)
+      ) to_register;
     Def_lst.add def_to_conds def (id_seqs,cond);
     Stmt_lst.add to_add_uses current_stmt (id_seqs,use_lbl);
     Def_lst.add hyperlabels def id_seqs;
@@ -304,15 +281,33 @@ class visit_defuse ~annot_bound (defs_set,uses_set) current_stmt kf
     let _,(vi,offset),_ = def in
     let id_seq = Annotators.getCurrentLabelId () + 1 in (* sequence id *)
     let vInfo = self#init_vinfo (mk_name vi.vname id_seq) in
-    let def_lbl =
-      match bound with
-      | None -> Exp_builder.one ()
-      | Some (op,bound) -> self#mk_comp ~offset ~op vi bound
+    let use = self#mk_comp vInfo (Exp_builder.one ()) in
+    let use,to_register =
+      match bound, Options.BoundPostpone.get () with
+      | None, _ -> use,[vInfo, Exp_builder.one ()]
+      | Some (op,bound), true ->
+        let tmp_vInfo, init =
+          if Def.Hashtbl.mem postpone_def def then
+            Def.Hashtbl.find postpone_def def, []
+          else begin
+            let tmp_vInfo = self#init_vinfo ~typ:(Cil.typeOfLval (Var vi, offset))
+                (mk_name ~pre:seq_tmp_prefix vi.vname id_seq)
+            in
+            Def.Hashtbl.add postpone_def def tmp_vInfo;
+            let exp_vInfo = Exp_builder.mk (Lval (Var vi, offset)) in
+            tmp_vInfo, [(tmp_vInfo, exp_vInfo)]
+          end
+        in
+        let pred = self#mk_comp ~op tmp_vInfo bound in
+        Exp_builder.binop Cil_types.LAnd use pred,
+        [(vInfo,Exp_builder.one ())] @ init
+      | Some (op,bound), false ->
+        use,
+        [(vInfo,self#mk_comp ~offset ~op vi bound)]
     in
     let break_seq = self#mk_set vInfo (Exp_builder.zero ()) in
-    let use = self#mk_comp vInfo (Exp_builder.one ()) in
     let use_lbl = mk_label use [] loc in
-    self#register_seq def id_seq vInfo def_lbl break_seq use_lbl
+    self#register_seq def id_seq to_register break_seq use_lbl
 
   (** Create a def-use sequence for the given def and bounds *)
   method private mkSeq loc def =
@@ -392,9 +387,37 @@ class visit_use state stmt = object(_)
 end
 
 (** Part 4- of the heading comment *)
-module Inst = struct
+module Dataflow (B : sig val bounded : bool end) = struct
 
-  let pretty = pretty
+  type nonrec t = t
+
+  let pretty_def fmt (defId,(vi,ofst),stmt) =
+    let stmt =
+      match stmt with
+      | Kglobal -> "Function parameter"
+      | Kstmt stmt -> Format.asprintf "Stmt %a" Printer.pp_stmt stmt
+    in
+    Format.fprintf fmt "defId: %d / var : %a / %s@."
+      defId Cil_printer.pp_lval (Var vi, ofst) stmt
+
+  let pretty_use fmt ((vi,ofst),stmt) =
+    Format.fprintf fmt "var: %a / Stmt: %a@."
+      Printer.pp_lval (Var vi, ofst) Printer.pp_stmt stmt
+
+  let pretty_uses fmt set =
+    Format.fprintf fmt "  Uses :@.";
+    Use.Set.iter (fun elt -> Format.fprintf fmt "    "; pretty_use fmt elt) set
+
+  let pretty_defs fmt set =
+    Format.fprintf fmt "  Defs :@.";
+    Def.Set.iter (fun elt -> Format.fprintf fmt "    "; pretty_def fmt elt) set
+
+  let pretty fmt = function
+    | Bottom -> Format.fprintf fmt "Bottom@."
+    | NonBottom (defs,uses) ->
+      Format.fprintf fmt "NonBottom :@.";
+      pretty_defs fmt defs;
+      pretty_uses fmt uses
 
   (** Return a new set after removing all definitions of a given VarOfst *)
   let remove_def varofst s =
@@ -404,8 +427,6 @@ module Inst = struct
   let remove_use varofst s =
     Use.Set.filter (fun (var,_) -> not (VarOfst.equal var varofst)) s
 
-  type nonrec t = t
-
   (** Function called to join 2 states *)
   let join a b =
     match a,b with
@@ -413,22 +434,22 @@ module Inst = struct
     | NonBottom (d,u), NonBottom (d',u') ->
       NonBottom (Def.Set.union d d',Use.Set.inter u u')
 
-  (** Is the set A a subset of B *)
-  let is_included a b =
-    match a,b with
-    | Bottom, _ -> true
+  let is_equal a b =
+    match a, b with
+    | Bottom, NonBottom _
     | NonBottom _, Bottom -> false
+    | Bottom, Bottom -> true
     | NonBottom (d,u), NonBottom (d',u') ->
-      Def.Set.subset d d' && Use.Set.subset u u'
+      Def.Set.equal d d' && Use.Set.equal u u'
 
-  let join_and_is_included a b =
-    join a b, is_included a b
-
-  let bottom = Bottom
+  let widen a b =
+    let c = join a b in
+    if is_equal a c then None
+    else Some c
 
   (** Part 4- b) of the heading comment *)
   let do_def ?(local=false) v offset stmt = function
-    | Bottom -> Bottom
+    | Bottom -> Some Bottom
     | NonBottom (defs,uses) ->
       let varofst = (v,trunc_fields offset) in
       let defs_clean =
@@ -448,60 +469,70 @@ module Inst = struct
           Def.Set.add new_def defs_clean
         end
       in
-      NonBottom (new_defs,uses_clean)
+      Some (NonBottom (new_defs,uses_clean))
+
+  let rec isConstant e =
+    match e.enode with
+    | Info _ -> assert false
+    | Const _ -> true
+    | UnOp (LNot, _, _) -> true
+    | UnOp (_, e, _) -> isConstant e
+    | BinOp ((Lt|Gt|Le|Ge|Eq|Ne|LAnd|LOr), _, _, _) -> true
+    | BinOp _ -> false
+    | Lval _ -> false
+    | SizeOf _ | SizeOfE _ | SizeOfStr _ | AlignOf _ | AlignOfE _ -> true
+    | CastE (_, e) -> isConstant e
+    | AddrOf _ | StartOf _ -> false
 
   (** Function called for each stmt and propagating new states to each succs of
       stmt
   *)
-  let transfer_stmt stmt state =
-    match stmt.skind with
-    | Instr i when not (Utils.is_label i) ->
+  let transfer t state =
+    let open Interpreted_automata in
+    match t with
+    | Skip | Prop _ | Enter _ | Leave _ | Return (None,_) -> Some state
+    | Return (Some e, stmt)
+    | Guard (e, _, stmt) ->
+      let state = ref state in
+      ignore(Cil.visitCilExpr (new visit_use state stmt :> Cil.cilVisitor) e);
+      Some !state
+    | Instr (i, stmt) when not (Utils.is_label i) ->
       let state = ref state in
       ignore(Cil.visitCilInstr (new visit_use state stmt :> Cil.cilVisitor) i);
       begin match i with
-        | Set ((Var v,offset),_,_)
-        | Call (Some (Var v,offset),_,_,_) ->
-          if not (Datatype.String.equal v.vname "__retres") && not v.vtemp then begin
-            let res = do_def v offset stmt !state in
-            List.map (fun x -> (x,res)) stmt.succs
-          end
-          else List.map (fun x -> (x,!state)) stmt.succs
-        | Local_init (v,_,_) ->
-          if not (Datatype.String.equal v.vname "__retres") && not v.vtemp then begin
-            let res = do_def ~local:true v NoOffset stmt !state in
-            List.map (fun x -> (x,res)) stmt.succs
-          end
-          else List.map (fun x -> (x,!state)) stmt.succs
-        | _ ->
-          List.map (fun x -> (x,!state)) stmt.succs
+        | Set (_, e, _)
+        | Local_init (_, AssignInit (SingleInit e), _)
+          when isConstant e && B.bounded ->
+          Some !state
+        | Set ((Var vi, offset), _, _)
+        | Call (Some (Var vi, offset),_,_,_) ->
+          if should_instrument (vi,offset) then
+            do_def vi offset stmt !state
+          else Some !state
+        | Local_init (vi, _, _) ->
+          if should_instrument (vi,NoOffset) then
+            do_def ~local:true vi NoOffset stmt !state
+          else Some !state
+        | Call _ | Set _ | Asm _ | Cil_types.Skip _ | Code_annot _ ->
+          Some !state
       end
-    | Return (Some e,_)
-    | If (e,_,_,_)
-    | Switch (e,_,_,_) ->
-      let state = ref state in
-      ignore(Cil.visitCilExpr (new visit_use state stmt :> Cil.cilVisitor) e);
-      List.map (fun x -> (x,!state)) stmt.succs
-    | _ -> List.map (fun x -> (x,state)) stmt.succs
+    | Instr _ -> Some state
 
 end
 
 (** Dataflow analysis, Part 3-,4-,5- of the heading comment *)
-let do_function kf mk_label to_add_fun =
-  let module Fenv = (val Dataflows.function_env kf) in
+let do_function ~annot_bound kf mk_label to_add_fun =
+  let module DataflowAnalysis = Interpreted_automata.ForwardAnalysis (
+      Dataflow (struct let bounded = annot_bound end)
+    ) in
   let args = Kernel_function.get_formals kf in
-  let first_stmt = Kernel_function.find_first_stmt kf in
   let f acc arg =
     let defId = get_next_def_id (arg,NoOffset) in
     Def.Set.add (defId, (arg,NoOffset), Kglobal) acc
   in
   let init_d = List.fold_left f Def.Set.empty args in
-  let module Arg = struct
-    include Inst
-    let init =
-      [(first_stmt, NonBottom (init_d, Use.Set.empty))]
-
-  end in
-  let module Results = Dataflows.Simple_forward(Fenv)(Arg) in
+  let init_state = NonBottom (init_d, Use.Set.empty) in
+  let result = DataflowAnalysis.fixpoint kf init_state in
   let visit_stmt stmt state =
     match state with
     | Bottom -> ()
@@ -517,7 +548,7 @@ let do_function kf mk_label to_add_fun =
         | _ -> ()
       end
   in
-  Results.iter_on_result visit_stmt
+  DataflowAnalysis.Result.iter_stmt visit_stmt result
 
 (** Part 1- and 2- of the heading comment *)
 class addSequences ~annot_bound mk_label = object(self)
