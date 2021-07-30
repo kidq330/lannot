@@ -93,7 +93,7 @@ let gen_labels_gacc mk_label bexpr =
 
 (** Generate CACC labels for one particular active clause *)
 let gen_labels_cacc_for mk_label whole part =
-  Annotators.label_function_name := "pc_label_bindings";
+  Annotators.label_function_vinfo := !Annotators.pc_label_bindings;
   let loc = whole.eloc in
   let w0 = replace whole part (one ()) in
   let w1 = replace whole part (zero ()) in
@@ -112,7 +112,7 @@ let gen_labels_cacc_for mk_label whole part =
   let idr = Annotators.getCurrentLabelId () in
 
   hlab_cacc := Array.append !hlab_cacc [| (idl,idr) |];
-  Annotators.label_function_name := "pc_label";
+  Annotators.label_function_vinfo := !Annotators.pc_label;
   [ l ; r ]
 
 (** Generate CACC labels for the given Boolean formula *)
@@ -145,7 +145,7 @@ let handle_list_r la a = List.concat [ la ; [  mk (Const (CStr ("cB" ^ (string_o
 
 (** Generate RACC labels for one particular active clause *)
 let gen_labels_racc_for mk_label whole atoms part =
-  Annotators.label_function_name := "pc_label_bindings";
+  Annotators.label_function_vinfo := !Annotators.pc_label_bindings;
   let loc = whole.eloc in
   let w0 = replace whole part (one ()) in
   let w1 = replace whole part (zero ()) in
@@ -165,7 +165,7 @@ let gen_labels_racc_for mk_label whole atoms part =
   let idr = Annotators.getCurrentLabelId () in
 
   hlab_racc := Array.append !hlab_racc [| (idl,(idr,(List.length atoms_without_current))) |];
-  Annotators.label_function_name := "pc_label";
+  Annotators.label_function_vinfo := !Annotators.pc_label;
   [ l ; r ]
 
 (** Generate RACC labels for the given Boolean formula *)

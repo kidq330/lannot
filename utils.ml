@@ -87,50 +87,11 @@ let extract_global_vars file =
   let globals = Cil.foldGlobals file f S.empty in
   S.elements globals
 
-let start_inline = "__LANNOTATE_START_INLINE"
-let end_inline = "__LANNOTATE_END_INLINE"
-let start = "__CM_START"
-let end_crit = "__CM_END"
-let double_if = "__CM_DOUBLE_IF"
-let target = "__CM_TARGET"
-
-let lannot_builtins = [start;double_if;target;start_inline;end_inline]
-
-let is_lannotate_builtin g =
-  match g with
-  | GFunDecl (_, vi, _ ) ->
-    List.exists (fun builtin -> String.equal vi.vname builtin) lannot_builtins
-  | _ -> false
-
-(* for option slicing = NONE *)
-let all_stmts = ref ([]:stmt list)
-
-(* val get_stmt_loc: stmt -> loc *)
-let get_stmt_loc = Cil_datatype.Stmt.loc
-
-(* val get_stmt_loc_int: stmt -> int *)
-let get_stmt_loc_int s = (fst (get_stmt_loc s)).Filepath.pos_lnum
-
 let print_file_path origine_loc = (Filepath.Normalized.to_pretty_string ((fst origine_loc).Filepath.pos_path))
 
-(* val same_line: stmt -> stmt -> bool *)
-let same_line s1 s2 = (get_stmt_loc_int s1) = (get_stmt_loc_int s2)
-
-(* val mk_call: ?loc:location -> ?result:lval -> string -> exp list -> stmt *)
-let mk_call ?(loc=Cil_datatype.Location.unknown) ?result fname args =
-  let new_lval loc v = Cil.new_exp loc (Lval (Cil.var v)) in
-  let t = match result with
-    | Some (Var v, _) -> v.vtype
-    | _ -> Cil.voidType in
-  let ty = TFun(t, None, false, []) in
-  let f = new_lval loc (Cil.makeGlobalVar fname ty) in
-  Stmt_builder.mk (Instr (Call (result, f, args, loc)))
-
-(* val mkdir: string -> unit *)
-let mkdir x =
-  if not (Sys.file_exists x) then
-    Unix.mkdir x 0o744
-
+let mk_call ?(loc=Cil_datatype.Location.unknown) ?result fvinfo args =
+  let vinfo_exp = Exp_builder.var ~loc (Option.get fvinfo) in
+  Stmt_builder.mk (Instr (Call (result, vinfo_exp, args, loc)))
 
 (** Indicates whether an instruction is a label. *)
 let is_label instr =
@@ -139,7 +100,6 @@ let is_label instr =
     let regexp = Str.regexp_string "pc_label" in
     Str.string_match regexp name 0
   | _ -> false
-
 
 (**
    Indicates whether an expression is boolean in itself.
@@ -156,12 +116,6 @@ let is_boolean e =
   | BinOp ((LAnd|LOr|Lt|Gt|Le|Ge|Eq|Ne), _, _, _)
   | UnOp (LNot, _, _) -> true
   | _ -> false
-
-let rec is_cil_string exp =
-  match exp.enode with
-  | Const (CStr str) -> Some str
-  | CastE (_, exp) -> is_cil_string exp
-  | _ -> None
 
 (**
    Get atomic conditions from a boolean expression.
@@ -225,8 +179,6 @@ let rev_sign_combine ~(pos: 'a -> 'b) ~(neg : 'a -> 'b) : 'a list -> 'b list lis
 let sign_combine ~pos ~neg l =
   List.rev (rev_sign_combine pos neg l)
 
-let concat l = List.fold_left (fun acc el -> acc @ el) [] l
-
 let with_delta op value kind =
   let delta = Options.LimitDelta.get () in
   let op' = match op, delta with
@@ -248,3 +200,10 @@ let get_bounds kind : (binop*exp) list =
   else
     [with_delta PlusA Integer.zero kind;
      with_delta MinusA (Cil.max_unsigned_number size) kind]
+
+let is_bound _kind _i = false
+  (* let size = Cil.bitsSizeOfInt kind in *)
+  (* if Cil.isSigned kind then *)
+   (* i>= (Cil.max_signed_number size) *)
+  (* else *)
+    (* i = Integer.of_int 0 || i >= Cil.max_signed_number size *)

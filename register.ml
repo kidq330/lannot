@@ -106,10 +106,10 @@ let setupMutatorOptions () =
   in
   Options.Mutators.iter f
 
-
 (* ENTRY POINT *)
 let run () =
   try
+    Annotators.init_builtins ();
     setupMutatorOptions ();
     annotate (Datatype.String.Set.elements (Options.Annotators.get ()))
   with

@@ -76,6 +76,22 @@ let next_hl () =
 
 let nocollect _ = ()
 
+let () =
+  Cil_builtins.add_special_builtin "pc_label";
+  Cil_builtins.add_special_builtin "pc_label_bindings";
+  Cil_builtins.add_special_builtin "mutated"
+
+let pc_label = ref None
+let pc_label_bindings = ref None
+let mutated = ref None
+let label_function_vinfo = ref None
+
+let init_builtins () =
+  pc_label := Some (Cil.makeGlobalVar "pc_label" (TFun(Cil.voidType, None, false, [])));
+  pc_label_bindings := Some (Cil.makeGlobalVar "pc_label_bindings" (TFun(Cil.voidType, None, false, [])));
+  mutated := Some (Cil.makeGlobalVar "mutated" (TFun(Cil.intType, None, false, [])));
+  label_function_vinfo := !pc_label
+
 let annotate_with annotator ?(id=next) ?(collect=nocollect) ast =
   Options.feedback "apply annotations for %s@." annotator.name;
   annotator.apply id collect ast
@@ -89,7 +105,7 @@ let annotate filename names ?(id=next) ?(collect=nocollect) ast =
     with Not_found -> Options.warning "unknown annotators `%s`" name
   in
   List.iter f names;
-  if Options.Visibility.get () then Visibility.to_visibility ast
+  if Options.Visibility.get () then Visibility.to_visibility ast !pc_label
 
 let print_help fmt =
   let annotators = Hashtbl.fold (fun _k v acc -> v :: acc) annotators [] in
@@ -97,8 +113,6 @@ let print_help fmt =
   let width = List.fold_left (fun acc ann -> max (String.length ann.name) acc) 0 annotators in
   let f ann = Format.fprintf fmt "%-*s @[%s@]@." width ann.name ann.help in
   List.iter f annotators
-
-let label_function_name = ref "pc_label"
 
 let mk_label id collect tag cond mvars loc =
   let id = id () in
@@ -109,17 +123,19 @@ let mk_label id collect tag cond mvars loc =
       cond
   in
   let tag =
-    if !label_function_name = "pc_label" && Options.Visibility.get () then
-      "V_"^tag
+    if (Option.get !label_function_vinfo).vname = "pc_label" &&
+       Options.Visibility.get ()
+    then "V_"^tag
     else tag
   in
   collect (id,tag,cond,loc);
   let tagExp = Ast_const.Exp_builder.mk (Const (CStr tag)) in
   let idExp = Ast_const.Exp_builder.integer id in
-  Utils.mk_call !label_function_name (List.concat [ [ cond; idExp; tagExp ] ; mvars])
+  Utils.mk_call !label_function_vinfo (List.concat [ [ cond; idExp; tagExp ] ; mvars])
 
 let mk_apply apply name id collect ast =
-  apply (mk_label id collect name) ast
+  apply (mk_label id collect name) ast;
+  Ast.mark_as_changed ()
 
 let mk_compute_extras apply name id collect ast =
   let mk_label' ~extra cond loc=

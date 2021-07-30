@@ -235,7 +235,7 @@ class visit_defuse ~annot_bound (defs_set,uses_set) current_stmt kf
   val mutable visited = []
 
   (** Create a new varinfo *)
-  method private init_vinfo ?(typ=TInt(IInt,[])) name =
+  method private init_vinfo ?(typ=Cil.intType) name =
     Cil.makeVarinfo false false name typ
 
   (** Create a statement : vi = value; *)
@@ -688,7 +688,6 @@ let visite ?(annot_bound=false) crit file mk_label : unit =
   if not (is_visited crit) then begin
     Visitor.visitFramacFileSameGlobals
       (new addSequences ~annot_bound mk_label :> Visitor.frama_c_visitor) file;
-    Ast.mark_as_changed ();
     set_visited crit
   end
   else
@@ -721,28 +720,28 @@ module DUC = Annotators.Register (struct
       gen_hyperlabels DUC
   end)
 
-(** Bounded All-defs annotator *)
+(** Boundary All-defs annotator *)
 module BADC = Annotators.Register (struct
     let name = "BADC"
-    let help = "Bounded All-Definitions Coverage"
+    let help = "Boundary All-Definitions Coverage"
     let apply mk_label file =
       visite ~annot_bound:true BADC file mk_label;
       gen_hyperlabels BADC
   end)
 
-(** Bounded All-uses annotator *)
+(** Boundary All-uses annotator *)
 module BAUC = Annotators.Register (struct
     let name = "BAUC"
-    let help = "Bounded All-Uses Coverage"
+    let help = "Boundary All-Uses Coverage"
     let apply mk_label file =
       visite ~annot_bound:true BAUC file mk_label;
       gen_hyperlabels BAUC
   end)
 
-(** Bounded Def-Use annotator *)
+(** Boundary Def-Use annotator *)
 module BDUC = Annotators.Register (struct
     let name = "BDUC"
-    let help = "Bounded Definition-Use Coverage"
+    let help = "Boundary Definition-Use Coverage"
     let apply mk_label file =
       visite ~annot_bound:true BDUC file mk_label;
       gen_hyperlabels BDUC

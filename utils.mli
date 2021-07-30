@@ -24,24 +24,10 @@ open Cil_types
 
 module Printer : Printer_api.S
 
-val start : string
-val start_inline : string
-val end_crit : string
-val end_inline : string
-val target : string
-val double_if : string
-
 val extract_global_vars : file -> varinfo list
-val is_lannotate_builtin : global -> bool
-val all_stmts : stmt list ref
-val get_stmt_loc : stmt -> location
-val get_stmt_loc_int : stmt -> int
 val print_file_path : Cil_types.location -> string
-val same_line : stmt -> stmt -> bool
 val mk_call :
-  ?loc:location -> ?result:lval -> string -> exp list -> stmt
-
-val mkdir : string -> unit
+  ?loc:location -> ?result:lval -> varinfo option -> exp list -> stmt
 
 (** Indicates whether an instruction is a label. *)
 val is_label : instr -> bool
@@ -52,7 +38,6 @@ val is_label : instr -> bool
 *)
 val is_boolean: exp -> bool
 
-val is_cil_string: exp -> string option
 (**
    Get atomic conditons form a boolean expression.
 *)
@@ -94,6 +79,6 @@ val sign_combine : pos:('a -> 'b) -> neg:('a -> 'b) -> 'a list -> 'b list list
 *)
 val rev_sign_combine : pos:('a -> 'b) -> neg:('a -> 'b) -> 'a list -> 'b list list
 
-val concat: 'a list list -> 'a list
-
 val get_bounds : ikind -> (binop*exp) list
+
+val is_bound : ikind -> Z.t -> bool

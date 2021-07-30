@@ -1,7 +1,7 @@
 open Cil_types
 open Ast_const
 
-class to_visibility = object(self)
+class to_visibility pc_label = object(self)
   inherit Visitor.frama_c_inplace
   val mutable to_add_vInfo = []
   val mutable to_add_ret = None,[]
@@ -67,7 +67,7 @@ class to_visibility = object(self)
       let lbls =
         List.map (fun (vi,id,tag) ->
             let cond = self#mk_comp ~loc Ne vi (Cil.zero ~loc) in
-            Utils.mk_call "pc_label" [cond; id; tag]
+            Utils.mk_call pc_label [cond; id; tag]
           ) to_add_vInfo
       in
       to_add_ret <- (Some s,lbls);
@@ -76,6 +76,6 @@ class to_visibility = object(self)
 
 end
 
-let to_visibility ast =
-  Visitor.visitFramacFileSameGlobals (new to_visibility :> Visitor.frama_c_visitor) ast;
-  Ast.mark_as_changed ()
+let to_visibility ast pc_label =
+  Visitor.visitFramacFileSameGlobals
+    (new to_visibility pc_label :> Visitor.frama_c_visitor) ast

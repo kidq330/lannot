@@ -77,7 +77,11 @@ val getCurrentLabelId : unit -> int
 val getCurrentBindingId: unit -> int
 val getCurrentHLId: unit -> int
 
-val label_function_name : string ref
+val pc_label : Cil_types.varinfo option ref
+val pc_label_bindings : Cil_types.varinfo option ref
+val mutated : Cil_types.varinfo option ref
+val label_function_vinfo : Cil_types.varinfo option ref
+val init_builtins : unit -> unit
 
 val next : unit -> int
 val next_hl: unit -> string

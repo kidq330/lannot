@@ -41,7 +41,8 @@ include Annotators.Register (struct
     end
 
     let apply f ast =
-      Visitor.visitFramacFileSameGlobals (visitor f) ast
+      Visitor.visitFramacFileSameGlobals (visitor f) ast;
+      Ast.mark_as_changed ()
 
   end)
 
@@ -114,20 +115,21 @@ module CallCov = Annotators.Register (struct
     let name = "FCC"
     let help = "Function Call Coverage"
     let apply mk_label file =
-      Visitor.visitFramacFileSameGlobals (new visitor mk_label :> Visitor.frama_c_visitor) file;
+      Visitor.visitFramacFileSameGlobals
+        (new visitor mk_label :> Visitor.frama_c_visitor) file;
       !gen_hyperlabels_callcov ()
   end)
 
-let cplTyToNbr = Hashtbl.create 100
+(* let cplTyToNbr = Hashtbl.create 100
 let id_gen = ref 0
 let list_convert = ref []
 let oc = ref None
-let get_oc () = match !oc with | Some f -> f | None -> let f = (open_out "output.txt") in oc := Some f; f
+let get_oc () = match !oc with | Some f -> f | None -> let f = (open_out "output.txt") in oc := Some f; f *)
 
 
 
 (** Remove Cast Visitor **)
-class remcastvisitor = object(selfobj)
+(* class remcastvisitor = object(selfobj)
   inherit Visitor.frama_c_inplace
 
   val mutable current_func = Cil.emptyFunction ""
@@ -264,7 +266,7 @@ module CastRem = Annotators.Register (struct
     let help = "Process file and replace casts by external function calls (useful for WP reasoning)"
     let apply _ file =
       Visitor.visitFramacFileSameGlobals (new remcastvisitor :> Visitor.frama_c_visitor) file
-  end)
+  end) *)
 
 
 

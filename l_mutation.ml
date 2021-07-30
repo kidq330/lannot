@@ -22,7 +22,6 @@
 
 open Cil_types
 open Ast_const
-open Utils
 
 (** RCC Visitor **)
 class visitor mk_label = object(self)
@@ -46,12 +45,27 @@ class visitor mk_label = object(self)
   method private next () : int =
     id <- id + 1; id
 
+  val start_inline = "__LANNOTATE_START_INLINE"
+  val end_inline = "__LANNOTATE_END_INLINE"
+  val start = "__CM_START"
+  val end_crit = "__CM_END"
+  val double_if = "__CM_DOUBLE_IF"
+  val target = "__CM_TARGET"
+
+  method private is_lannotate_builtin g =
+    match g with
+    | GFunDecl (_, vi, _ ) ->
+      List.exists (fun builtin -> String.equal vi.vname builtin)
+        [start;double_if;target;start_inline;end_inline]
+    | _ -> false
+
+
   (* Creates a new temporary variable and adds it to seen_vinfos *)
   method private get_new_tmp_var () : varinfo =
     let kf = Option.get self#current_kf in
     let fdec = Kernel_function.get_definition kf in
     let name = "lannot_mut_"^string_of_int (self#next()) in
-    let vi = Cil.makeTempVar ~name fdec (TInt(IInt,[])) in
+    let vi = Cil.makeTempVar ~name fdec Cil.intType in
     seen_vinfos <- vi :: seen_vinfos;
     to_add <- vi :: to_add;
     vi
@@ -66,7 +80,7 @@ class visitor mk_label = object(self)
     let mutate_exp = Cil.new_exp ~loc (Lval mutate_lval) in
     let mutation_side = Cil.mkBinOp ~loc LAnd mutate_exp (Exp_builder.lnot exp) in
     let no_mutation_side = Cil.mkBinOp ~loc LAnd (Exp_builder.lnot mutate_exp) exp in
-    let mutate_call = Utils.mk_call ~result:mutate_lval "mutated" [] in
+    let mutate_call = Utils.mk_call ~result:mutate_lval !Annotators.mutated [] in
     mutate_call, Cil.mkBinOp ~loc LOr mutation_side no_mutation_side
 
   (* Depending on seen_double value, changes the form of the mutated expression
@@ -197,7 +211,7 @@ class visitor mk_label = object(self)
     Cil.DoChildrenPost (fun f ->
         let clean_globals =
           Cil.foldGlobals f (fun acc g ->
-              if Utils.is_lannotate_builtin g then acc else g :: acc
+              if self#is_lannotate_builtin g then acc else g :: acc
             ) [] in
         f.globals <- List.rev clean_globals;
         f
