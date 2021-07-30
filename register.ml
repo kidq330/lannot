@@ -82,7 +82,7 @@ let annotate_on_project ann_names =
   (* output label data *)
   let data_filename = basename ^ ".labels" in
   Options.feedback "write label data (to %s)" data_filename;
-  Options.feedback "%d labels/sequences created" (Annotators.getCurrentLabelId ());
+  Options.feedback "%d labels created" (Annotators.getCurrentLabelId ());
   let out = open_out data_filename in
   store_label_data out annotations;
   close_out out;

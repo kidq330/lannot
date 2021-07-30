@@ -7,12 +7,6 @@
 #ifndef pc_label_bindings
 #define pc_label_bindings(...) do{}while(0)
 #endif
-#ifndef pc_label_sequence
-#define pc_label_sequence(...) do{}while(0)
-#endif
-#ifndef pc_label_sequence_condition
-#define pc_label_sequence_condition(...) do{}while(0)
-#endif
 
 #define MAX_MUTATION 1
 unsigned int cpt_mutation = 0;

@@ -2,5 +2,5 @@
 [lannot] apply annotations for CC
 [lannot] write modified C file (to tests/labels/result/test_CC_labels.c)
 [lannot] write label data (to tests/labels/result/test_CC_labels.labels)
-[lannot] 4 labels/sequences created
+[lannot] 4 labels created
 [lannot] finished

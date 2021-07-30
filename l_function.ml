@@ -41,8 +41,7 @@ include Annotators.Register (struct
     end
 
     let apply f ast =
-      Visitor.visitFramacFileSameGlobals (visitor f) ast;
-      Ast.mark_as_changed ()
+      Visitor.visitFramacFileSameGlobals (visitor f) ast
 
   end)
 

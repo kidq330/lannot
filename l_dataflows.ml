@@ -111,9 +111,6 @@ type t =
   | Bottom
   | NonBottom of (Def.Set.t * Use.Set.t)
 
-(** Count the number of sequences. *)
-let nb_seqs = ref 0
-
 (** For each VarOfst, keep the number of assignment seen for this VarOfst
     key : VarOfst.t
     value : int
@@ -271,8 +268,7 @@ class visit_defuse ~annot_bound (defs_set,uses_set) current_stmt kf
       ) to_register;
     Def_lst.add def_to_conds def (id_seqs,cond);
     Stmt_lst.add to_add_uses current_stmt (id_seqs,use_lbl);
-    Def_lst.add hyperlabels def id_seqs;
-    incr nb_seqs
+    Def_lst.add hyperlabels def id_seqs
 
   (** Create a def-use sequence for the given def/bounds
       and register it in Hashtbls
@@ -667,7 +663,6 @@ let gen_hyperlabels crit =
   let out = open_out_gen [Open_creat; Open_append] 0o644 data_filename in
   output_string out data;
   close_out out;
-  Options.feedback "Total number of sequences = %d" !nb_seqs;
   Options.feedback "Total number of hyperlabels = %d" (Annotators.getCurrentHLId())
 
 let visited = ref (false,false)

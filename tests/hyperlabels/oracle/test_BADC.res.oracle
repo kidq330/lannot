@@ -1,9 +1,8 @@
 [kernel] Parsing tests/hyperlabels/test_BADC.c (with preprocessing)
 [lannot] apply annotations for BADC
 [lannot] write hyperlabel data (to tests/hyperlabels/result/test_BADC_labels.hyperlabels)
-[lannot] Total number of sequences = 42
 [lannot] Total number of hyperlabels = 11
 [lannot] write modified C file (to tests/hyperlabels/result/test_BADC_labels.c)
 [lannot] write label data (to tests/hyperlabels/result/test_BADC_labels.labels)
-[lannot] 42 labels/sequences created
+[lannot] 42 labels created
 [lannot] finished

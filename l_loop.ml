@@ -90,7 +90,6 @@ let outter mk_label = object(self)
     let new_exp = Exp_builder.mk ~loc (Lval (Var vi, NoOffset)) in
     Exp_builder.binop Eq new_exp value
 
-  (** Create a pc_label_sequence *)
   method private mkSeq loc =
     let id_seq = Annotators.getCurrentLabelId () + 1 in (* sequence id *)
     let vInfo = Cil.makeVarinfo false false
