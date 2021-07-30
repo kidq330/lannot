@@ -56,8 +56,10 @@ class to_visibility = object(self)
                    [cond;{enode=Const (CInt64 (id, IInt, None))} as idExp; tagExp], loc))
       when String.equal name "pc_label" ->
       let vname = "__SEQ_VISIBILITY_" ^ (string_of_int (Integer.to_int id)) in
-      let pred_vInfo = Cil.makeVarinfo false false vname (TInt(IInt,[])) in
-      let set =  Ast_info.mkassign (Var pred_vInfo, NoOffset) cond loc in
+      let pred_vInfo = Cil.makeVarinfo false false vname Cil.intType in
+      let exp_vInfo = Exp_builder.lval ~loc (Var pred_vInfo, NoOffset) in
+      let keep_covered = Exp_builder.binop ~loc LOr exp_vInfo cond in
+      let set =  Ast_info.mkassign (Var pred_vInfo, NoOffset) keep_covered loc in
       to_add_vInfo <- to_add_vInfo @ [(pred_vInfo,idExp,tagExp)];
       s.skind <- Instr set;
       Cil.SkipChildren
