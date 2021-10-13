@@ -28,14 +28,18 @@ class visitor mk_label = object(self)
   inherit Visitor.frama_c_inplace
 
   val unk_loc = Cil_datatype.Location.unknown
+
   (* Used to know if we are inside an inlined block *)
   val is_inlined_block = Stack.create ()
-  (* List of last temporary variables used to store mutations *)
-  val mutable seen_vinfos : varinfo list= []
-  (* When started is true, mutate all if until success point is found *)
-  val mutable started : bool = false
-  (* Remember if a macro duble was seen for the next if *)
+
+  (* List of last temporary variables used to store mutations
+     for each critical block *)
+  val seen_vinfos = Stack.create ()
+
+  (* Remember if a macro double was seen for the next if *)
   val mutable seen_double : bool = false
+  (* Remember if a macro ignore was seen for the next if *)
+  val mutable seen_ignore : bool = false
   (* Id used to create temporary variable names *)
   val mutable id : int = 0
 
@@ -50,7 +54,11 @@ class visitor mk_label = object(self)
   val start = "__CM_START"
   val end_crit = "__CM_END"
   val double_if = "__CM_DOUBLE_IF"
+  val ignore_if = "__CM_IGNORE_IF"
   val target = "__CM_TARGET"
+
+  method private in_crit_zone () =
+    not (Stack.is_empty seen_vinfos) && Stack.is_empty is_inlined_block
 
   method private is_lannotate_builtin g =
     match g with
@@ -66,7 +74,8 @@ class visitor mk_label = object(self)
     let fdec = Kernel_function.get_definition kf in
     let name = "lannot_mut_"^string_of_int (self#next()) in
     let vi = Cil.makeTempVar ~name fdec Cil.intType in
-    seen_vinfos <- vi :: seen_vinfos;
+    let fst = Stack.pop seen_vinfos in
+    Stack.push (vi::fst) seen_vinfos;
     to_add <- vi :: to_add;
     vi
 
@@ -133,10 +142,10 @@ class visitor mk_label = object(self)
           in
           let inits = List.rev @@ List.map f to_add in
           fdec.sbody.bstmts <- inits @ fdec.sbody.bstmts;
-          seen_vinfos <- [];
+          Stack.clear seen_vinfos;
           to_add <- [];
-          started <- false;
           seen_double <- false;
+          seen_ignore <- false;
           fdec
         )
 
@@ -162,25 +171,31 @@ class visitor mk_label = object(self)
   *)
   method! vstmt_aux stmt =
     match stmt.skind with
-    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], _)) when String.equal v.vname start ->
-      if Stack.is_empty is_inlined_block then started <- true;
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], _))
+      when String.equal v.vname start ->
+      if Stack.is_empty is_inlined_block then Stack.push [] seen_vinfos;
       stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
       Cil.SkipChildren
-    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], _)) when String.equal v.vname end_crit ->
-      if Stack.is_empty is_inlined_block then begin
-        seen_vinfos <- [];
-        started <- false;
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], _))
+      when String.equal v.vname end_crit ->
+      if self#in_crit_zone () then begin
+        ignore(Stack.pop seen_vinfos);
         seen_double <- false;
+        seen_ignore <- false;
       end;
       stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
       Cil.SkipChildren
-    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, step :: [], loc)) when String.equal v.vname target ->
-      let step = Integer.to_int (Option.get (Cil.isInteger step)) in
-      if started && Stack.is_empty is_inlined_block then
-        if seen_vinfos <> [] then begin
-          let label = mk_label (self#generate_disj loc seen_vinfos) [] loc in
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, step :: [], loc))
+      when String.equal v.vname target ->
+      if self#in_crit_zone () then begin
+        let step = Integer.to_int (Option.get (Cil.isInteger step)) in
+        let top = Stack.pop seen_vinfos in
+        if top <> [] then begin
+          let label = mk_label (self#generate_disj loc top) [] loc in
           label.labels <- stmt.labels;
-          if step = 0 then (seen_vinfos <- []);
+          if step = 0
+          then Stack.push [] seen_vinfos
+          else Stack.push top seen_vinfos;
           Cil.ChangeTo label
         end
         else begin
@@ -189,15 +204,25 @@ class visitor mk_label = object(self)
           stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
           Cil.SkipChildren
         end
+      end
       else begin
         stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
         Cil.SkipChildren
       end
-    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], _)) when String.equal v.vname double_if ->
-      if started && Stack.is_empty is_inlined_block then seen_double <- true;
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], _))
+      when String.equal v.vname double_if ->
+      if self#in_crit_zone () then seen_double <- true;
       stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
       Cil.SkipChildren
-    | If (exp,thenb,elseb,loc) when started && Stack.is_empty is_inlined_block ->
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], _))
+      when String.equal v.vname ignore_if ->
+      if self#in_crit_zone () then seen_ignore <- true;
+      stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
+      Cil.SkipChildren
+    | If _ when self#in_crit_zone() && seen_ignore ->
+      seen_ignore <- false;
+      Cil.DoChildren
+    | If (exp,thenb,elseb,loc) when self#in_crit_zone() ->
       let mutate_calls, new_exp = self#generate_if_exp exp in
       seen_double <- false;
       let thenb' = Cil.visitCilBlock (self :> Cil.cilVisitor) thenb in
