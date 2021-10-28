@@ -10,6 +10,7 @@ int f1(int password){
     if(password != PASSWORD) return 1;
 
     __cm_target();
+    __cm_end();
     return 0;
 }
 
@@ -18,6 +19,7 @@ int f2(int password){
     __cm_double_if();
     if(password != PASSWORD || password != PASSWORD) return 1;
     __cm_target();
+    __cm_end();
     return 0;
 }
 
@@ -31,6 +33,7 @@ int f3(int password){
         __cm_target();
         return 0;
     }
+    __cm_end();
     return 1;
 }
 
@@ -38,6 +41,7 @@ int inline check(int p1, int p2){
     __cm_start();
     if(p1 != p2) return 1;
     __cm_target();
+    __cm_end();
     return 0;
 }
 
@@ -48,11 +52,13 @@ int f4(int password){
     if(check(password,PASSWORD)) return 1;
 
     __cm_target();
+    __cm_end();
     return 0;
 }
 int f5(int password){
     __cm_start();
     __cm_target();
+    __cm_end();
     return 0;
 }
 
@@ -63,6 +69,7 @@ int f6(int password){
     if(password != PASSWORD) return 1;
 
     __cm_target();
+    __cm_end();
     return 0;
 }
 
@@ -88,5 +95,18 @@ int f7(){
     secbool chk2=check_code_integrity();
     if(!chk2 == sectrue) return 1; // incorrect countermeasure, correct version use ~ instead of !
     __cm_target();
+    __cm_end();
+    return 0;
+}
+
+int f8(int password){
+    __cm_start();
+    __cm_ignore_if();
+    if(password = 0) return 1;
+    if(password != PASSWORD) return 1;
+    if(password != PASSWORD) return 1;
+
+    __cm_target();
+    __cm_end();
     return 0;
 }

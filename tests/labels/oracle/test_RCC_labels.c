@@ -32,6 +32,10 @@ secfalse = 0x55aa55aa,
 sectrue = 0xaa55aa55
 };
 typedef enum __anonenum_secbool_1 secbool;
+ __attribute__((__FC_BUILTIN__)) void __CM_END(void);
+
+ __attribute__((__FC_BUILTIN__)) void __CM_IGNORE_IF(void);
+
 int f1(int password)
 {
   int __retres;
@@ -49,6 +53,7 @@ int f1(int password)
     goto return_label;
   }
   pc_label(lannot_mut_1 || lannot_mut_2,1,"RCC");
+  ;
   __retres = 0;
   return_label: return __retres;
 }
@@ -68,6 +73,7 @@ int f2(int password)
     goto return_label;
   }
   pc_label(lannot_mut_3 || lannot_mut_4,2,"RCC");
+  ;
   __retres = 0;
   return_label: return __retres;
 }
@@ -96,6 +102,7 @@ int f3(int password)
     __retres = 0;
     goto return_label;
   }
+  ;
   __retres = 1;
   return_label: return __retres;
 }
@@ -111,6 +118,7 @@ __inline static int check__fc_inline(int p1, int p2)
     goto return_label;
   }
   pc_label(lannot_mut_8,5,"RCC");
+  ;
   __retres = 0;
   return_label: return __retres;
 }
@@ -135,6 +143,7 @@ int f4(int password)
       goto return_label_0;
     }
     ;
+    ;
     __retres_7 = 0;
     return_label_0: tmp = __retres_7;
   }
@@ -152,6 +161,7 @@ int f4(int password)
       __retres_10 = 1;
       goto return_label_1;
     }
+    ;
     ;
     __retres_10 = 0;
     return_label_1: tmp_0 = __retres_10;
@@ -171,6 +181,7 @@ int f4(int password)
       goto return_label_2;
     }
     ;
+    ;
     __retres_13 = 0;
     return_label_2: tmp_1 = __retres_13;
   }
@@ -180,6 +191,7 @@ int f4(int password)
     goto return_label;
   }
   pc_label(lannot_mut_9 || (lannot_mut_10 || lannot_mut_11),6,"RCC");
+  ;
   __retres = 0;
   return_label: return __retres;
 }
@@ -187,6 +199,7 @@ int f4(int password)
 int f5(int password)
 {
   int __retres;
+  ;
   ;
   ;
   __retres = 0;
@@ -211,6 +224,7 @@ int f6(int password)
     goto return_label;
   }
   pc_label(lannot_mut_12 || lannot_mut_13,7,"RCC");
+  ;
   __retres = 0;
   return_label: return __retres;
 }
@@ -438,6 +452,35 @@ int f7(void)
     goto return_label;
   }
   pc_label(lannot_mut_14 || lannot_mut_15,8,"RCC");
+  ;
+  __retres = 0;
+  return_label: return __retres;
+}
+
+int f8(int password)
+{
+  int __retres;
+  int lannot_mut_16 = 0;
+  int lannot_mut_17 = 0;
+  ;
+  ;
+  password = 0;
+  if (password) {
+    __retres = 1;
+    goto return_label;
+  }
+  lannot_mut_16 = mutated();
+  if (lannot_mut_16 && ! (password != 12345) || ! lannot_mut_16 && password != 12345) {
+    __retres = 1;
+    goto return_label;
+  }
+  lannot_mut_17 = mutated();
+  if (lannot_mut_17 && ! (password != 12345) || ! lannot_mut_17 && password != 12345) {
+    __retres = 1;
+    goto return_label;
+  }
+  pc_label(lannot_mut_16 || lannot_mut_17,9,"RCC");
+  ;
   __retres = 0;
   return_label: return __retres;
 }
