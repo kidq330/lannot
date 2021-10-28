@@ -188,7 +188,7 @@ class visitor mk_label = object(self)
     | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, step :: [], loc))
       when String.equal v.vname target ->
       if self#in_crit_zone () then begin
-        let step = Integer.to_int (Option.get (Cil.isInteger step)) in
+        let step = Integer.to_int_exn (Option.get (Cil.isInteger step)) in
         let top = Stack.pop seen_vinfos in
         if top <> [] then begin
           let label = mk_label (self#generate_disj loc top) [] loc in

@@ -70,7 +70,7 @@ let rec partition_lval ~depth ~width ~(emit: exp -> unit) typ lval =
         | Some l ->
           (* Constant length *)
           (* let's generate labels for each element (in the limit of [width] elements) *)
-          let l = if Integer.lt l (Integer.of_int width) then Integer.to_int l else width in
+          let l = if Integer.lt l (Integer.of_int width) then Integer.to_int_exn l else width in
           for i = 0 to l-1 do
             let lval' () = Cil.addOffsetLval (Index (Exp_builder.integer i, NoOffset)) (lval ()) in
             partition_lval ~depth:(depth-1) ~width ~emit typ lval'

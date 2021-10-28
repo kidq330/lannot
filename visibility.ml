@@ -55,7 +55,7 @@ class to_visibility pc_label = object(self)
     | Instr (Call (_, {enode=Lval (Var {vname=name}, NoOffset)},
                    [cond;{enode=Const (CInt64 (id, IInt, None))} as idExp; tagExp], loc))
       when String.equal name "pc_label" ->
-      let vname = "__SEQ_VISIBILITY_" ^ (string_of_int (Integer.to_int id)) in
+      let vname = "__SEQ_VISIBILITY_" ^ (string_of_int (Integer.to_int_exn id)) in
       let pred_vInfo = Cil.makeVarinfo false false vname Cil.intType in
       let exp_vInfo = Exp_builder.lval ~loc (Var pred_vInfo, NoOffset) in
       let keep_covered = Exp_builder.binop ~loc LOr exp_vInfo cond in
