@@ -32,8 +32,10 @@ secfalse = 0x55aa55aa,
 sectrue = 0xaa55aa55
 };
 typedef enum __anonenum_secbool_1 secbool;
+/*@ assigns \nothing; */
  __attribute__((__FC_BUILTIN__)) void __CM_END(void);
 
+/*@ assigns \nothing; */
  __attribute__((__FC_BUILTIN__)) void __CM_IGNORE_IF(void);
 
 int f1(int password)

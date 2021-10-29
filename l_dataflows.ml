@@ -646,13 +646,13 @@ let compute_hl crit =
   | DUC | BDUC ->
     Def.Hashtbl.fold (fun _ seqs str ->
         let seqs = List.sort compare seqs in
-        List.fold_left (fun acc s -> acc ^ Annotators.next_hl() ^ ") <l" ^ string_of_int s ^"|; ;>,\n") str seqs
+        List.fold_left (fun acc s -> acc ^ Annotators.next_hl() ^ ") <s" ^ string_of_int s ^"|; ;>,\n") str seqs
       ) hyperlabels ""
   | _ ->
     let symb = operator_of_criterion crit in
     Def.Hashtbl.fold (fun _ seqs str ->
         let seqs = List.sort compare seqs in
-        str ^ Annotators.next_hl() ^ ") <" ^ (String.concat symb (List.map (fun s -> "l" ^ string_of_int s) seqs)) ^ "|; ;>,\n"
+        str ^ Annotators.next_hl() ^ ") <" ^ (String.concat symb (List.map (fun s -> "s" ^ string_of_int s) seqs)) ^ "|; ;>,\n"
       ) hyperlabels ""
 
 (** Generate/Append in .hyperlabels file our hyperlabels data *)
