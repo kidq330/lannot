@@ -27,8 +27,7 @@
 #define __cm_end() __CM_END()
 #define __cm_double_if() __CM_DOUBLE_IF()
 #define __cm_ignore_if() __CM_IGNORE_IF()
-#define __cm_target() __CM_TARGET(0)
-#define __cm_step() __CM_TARGET(1)
+#define __cm_target() __CM_TARGET()
 
 /*@assigns \nothing;*/
 void __CM_START(void) __attribute((FC_BUILTIN));
@@ -39,6 +38,6 @@ void __CM_DOUBLE_IF(void) __attribute((FC_BUILTIN));
 /*@assigns \nothing;*/
 void __CM_IGNORE_IF(void) __attribute((FC_BUILTIN));
 /*@assigns \nothing;*/
-void __CM_TARGET(unsigned int step) __attribute((FC_BUILTIN));
+void __CM_TARGET(void) __attribute((FC_BUILTIN));
 
 #endif

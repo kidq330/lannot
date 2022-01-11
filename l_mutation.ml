@@ -185,17 +185,14 @@ class visitor mk_label = object(self)
       end;
       stmt.skind <- Instr (Skip (Cil_datatype.Stmt.loc stmt));
       Cil.SkipChildren
-    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, step :: [], loc))
+    | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], loc))
       when String.equal v.vname target ->
       if self#in_crit_zone () then begin
-        let step = Integer.to_int_exn (Option.get (Cil.isInteger step)) in
         let top = Stack.pop seen_vinfos in
         if top <> [] then begin
           let label = mk_label (self#generate_disj loc top) [] loc in
           label.labels <- stmt.labels;
-          if step = 0
-          then Stack.push [] seen_vinfos
-          else Stack.push top seen_vinfos;
+          Stack.push top seen_vinfos;
           Cil.ChangeTo label
         end
         else begin
