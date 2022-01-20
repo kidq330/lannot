@@ -109,9 +109,12 @@ let setupMutatorOptions () =
 (* ENTRY POINT *)
 let run () =
   try
+    let t0 = Unix.gettimeofday () in
     Annotators.init_builtins ();
     setupMutatorOptions ();
-    annotate (Datatype.String.Set.elements (Options.Annotators.get ()))
+    annotate (Datatype.String.Set.elements (Options.Annotators.get ()));
+    let t1 = Unix.gettimeofday () in
+    Options.feedback "Execution time : %fs" (t1 -. t0)
   with
   | Globals.No_such_entry_point _ ->
     Options.abort "`-main` parameter missing"
