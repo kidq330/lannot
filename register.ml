@@ -136,10 +136,12 @@ let run () =
 
 let setup_run () =
   if not (Options.Annotators.is_empty ()) then begin
-    Kernel.LogicalOperators.on (); (* invalidate the Ast if any *)
-    add_label_support ()
+      Kernel.LogicalOperators.on (); (* invalidate the Ast if any *)
+      add_label_support ()
   end
 
-let () = Cmdline.run_after_configuring_stage setup_run
+let setup_once, _ = State_builder.apply_once "LAnnotate.setup_run" [] setup_run
+
+let () = Cmdline.run_after_configuring_stage setup_once
 
 let () = Db.Main.extend run
