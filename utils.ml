@@ -189,17 +189,20 @@ let with_delta op value kind =
     op', Exp_builder.binop op (Exp_builder.kinteger64 kind value) (Exp_builder.integer delta)
 
 let get_bounds kind : (binop*exp) list =
-  let size = Cil.bitsSizeOfInt kind in
-  if Cil.isSigned kind then
-    [with_delta PlusA (Cil.min_signed_number size) kind;
-     with_delta MinusA (Cil.max_signed_number size) kind]
+  if kind = IBool then
+    [(Eq,Exp_builder.zero ());(Eq,Exp_builder.one ())]
   else
-    [with_delta PlusA Integer.zero kind;
-     with_delta MinusA (Cil.max_unsigned_number size) kind]
+    let size = Cil.bitsSizeOfInt kind in
+    if Cil.isSigned kind then
+      [with_delta PlusA (Cil.min_signed_number size) kind;
+       with_delta MinusA (Cil.max_signed_number size) kind]
+    else
+      [with_delta PlusA Integer.zero kind;
+       with_delta MinusA (Cil.max_unsigned_number size) kind]
 
 let is_bound _kind _i = false
-  (* let size = Cil.bitsSizeOfInt kind in *)
-  (* if Cil.isSigned kind then *)
-   (* i>= (Cil.max_signed_number size) *)
-  (* else *)
-    (* i = Integer.of_int 0 || i >= Cil.max_signed_number size *)
+  (* let size = Cil.bitsSizeOfInt kind in
+  if Cil.isSigned kind then
+    i>= (Cil.max_signed_number size)
+  else
+    i = Integer.of_int 0 || i >= Cil.max_signed_number size *)

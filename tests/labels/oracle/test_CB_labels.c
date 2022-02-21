@@ -31,9 +31,9 @@ int maintest(int a, unsigned int b, short c, int d, _Bool e, long long f)
      goto return_label;
    }
    pc_label((int)e == 0,16,"CB");
-   pc_label((int)e == 255,17,"CB");
-   pc_label((int)e == 42,18,"CB");
-   if ((int)e <= 42) {
+   pc_label((int)e == 1,17,"CB");
+   pc_label((int)e == 1,18,"CB");
+   if ((int)e == 1) {
      __retres = 2;
      goto return_label;
    }
