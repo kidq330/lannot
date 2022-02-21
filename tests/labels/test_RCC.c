@@ -27,7 +27,7 @@ int f3(int password){
     __cm_start();
     if(password == PASSWORD){
         if(password != PASSWORD) return 1;
-        __cm_step();
+        __cm_target();
 
         if(password != PASSWORD) return 1;
         __cm_target();
