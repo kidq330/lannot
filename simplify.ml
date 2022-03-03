@@ -258,17 +258,17 @@ module Exp = Make (struct
     let rec convert_back arr (phi:formula) : t =
       match phi with
       | `TAnd (a, b) ->
-        Exp.binop LAnd (convert_back arr a) (convert_back arr b)
+        Exp_builder.binop LAnd (convert_back arr a) (convert_back arr b)
       | `TOr (a, b) ->
-        Exp.binop LOr (convert_back arr a) (convert_back arr b)
+        Exp_builder.binop LOr (convert_back arr a) (convert_back arr b)
       | `TNot a ->
-        Exp.lnot (convert_back arr a)
+        Exp_builder.lnot (convert_back arr a)
       | `TAtom i ->
         arr.(i)
       | `TTrue ->
-        Exp.one ()
+        Exp_builder.one ()
       | `TFalse ->
-        Exp.zero ()
+        Exp_builder.zero ()
 
     let convert_back ~info:(_, arr) phi =
       convert_back arr phi

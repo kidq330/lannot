@@ -24,7 +24,7 @@ open Cil_types
 
 let unk_loc = Cil_datatype.Location.unknown
 
-module Exp = struct
+module Exp_builder = struct
   let mk ?(loc=unk_loc) =
     Cil.new_exp ~loc
 
@@ -55,7 +55,7 @@ module Exp = struct
   let lval ?(loc=Cil_datatype.Location.unknown) lval =
     Cil.new_exp ~loc (Lval lval)
 
-  let mem ?(loc=unk_loc) ~addr ~off =
+  let mem ?(loc=unk_loc) addr off =
     Cil.new_exp ~loc (Lval (Cil.mkMem ~addr ~off))
 
   let lnot ?(loc=unk_loc) e =
@@ -69,25 +69,7 @@ module Exp = struct
     Cil.new_exp ~loc (UnOp (Neg, e', newt))
 
   let binop ?(loc=unk_loc) op left right =
-    (* QUICK FIX: Avoid Frama-C failure when a pointer should be
-       converted into a boolean like in "if(pointer)": seems that this
-       function suppose left and right are integers but can in fact be
-       pointers as well. "if(pointer)" is translated into
-       "if(pointer==(void 0)"*)
-    let l =
-      if Cil.isPointerType (Cil.typeOf left) then
-        Cil.new_exp ~loc (BinOp (Ne,left,(Cil.mkCast Cil.voidPtrType (Cil.zero ~loc)),Cil.intType))
-      else
-        left
-    in
-    let r =
-      if Cil.isPointerType (Cil.typeOf right) then
-        Cil.new_exp ~loc (BinOp (Ne,right,(Cil.mkCast Cil.voidPtrType (Cil.zero ~loc)),Cil.intType))
-      else
-        right
-    in
-    (* END QUICK FIX *)
-    Cil.mkBinOp ~loc op l r
+    Cil.mkBinOp ~loc op left right
 
   let implies ?(loc=unk_loc) l r =
     let n_l = lnot ~loc l in
@@ -116,7 +98,6 @@ module Exp = struct
         if e1 == e1' && e2 == e2' then whole else mk ~loc:whole.eloc (BinOp (op, e1', e2', typ))
       | _ -> whole
 
-
   (** Joins some expressions (at least one) with a binary operator. *)
   let rev_join ?(loc=Cil_datatype.Location.unknown) op l =
     match l with
@@ -126,21 +107,10 @@ module Exp = struct
 
   let join ?(loc=Cil_datatype.Location.unknown) op l =
     rev_join ~loc op (List.rev l)
-
-  let copy = Cil.copy_exp
 end
 
-module Lval = struct
-  let var = Cil.var
-  let mem = Cil.mkMem
-  let addOffset ~off ~base = Cil.addOffsetLval off base
-end
-
-module Stmt = struct
+module Stmt_builder = struct
   let mk = Cil.mkStmt ~valid_sid:true
-  let block stmts = Cil.mkStmt ~valid_sid:true (Block (Cil.mkBlock stmts))
-end
-
-module Block = struct
-  let mk = Cil.mkBlock
+  let instr = Cil.mkStmtOneInstr ~valid_sid:true
+  let block stmts = mk (Block (Cil.mkBlock stmts))
 end

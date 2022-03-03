@@ -11,77 +11,55 @@
 #ifndef pc_label_bindings
 #define pc_label_bindings(...) do{}while(0)
 #endif
-#ifndef pc_label_sequence
-#define pc_label_sequence(...) do{}while(0)
-#endif
-#ifndef pc_label_sequence_condition
-#define pc_label_sequence_condition(...) do{}while(0)
-#endif
 
 int checkPrimeNumber(int n);
-
-/*@ requires valid_read_string(format);
-    assigns \result, __fc_stdout->__fc_FILE_data;
-    assigns \result
-      \from (indirect: __fc_stdout->__fc_FILE_id),
-            (indirect: __fc_stdout->__fc_FILE_data),
-            (indirect: *(format + (0 ..))), (indirect: param1),
-            (indirect: param0);
-    assigns __fc_stdout->__fc_FILE_data
-      \from (indirect: __fc_stdout->__fc_FILE_id),
-            __fc_stdout->__fc_FILE_data, (indirect: *(format + (0 ..))),
-            param1, param0;
- */
-int printf_va_1(char const * __restrict format, int param0, int param1);
-
-/*@ requires valid_read_string(format);
-    assigns \result, __fc_stdout->__fc_FILE_data;
-    assigns \result
-      \from (indirect: __fc_stdout->__fc_FILE_id),
-            (indirect: __fc_stdout->__fc_FILE_data),
-            (indirect: *(format + (0 ..))), (indirect: param0);
-    assigns __fc_stdout->__fc_FILE_data
-      \from (indirect: __fc_stdout->__fc_FILE_id),
-            __fc_stdout->__fc_FILE_data, (indirect: *(format + (0 ..))),
-            param0;
- */
-int printf_va_2(char const * __restrict format, int param0);
 
 int main(int n1, int n2)
 {
   int __retres;
   int i;
   int flag;
-  pc_label_sequence(1,1UL,1,2,"881",0);
-  pc_label_sequence(1,2UL,1,2,"882",0);
-  pc_label_sequence(1,1UL,2,2,"881",0);
-  pc_label_sequence(1,2UL,2,2,"882",0);
-  printf_va_1("Prime numbers between %d and %d are: ",n1,n2);
-  pc_label_sequence_condition(0,"883");
+  int __SEQ_STATUS_n1_1 = 1;
+  int __SEQ_STATUS_n2_2 = 1;
+  int __SEQ_STATUS_i_3 = 0;
+  int __SEQ_STATUS_i_4 = 0;
+  int __SEQ_STATUS_i_5 = 0;
+  int __SEQ_STATUS_i_6 = 0;
+  int __SEQ_STATUS_flag_7 = 0;
+  int __SEQ_STATUS_i_8 = 0;
+  int __SEQ_STATUS_i_9 = 0;
+  pc_label(__SEQ_STATUS_n1_1 == 1,1,"AUC");
+  pc_label(__SEQ_STATUS_n2_2 == 1,2,"AUC");
+  printf("Prime numbers between %d and %d are: ",n1,n2);
   i = n1 + 1;
-  pc_label_sequence(1,3UL,1,2,"883",0);
-  pc_label_sequence(1,5UL,1,2,"883",0);
-  pc_label_sequence(1,8UL,1,2,"883",0);
+  __SEQ_STATUS_i_3 = 1;
+  __SEQ_STATUS_i_5 = 1;
+  __SEQ_STATUS_i_8 = 1;
   while (1) {
-    pc_label_sequence(1,3UL,2,2,"883",0);
-    pc_label_sequence(1,4UL,2,2,"883",0);
+    pc_label(__SEQ_STATUS_i_3 == 1,3,"AUC");
+    pc_label(__SEQ_STATUS_i_4 == 1,4,"AUC");
     if (! (i < n2)) break;
-    pc_label_sequence(1,5UL,2,2,"883",0);
-    pc_label_sequence(1,6UL,2,2,"883",0);
-    pc_label_sequence_condition(0,"884");
+    pc_label(__SEQ_STATUS_i_5 == 1,5,"AUC");
+    pc_label(__SEQ_STATUS_i_6 == 1,6,"AUC");
+    __SEQ_STATUS_flag_7 = 0;
     flag = checkPrimeNumber(i);
-    pc_label_sequence(1,7UL,1,2,"884",0);
-    pc_label_sequence(1,7UL,2,2,"884",0);
+    __SEQ_STATUS_flag_7 = 1;
+    pc_label(__SEQ_STATUS_flag_7 == 1,7,"AUC");
     if (flag == 1) {
-      pc_label_sequence(1,8UL,2,2,"883",0);
-      pc_label_sequence(1,9UL,2,2,"883",0);
-      printf_va_2("%d ",i);
+      pc_label(__SEQ_STATUS_i_8 == 1,8,"AUC");
+      pc_label(__SEQ_STATUS_i_9 == 1,9,"AUC");
+      printf("%d ",i);
     }
-    pc_label_sequence_condition(0,"883");
+    __SEQ_STATUS_i_3 = 0;
+    __SEQ_STATUS_i_4 = 0;
+    __SEQ_STATUS_i_5 = 0;
+    __SEQ_STATUS_i_6 = 0;
+    __SEQ_STATUS_i_8 = 0;
+    __SEQ_STATUS_i_9 = 0;
     i ++;
-    pc_label_sequence(1,4UL,1,2,"883",0);
-    pc_label_sequence(1,6UL,1,2,"883",0);
-    pc_label_sequence(1,9UL,1,2,"883",0);
+    __SEQ_STATUS_i_4 = 1;
+    __SEQ_STATUS_i_6 = 1;
+    __SEQ_STATUS_i_9 = 1;
   }
   __retres = 0;
   return __retres;
@@ -90,40 +68,51 @@ int main(int n1, int n2)
 int checkPrimeNumber(int n)
 {
   int j;
-  pc_label_sequence(1,12UL,1,2,"887",0);
-  pc_label_sequence(1,13UL,1,2,"887",0);
-  pc_label_sequence_condition(0,"889");
+  int __SEQ_STATUS_flag_10 = 0;
+  int __SEQ_STATUS_flag_11 = 0;
+  int __SEQ_STATUS_j_12 = 0;
+  int __SEQ_STATUS_j_13 = 0;
+  int __SEQ_STATUS_n_14 = 1;
+  int __SEQ_STATUS_j_15 = 0;
+  int __SEQ_STATUS_j_16 = 0;
+  int __SEQ_STATUS_n_17 = 1;
+  int __SEQ_STATUS_j_18 = 0;
+  int __SEQ_STATUS_j_19 = 0;
   int flag = 1;
-  pc_label_sequence(1,18UL,1,2,"889",0);
-  pc_label_sequence_condition(0,"888");
+  __SEQ_STATUS_flag_10 = 1;
   j = 2;
-  pc_label_sequence(1,10UL,1,2,"888",0);
-  pc_label_sequence(1,14UL,1,2,"888",0);
-  pc_label_sequence(1,16UL,1,2,"888",0);
+  __SEQ_STATUS_j_12 = 1;
+  __SEQ_STATUS_j_15 = 1;
+  __SEQ_STATUS_j_18 = 1;
   while (1) {
-    pc_label_sequence(1,10UL,2,2,"888",0);
-    pc_label_sequence(1,11UL,2,2,"888",0);
-    pc_label_sequence(1,12UL,2,2,"887",0);
+    pc_label(__SEQ_STATUS_j_12 == 1,12,"AUC");
+    pc_label(__SEQ_STATUS_j_13 == 1,13,"AUC");
+    pc_label(__SEQ_STATUS_n_14 == 1,14,"AUC");
     if (! (j <= n / 2)) break;
-    pc_label_sequence(1,13UL,2,2,"887",0);
-    pc_label_sequence(1,14UL,2,2,"888",0);
-    pc_label_sequence(1,15UL,2,2,"888",0);
+    pc_label(__SEQ_STATUS_n_17 == 1,17,"AUC");
+    pc_label(__SEQ_STATUS_j_18 == 1,18,"AUC");
+    pc_label(__SEQ_STATUS_j_19 == 1,19,"AUC");
     if (n % j == 0) {
-      pc_label_sequence_condition(0,"889");
+      __SEQ_STATUS_flag_10 = 0;
       flag = 0;
-      pc_label_sequence(1,19UL,1,2,"889",0);
+      __SEQ_STATUS_flag_11 = 1;
       break;
     }
-    pc_label_sequence(1,16UL,2,2,"888",0);
-    pc_label_sequence(1,17UL,2,2,"888",0);
-    pc_label_sequence_condition(0,"888");
+    pc_label(__SEQ_STATUS_j_15 == 1,15,"AUC");
+    pc_label(__SEQ_STATUS_j_16 == 1,16,"AUC");
+    __SEQ_STATUS_j_12 = 0;
+    __SEQ_STATUS_j_13 = 0;
+    __SEQ_STATUS_j_15 = 0;
+    __SEQ_STATUS_j_16 = 0;
+    __SEQ_STATUS_j_18 = 0;
+    __SEQ_STATUS_j_19 = 0;
     j ++;
-    pc_label_sequence(1,11UL,1,2,"888",0);
-    pc_label_sequence(1,15UL,1,2,"888",0);
-    pc_label_sequence(1,17UL,1,2,"888",0);
+    __SEQ_STATUS_j_13 = 1;
+    __SEQ_STATUS_j_16 = 1;
+    __SEQ_STATUS_j_19 = 1;
   }
-  pc_label_sequence(1,18UL,2,2,"889",0);
-  pc_label_sequence(1,19UL,2,2,"889",0);
+  pc_label(__SEQ_STATUS_flag_10 == 1,10,"AUC");
+  pc_label(__SEQ_STATUS_flag_11 == 1,11,"AUC");
   return flag;
 }
 

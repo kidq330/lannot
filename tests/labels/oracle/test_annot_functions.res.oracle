@@ -9,5 +9,5 @@
 [lannot] apply annotations for FC
 [lannot] write modified C file (to tests/labels/result/test_annot_functions_labels.c)
 [lannot] write label data (to tests/labels/result/test_annot_functions_labels.labels)
-[lannot] 9 labels/sequences created
+[lannot] 9 labels created
 [lannot] finished

@@ -158,6 +158,13 @@ module LimitDelta = Int (struct
     let help = "Set the precision of limit labels (Default : 0)"
     let default = 0
   end)
+let () = LimitDelta.set_range ~min:0 ~max:max_int
+
+let () = Parameter_customize.set_group crit_group
+module BoundPostpone = False (struct
+    let option_name = "-lannot-bound-postpone"
+    let help = "Postpone bound evaluation to the use label (Default : false)"
+  end)
 
 module Inline = True (struct
     let option_name = "-lannot-inline"
@@ -189,6 +196,12 @@ module MaxContextPath = Int (struct
     let arg_name = "NUM"
     let help = "set the maximum number of path for one expression with the context criteria (Default : 1024)"
     let default = 1024
+  end)
+
+let () = Parameter_customize.set_group dataflow
+module Visibility = False (struct
+    let option_name = "-lannot-visibility"
+    let help = "Transform labels into sequences (from label to return) (Default : false)"
   end)
 
 (* There is no way to determine the original loop form after the CIL transformation.

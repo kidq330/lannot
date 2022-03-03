@@ -34,7 +34,7 @@ include Annotators.Register (struct
 
       method! vfunc dec =
         if  Annotators.shouldInstrumentFun dec.svar then begin
-          let label = mk_label (Exp.one()) [] dec.svar.vdecl in
+          let label = mk_label (Exp_builder.one()) [] dec.svar.vdecl in
           dec.sbody.bstmts <- label :: dec.sbody.bstmts;
         end;
         Cil.SkipChildren
@@ -77,15 +77,19 @@ class visitor mk_label = object(self)
   val mutable floc = Cil_datatype.Location.unknown
 
   method private mk_call v =
-    let newStmt = mk_label (Exp.one()) [] floc in
+    let newStmt = mk_label (Exp_builder.one()) [] floc in
     Hashtbl.add disjunctions (fname,v.vname) (Annotators.getCurrentLabelId());
     hyperlabels := (HL.add (fname,v.vname) !hyperlabels);
     newStmt
 
   method! vfunc dec =
-    fname <- dec.svar.vname;
-    floc <- dec.svar.vdecl;
-    Cil.DoChildren
+    if Annotators.shouldInstrumentFun dec.svar then begin
+      fname <- dec.svar.vname;
+      floc <- dec.svar.vdecl;
+      Cil.DoChildren
+    end
+    else
+      Cil.SkipChildren
 
   method! vstmt_aux stmt =
     begin match stmt.skind with
@@ -94,7 +98,8 @@ class visitor mk_label = object(self)
           | Call (_,{eid = _;enode = Lval(Var v,_);eloc = _},_,_)
           | Local_init (_,ConsInit(v, _,_),_) ->
             let newStmt = self#mk_call v in
-            Cil.ChangeTo (Stmt.block [newStmt; stmt])
+            stmt.skind <- Block (Cil.mkBlock [newStmt; Stmt_builder.mk stmt.skind]);
+            Cil.SkipChildren
           | _ -> Cil.DoChildren
         end
       | _ -> Cil.DoChildren
@@ -109,168 +114,10 @@ module CallCov = Annotators.Register (struct
     let name = "FCC"
     let help = "Function Call Coverage"
     let apply mk_label file =
-      Visitor.visitFramacFileSameGlobals (new visitor mk_label :> Visitor.frama_c_visitor) file;
+      Visitor.visitFramacFileSameGlobals
+        (new visitor mk_label :> Visitor.frama_c_visitor) file;
       !gen_hyperlabels_callcov ()
   end)
-
-let cplTyToNbr = Hashtbl.create 100
-let id_gen = ref 0
-let list_convert = ref []
-let oc = ref None
-let get_oc () = match !oc with | Some f -> f | None -> let f = (open_out "output.txt") in oc := Some f; f
-
-
-
-(** Remove Cast Visitor **)
-class remcastvisitor = object(selfobj)
-  inherit Visitor.frama_c_inplace
-
-  val mutable current_func = Cil.emptyFunction ""
-  val mutable newfuncs = ref []
-  val mutable in_func = ref false
-
-  method! vfile _ =
-    let f file = (
-      file.globals <- file.globals @ !newfuncs;
-      file
-    ) in (Cil.DoChildrenPost f)
-
-  method! vfunc dec =
-    current_func <- dec;
-    in_func := true;
-    let f res = in_func := false; res in
-    Cil.DoChildrenPost f
-
-
-  method! vexpr e = if !in_func then begin
-      match e.enode with
-      | CastE (_,_) ->
-        let f res =
-          match res.enode with
-          | CastE (tt1,ce) ->
-            let tt2 = Cil.typeOf ce in
-            (Printer.pp_typ (Format.str_formatter) tt2) ;
-            let t2 = (Format.flush_str_formatter ()) in
-            (Printer.pp_typ (Format.str_formatter) tt1) ;
-            let t1 = (Format.flush_str_formatter ()) in
-            let nb_fun_repl =
-              if Hashtbl.mem cplTyToNbr (t2,t1) then
-                (Hashtbl.find cplTyToNbr (t2,t1))
-              else begin
-                incr id_gen;
-                let nb = !id_gen in
-                Hashtbl.add cplTyToNbr (t2,t1) !id_gen;
-                Printf.fprintf (get_oc ()) "%s\n" ("/*@assigns \\nothing;*/ "^t1^" convert_"^(string_of_int nb)^"("^t2^" input);");
-                let func = Cil.emptyFunction ("convert_"^(string_of_int nb)) in
-                Cil.setFunctionTypeMakeFormals func (Cil_types.TFun(tt1, Some [("input",tt2,[])] , false, []));
-                Cil.setFormals func [(Cil.makeFormalsVarDecl ("input",tt2,[]))];
-                newfuncs := (GFun (func,func.svar.vdecl)):: !newfuncs;
-                nb
-              end
-            in
-            let convert_fun_name = "convert_"^(string_of_int nb_fun_repl) in
-            let convert_result_info = (Cil.makeTempVar current_func tt1) in
-            let convert_result = (Cil.var convert_result_info) in
-            let convert_call = (Utils.mk_call ~result:convert_result convert_fun_name ([ce])) in
-            list_convert := convert_call::!list_convert;
-            (Cil.evar convert_result_info)
-          | _ -> failwith "Unexpected"
-        in (Cil.DoChildrenPost f)
-      | _ -> Cil.DoChildren
-    end
-    else
-      Cil.SkipChildren
-
-  method! vstmt stmt =
-    if !in_func then begin
-      let saved_labels = stmt.labels in
-      stmt.labels <- [];
-      let follow () =
-        begin
-          let f res =
-            stmt.labels <- saved_labels;
-            if not ((List.length !list_convert)=0) then begin
-              let listr = List.rev (!list_convert) in
-              list_convert := [];
-              (Stmt.block (listr @ [ res ]) )
-            end
-            else
-              res
-          in
-          match stmt.skind with
-          | Instr i ->
-            (match i with
-             | Call (Some lv,func , x,y) ->
-               if (Cil.need_cast (Cil.typeOfLval lv) (Cil.getReturnType (Cil.typeOf func))) then begin
-                 let temp_var = (Cil.makeTempVar current_func (Cil.getReturnType (Cil.typeOf func))) in
-                 let new_call = (Cil.mkStmtOneInstr ~valid_sid:true (Call (Some (Cil.var temp_var),func , x,y))) in
-                 stmt.skind <- new_call.skind;
-                 let new_assig = (Cil.mkStmtOneInstr ~valid_sid:true (Set (lv , (Cil.mkCast (Cil.typeOfLval lv) (Cil.new_exp Cil_datatype.Location.unknown (Lval (Cil.var temp_var)))), Cil_datatype.Location.unknown))) in
-                 let block = Stmt.block [stmt ; new_assig] in
-                 let new_blok = Visitor.visitFramacStmt (selfobj :> Visitor.frama_c_visitor) block in
-                 (Cil.ChangeTo new_blok)
-               end
-               else (Cil.DoChildrenPost f)
-             | _ -> (Cil.DoChildrenPost f))
-          | _ -> (Cil.DoChildrenPost f)
-        end
-      in
-      match stmt.skind with
-      | Instr i ->
-        (match i with
-         | Call (None,func , _,_) ->
-           (match func.enode with
-            | Lval (Var v,_) ->
-              if v.vname = "__builtin_va_arg" then
-                (stmt.labels <- saved_labels; Cil.SkipChildren)
-              else
-                follow ()
-            | _ -> follow ())
-         | _ -> follow ())
-      | If (e, thenb, elseb, loc) ->
-        (* handle visits manually to skip visit of e *)
-        let thenb = Visitor.visitFramacBlock (selfobj :> Visitor.frama_c_visitor) thenb in
-        let elseb = Visitor.visitFramacBlock (selfobj :> Visitor.frama_c_visitor) elseb in
-        let e = Visitor.visitFramacExpr (selfobj :> Visitor.frama_c_visitor) e in
-        stmt.labels <- saved_labels;
-        stmt.skind <- If (e, thenb, elseb, loc);
-        if not ((List.length !list_convert)=0) then begin
-          let listr = List.rev (!list_convert) in
-          list_convert := [];
-          Cil.ChangeTo (Stmt.block (listr @ [ stmt ]) )
-        end
-        else
-          Cil.ChangeTo stmt
-      | Switch (e,block,ll,loc) ->
-        let block = Visitor.visitFramacBlock (selfobj :> Visitor.frama_c_visitor) block in
-        let e = Visitor.visitFramacExpr (selfobj :> Visitor.frama_c_visitor) e in
-        stmt.labels <- saved_labels;
-        stmt.skind <- Switch (e,block,ll,loc);
-        if not ((List.length !list_convert)=0) then begin
-          let listr = List.rev (!list_convert) in
-          list_convert := [];
-          Cil.ChangeTo (Stmt.block (listr @ [ stmt ]) )
-        end
-        else
-          Cil.ChangeTo stmt
-      | _ -> (follow ())
-    end
-    else
-      Cil.SkipChildren
-end
-
-
-(**
-   Remove cast annotator
-*)
-module CastRem = Annotators.Register (struct
-    let name = "CastRem"
-    let help = "Process file and replace casts by external function calls (useful for WP reasoning)"
-    let apply _ file =
-      Visitor.visitFramacFileSameGlobals (new remcastvisitor :> Visitor.frama_c_visitor) file
-  end)
-
-
 
 (** Nop Visitor **)
 class nopvisitor = object(_)

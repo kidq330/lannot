@@ -7,12 +7,6 @@
 #ifndef pc_label_bindings
 #define pc_label_bindings(...) do{}while(0)
 #endif
-#ifndef pc_label_sequence
-#define pc_label_sequence(...) do{}while(0)
-#endif
-#ifndef pc_label_sequence_condition
-#define pc_label_sequence_condition(...) do{}while(0)
-#endif
 
 struct coord {
     int x ;
@@ -22,18 +16,18 @@ int f(int x, int y)
 {
   int __retres;
   struct coord test;
-  pc_label_sequence(1,1UL,1,2,"25",0);
-  pc_label_sequence(1,2UL,1,2,"26",0);
-  pc_label_sequence(1,1UL,2,2,"25",0);
-  pc_label_sequence_condition(0,"34");
+  int __SEQ_STATUS_x_1 = 1;
+  int __SEQ_STATUS_y_2 = 1;
+  int __SEQ_STATUS_test_3 = 0;
+  int __SEQ_STATUS_test_4 = 0;
+  pc_label(__SEQ_STATUS_x_1 == 1,1,"AUC");
   test.x = x;
-  pc_label_sequence(1,3UL,1,2,"34",0);
-  pc_label_sequence(1,2UL,2,2,"26",0);
-  pc_label_sequence_condition(0,"35");
+  __SEQ_STATUS_test_3 = 1;
+  pc_label(__SEQ_STATUS_y_2 == 1,2,"AUC");
   test.y = y;
-  pc_label_sequence(1,4UL,1,2,"35",0);
-  pc_label_sequence(1,3UL,2,2,"34",0);
-  pc_label_sequence(1,4UL,2,2,"35",0);
+  __SEQ_STATUS_test_4 = 1;
+  pc_label(__SEQ_STATUS_test_3 == 1,3,"AUC");
+  pc_label(__SEQ_STATUS_test_4 == 1,4,"AUC");
   __retres = test.x + test.y;
   return __retres;
 }

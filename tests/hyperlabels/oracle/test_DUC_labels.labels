@@ -1,1 +1,15 @@
 # id, status, tag, origin_loc, current_loc, emitter, drivers, exec_time
+1, unknown, DUC, test_DUC.c:11, , LAnnot, , 0.
+2, unknown, DUC, test_DUC.c:11, , LAnnot, , 0.
+3, unknown, DUC, test_DUC.c:11, , LAnnot, , 0.
+4, unknown, DUC, test_DUC.c:13, , LAnnot, , 0.
+5, unknown, DUC, test_DUC.c:13, , LAnnot, , 0.
+6, unknown, DUC, test_DUC.c:13, , LAnnot, , 0.
+7, unknown, DUC, test_DUC.c:15, , LAnnot, , 0.
+8, unknown, DUC, test_DUC.c:15, , LAnnot, , 0.
+9, unknown, DUC, test_DUC.c:15, , LAnnot, , 0.
+10, unknown, DUC, test_DUC.c:15, , LAnnot, , 0.
+11, unknown, DUC, test_DUC.c:15, , LAnnot, , 0.
+12, unknown, DUC, test_DUC.c:17, , LAnnot, , 0.
+13, unknown, DUC, test_DUC.c:17, , LAnnot, , 0.
+14, unknown, DUC, test_DUC.c:17, , LAnnot, , 0.

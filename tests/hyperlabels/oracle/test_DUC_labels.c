@@ -11,83 +11,85 @@
 #ifndef pc_label_bindings
 #define pc_label_bindings(...) do{}while(0)
 #endif
-#ifndef pc_label_sequence
-#define pc_label_sequence(...) do{}while(0)
-#endif
-#ifndef pc_label_sequence_condition
-#define pc_label_sequence_condition(...) do{}while(0)
-#endif
-
-/*@ requires valid_read_string(format);
-     assigns \result, __fc_stdout->__fc_FILE_data;
-     assigns \result
-       \from (indirect: __fc_stdout->__fc_FILE_id),
-             (indirect: __fc_stdout->__fc_FILE_data),
-             (indirect: *(format + (0 ..)));
-     assigns __fc_stdout->__fc_FILE_data
-       \from (indirect: __fc_stdout->__fc_FILE_id),
-             __fc_stdout->__fc_FILE_data, (indirect: *(format + (0 ..)));
-  */
- int printf_va_1(char const * __restrict format);
 
 int main(char *line)
-{
-  int __retres;
-  int i;
-  int j;
-  pc_label_sequence(1,1UL,1,2,"876",0);
-  pc_label_sequence(1,4UL,1,2,"876",0);
-  pc_label_sequence(1,9UL,1,2,"876",0);
-  pc_label_sequence(1,12UL,1,2,"876",0);
-  pc_label_sequence_condition(0,"877");
-  i = 0;
-  pc_label_sequence(1,2UL,1,2,"877",0);
-  pc_label_sequence(1,5UL,1,2,"877",0);
-  pc_label_sequence(1,7UL,1,2,"877",0);
-  while (1) {
-    pc_label_sequence(1,1UL,2,2,"876",0);
-    pc_label_sequence(1,2UL,2,2,"877",0);
-    pc_label_sequence(1,3UL,2,2,"877",0);
-    if (! ((int)*(line + i) != '\000')) break;
-    while (1) {
-      pc_label_sequence(1,4UL,2,2,"876",0);
-      pc_label_sequence(1,5UL,2,2,"877",0);
-      pc_label_sequence(1,6UL,2,2,"877",0);
-      if (! (! (((int)*(line + i) >= 'a' && (int)*(line + i) <= 'z' || 
-                 (int)*(line + i) >= 'A' && (int)*(line + i) <= 'Z') || 
-                (int)*(line + i) == '\000'))) break;
-      pc_label_sequence(1,7UL,2,2,"877",0);
-      pc_label_sequence(1,8UL,2,2,"877",0);
-      pc_label_sequence_condition(0,"878");
-      j = i;
-      pc_label_sequence(1,10UL,1,2,"878",0);
-      pc_label_sequence(1,13UL,1,2,"878",0);
-      while (1) {
-        pc_label_sequence(1,9UL,2,2,"876",0);
-        pc_label_sequence(1,10UL,2,2,"878",0);
-        pc_label_sequence(1,11UL,2,2,"878",0);
-        if (! ((int)*(line + j) != '\000')) break;
-        pc_label_sequence(1,12UL,2,2,"876",0);
-        pc_label_sequence(1,13UL,2,2,"878",0);
-        pc_label_sequence(1,14UL,2,2,"878",0);
-        *(line + j) = *(line + (j + 1));
-        pc_label_sequence_condition(0,"878");
-        j ++;
-        pc_label_sequence(1,11UL,1,2,"878",0);
-        pc_label_sequence(1,14UL,1,2,"878",0);
-      }
-      *(line + j) = (char)'\000';
-    }
-    pc_label_sequence_condition(0,"877");
-    i ++;
-    pc_label_sequence(1,3UL,1,2,"877",0);
-    pc_label_sequence(1,6UL,1,2,"877",0);
-    pc_label_sequence(1,8UL,1,2,"877",0);
-  }
-  printf_va_1("Output String: ");
-  puts((char const *)line);
-  __retres = 0;
-  return __retres;
-}
+ {
+   int __retres;
+   int i;
+   int j;
+   int __SEQ_STATUS_line_1 = 1;
+   int __SEQ_STATUS_i_2 = 0;
+   int __SEQ_STATUS_i_3 = 0;
+   int __SEQ_STATUS_line_4 = 1;
+   int __SEQ_STATUS_i_5 = 0;
+   int __SEQ_STATUS_i_6 = 0;
+   int __SEQ_STATUS_i_7 = 0;
+   int __SEQ_STATUS_i_8 = 0;
+   int __SEQ_STATUS_line_9 = 1;
+   int __SEQ_STATUS_j_10 = 0;
+   int __SEQ_STATUS_j_11 = 0;
+   int __SEQ_STATUS_line_12 = 1;
+   int __SEQ_STATUS_j_13 = 0;
+   int __SEQ_STATUS_j_14 = 0;
+   i = 0;
+   __SEQ_STATUS_i_2 = 1;
+   __SEQ_STATUS_i_5 = 1;
+   __SEQ_STATUS_i_7 = 1;
+   while (1) {
+     pc_label(__SEQ_STATUS_line_1 == 1,1,"DUC");
+     pc_label(__SEQ_STATUS_i_2 == 1,2,"DUC");
+     pc_label(__SEQ_STATUS_i_3 == 1,3,"DUC");
+     if (! ((int)*(line + i) != '\000')) break;
+     while (1) {
+       pc_label(__SEQ_STATUS_line_4 == 1,4,"DUC");
+       pc_label(__SEQ_STATUS_i_5 == 1,5,"DUC");
+       pc_label(__SEQ_STATUS_i_6 == 1,6,"DUC");
+       if (! (! (((int)*(line + i) >= 'a' && (int)*(line + i) <= 'z' || 
+                  (int)*(line + i) >= 'A' && (int)*(line + i) <= 'Z') || 
+                 (int)*(line + i) == '\000'))) break;
+       pc_label(__SEQ_STATUS_i_7 == 1,7,"DUC");
+       pc_label(__SEQ_STATUS_i_8 == 1,8,"DUC");
+       __SEQ_STATUS_j_10 = 0;
+       __SEQ_STATUS_j_11 = 0;
+       __SEQ_STATUS_j_13 = 0;
+       __SEQ_STATUS_j_14 = 0;
+       j = i;
+       __SEQ_STATUS_j_10 = 1;
+       __SEQ_STATUS_j_13 = 1;
+       while (1) {
+         pc_label(__SEQ_STATUS_line_9 == 1,9,"DUC");
+         pc_label(__SEQ_STATUS_j_10 == 1,10,"DUC");
+         pc_label(__SEQ_STATUS_j_11 == 1,11,"DUC");
+         if (! ((int)*(line + j) != '\000')) break;
+         pc_label(__SEQ_STATUS_line_12 == 1,12,"DUC");
+         pc_label(__SEQ_STATUS_j_13 == 1,13,"DUC");
+         pc_label(__SEQ_STATUS_j_14 == 1,14,"DUC");
+         *(line + j) = *(line + (j + 1));
+         __SEQ_STATUS_j_10 = 0;
+         __SEQ_STATUS_j_11 = 0;
+         __SEQ_STATUS_j_13 = 0;
+         __SEQ_STATUS_j_14 = 0;
+         j ++;
+         __SEQ_STATUS_j_11 = 1;
+         __SEQ_STATUS_j_14 = 1;
+       }
+       *(line + j) = (char)'\000';
+     }
+     __SEQ_STATUS_i_2 = 0;
+     __SEQ_STATUS_i_3 = 0;
+     __SEQ_STATUS_i_5 = 0;
+     __SEQ_STATUS_i_6 = 0;
+     __SEQ_STATUS_i_7 = 0;
+     __SEQ_STATUS_i_8 = 0;
+     i ++;
+     __SEQ_STATUS_i_3 = 1;
+     __SEQ_STATUS_i_6 = 1;
+     __SEQ_STATUS_i_8 = 1;
+   }
+   printf("Output String: ");
+   puts((char const *)line);
+   __retres = 0;
+   return __retres;
+ }
 
 

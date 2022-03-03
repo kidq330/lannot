@@ -82,7 +82,7 @@ let annotate_on_project ann_names =
   (* output label data *)
   let data_filename = basename ^ ".labels" in
   Options.feedback "write label data (to %s)" data_filename;
-  Options.feedback "%d labels/sequences created" (Annotators.getCurrentLabelId ());
+  Options.feedback "%d labels created" (Annotators.getCurrentLabelId ());
   let out = open_out data_filename in
   store_label_data out annotations;
   close_out out;
@@ -106,10 +106,10 @@ let setupMutatorOptions () =
   in
   Options.Mutators.iter f
 
-
 (* ENTRY POINT *)
 let run () =
   try
+    Annotators.init_builtins ();
     setupMutatorOptions ();
     annotate (Datatype.String.Set.elements (Options.Annotators.get ()))
   with
@@ -133,10 +133,12 @@ let run () =
 
 let setup_run () =
   if not (Options.Annotators.is_empty ()) then begin
-    Kernel.LogicalOperators.on (); (* invalidate the Ast if any *)
-    add_label_support ()
+      Kernel.LogicalOperators.on (); (* invalidate the Ast if any *)
+      add_label_support ()
   end
 
-let () = Cmdline.run_after_configuring_stage setup_run
+let setup_once, _ = State_builder.apply_once "LAnnotate.setup_run" [] setup_run
+
+let () = Cmdline.run_after_configuring_stage setup_once
 
 let () = Db.Main.extend run

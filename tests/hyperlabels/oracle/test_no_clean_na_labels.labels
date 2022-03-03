@@ -1,1 +1,8 @@
 # id, status, tag, origin_loc, current_loc, emitter, drivers, exec_time
+1, unknown, AUC, test_no_clean_na.c:14, , LAnnot, , 0.
+2, unknown, AUC, test_no_clean_na.c:14, , LAnnot, , 0.
+3, unknown, AUC, test_no_clean_na.c:14, , LAnnot, , 0.
+4, unknown, AUC, test_no_clean_na.c:14, , LAnnot, , 0.
+5, unknown, AUC, test_no_clean_na.c:14, , LAnnot, , 0.
+6, unknown, AUC, test_no_clean_na.c:14, , LAnnot, , 0.
+7, unknown, AUC, test_no_clean_na.c:14, , LAnnot, , 0.

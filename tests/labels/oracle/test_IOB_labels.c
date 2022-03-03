@@ -7,21 +7,15 @@
 #ifndef pc_label_bindings
 #define pc_label_bindings(...) do{}while(0)
 #endif
-#ifndef pc_label_sequence
-#define pc_label_sequence(...) do{}while(0)
-#endif
-#ifndef pc_label_sequence_condition
-#define pc_label_sequence_condition(...) do{}while(0)
-#endif
 
 _Bool bool_test(_Bool a)
  {
    _Bool __retres;
    pc_label((int)a == 0,1,"IOB");
-   pc_label((int)a == 255,2,"IOB");
+   pc_label((int)a == 1,2,"IOB");
    __retres = (_Bool)((int)a + (int)a != 0);
    pc_label((int)__retres == 0,3,"IOB");
-   pc_label((int)__retres == 255,4,"IOB");
+   pc_label((int)__retres == 1,4,"IOB");
    return __retres;
  }
 

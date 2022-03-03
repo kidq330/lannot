@@ -11,7 +11,7 @@ LAnnotate is a Frama-C plugin.
 
 Installation
 ------------
-LAnnotate requires Frama-C 21.1 (Scandium) or later to be installed and ocaml 4.10.0 .
+LAnnotate requires Frama-C 24.0 (Chromium) or later to be installed and ocaml 4.12.1 .
 Once Frama-C is installed, run autoconf, configure, compile and install
 LAnnotate:
     autoconf

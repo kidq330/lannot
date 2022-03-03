@@ -1,8 +1,8 @@
 [kernel] Parsing tests/labels/test_RCC.c (with preprocessing)
 [lannot] apply annotations for RCC
-[lannot] Warning: Success point reached without preceding if at tests/labels/test_RCC.c:55, annotation ignored.
-[lannot] Warning: If at tests/labels/test_RCC.c:62 wrongly marked as double. Parsing can split if statement if it contains side effects. Ignoring macro...
+[lannot] Warning: Success point reached without preceding if at tests/labels/test_RCC.c:60, annotation ignored.
+[lannot] Warning: If at tests/labels/test_RCC.c:68 wrongly marked as double. Parsing can split if statement if it contains side effects. Ignoring macro...
 [lannot] write modified C file (to tests/labels/result/test_RCC_labels.c)
 [lannot] write label data (to tests/labels/result/test_RCC_labels.labels)
-[lannot] 8 labels/sequences created
+[lannot] 9 labels created
 [lannot] finished

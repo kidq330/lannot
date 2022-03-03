@@ -22,7 +22,7 @@
 
 open Cil_types
 
-module Exp : sig
+module Exp_builder : sig
   val mk : ?loc:location -> exp_node -> exp
 
   (** [int] zero *)
@@ -50,7 +50,7 @@ module Exp : sig
 
   val lval : ?loc:location -> lval -> exp
 
-  val mem : ?loc:location -> addr:exp -> off:offset -> exp
+  val mem : ?loc:location -> exp -> offset -> exp
 
   (** Logical not *)
   val lnot : ?loc:location -> exp -> exp
@@ -76,22 +76,11 @@ module Exp : sig
   (** Joins some expressions (at least one) with a binary operator. *)
   val join : ?loc:location -> binop -> exp list -> exp
   val rev_join : ?loc:location -> binop -> exp list -> exp
-
-  val copy : exp -> exp
 end
 
-module Lval : sig
-  val var : varinfo -> lval
-  val mem : addr:exp -> off:offset -> lval
-  val addOffset: off:offset -> base:lval -> lval
-end
-
-module Stmt : sig
+module Stmt_builder : sig
   val mk : ?ghost:bool -> ?sattr:attributes  -> stmtkind -> stmt
+  val instr : ?ghost:bool -> ?sattr:attributes  -> instr -> stmt
   (** Make a block statement from a list of statements. *)
   val block : stmt list -> stmt
-end
-
-module Block : sig
-  val mk : stmt list -> block
 end

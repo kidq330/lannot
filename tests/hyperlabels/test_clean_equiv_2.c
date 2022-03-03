@@ -11,7 +11,6 @@ void f()
     for(x=0;x<10;x++){
         g(x);
         g(x);
-    }    
-     
+    }
     return;
 }

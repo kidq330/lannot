@@ -2,5 +2,5 @@
 [lannot] apply annotations for IOB
 [lannot] write modified C file (to tests/labels/result/test_IOB_labels.c)
 [lannot] write label data (to tests/labels/result/test_IOB_labels.labels)
-[lannot] 48 labels/sequences created
+[lannot] 48 labels created
 [lannot] finished
