@@ -266,34 +266,16 @@ for(int i = 0; i < 10; i++){
 becomes:
 ```c
 int i = 0;
-pc_label_sequence(1,1,1,2,"17",0);
+int __SEQ_STATUS_1 = 1;
 while (1) {
-	if (i < 10) pc_label_sequence_condition(0,"17"); else break;
+	if (i < 10) __SEQ_STATUS_1 = 0; else break;
 	i++;
 }
-pc_label_sequence(1,1,2,2,"17",0);
+pc_label(__SEQ_STATUS_1 == 1,1,"SLO");
 ```
 
 Dataflow
 --------
-
-`pc_label_sequence(1,2,3,4,5,6,...)` represente a def/use in the program:
-* 1 : the condition, often set as true
-* 2 : a unique identifier for this sequence
-* 3 : this sequence position on the chain
-* 4 : the length of the chain
-* 5 : Variable identifier linked to this sequences
-* 6 : Number of bindings (not used yet)
-* ... : bindings
-
-`pc_label_sequence_condition(1,2)` break all partially covered sequences for a specific
-variable :
-* 1 : Always 0 (Useless?)
-* 2 : Variable ID
-
-in DUC/ADC/AUC, since sequences length is always 2,
-`pc_label_sequence(1,ID,1,2,ID,0)` means it is a Definition, and
-`pc_label_sequence(1,ID,2,2,ID,0)` means it is a Use.
 
 in hyperlabels:
 * `.` means `/\` (logical and)
@@ -317,27 +299,30 @@ int main(){
 ```
 becomes:
 ```c
-int main(void){
-    pc_label\sequence\condition(0,"39");
+int main(void) {
+    int __SEQ_STATUS_a_1 = 0;
+    int __SEQ_STATUS_a_2 = 0;
+    int __SEQ_STATUS_a_3 = 0;
     int a = 0;
-    pc_label\sequence(1,863,1,2,"39",0);
-    pc_label\sequence(1,821,1,2,"39",0);
-    pc_label\sequence(1,821,2,2,"39",0);
+    __SEQ_STATUS_a_1 = 1;
+    __SEQ_STATUS_a_2 = 1;
+    pc_label(__SEQ_STATUS_a_1 == 1,1,"DUC");
     if (a) {
-        pc_label\sequence\condition(0,"39");
-        a = 1;
-        pc_label\sequence(1,906,1,2,"39",0);
+       __SEQ_STATUS_a_1 = 0;
+       __SEQ_STATUS_a_2 = 0;
+       a = 1;
+       __SEQ_STATUS_a_3 = 1;
     }
-    pc_label\sequence(1,906,2,2,"39",0);
-    pc_label\sequence(1,863,2,2,"39",0);
+    pc_label(__SEQ_STATUS_a_2 == 1,2,"DUC");
+    pc_label(__SEQ_STATUS_a_3 == 1,3,"DUC");
     return a;
 }
 ```
 and hyperlabels:
 ```
-<s821|; ;>,
-<s863|; ;>,
-<s906|; ;>,
+<s1|; ;>,
+<s2|; ;>,
+<s3|; ;>,
 ```
 
 ### ADC (All-definitions coverage)
@@ -357,26 +342,29 @@ int main(){
 ```
 becomes:
 ```c
-int main(void){
-    pc_label_sequence_condition(0,"39");
+int main(void) {
+    int __SEQ_STATUS_a_1 = 0;
+    int __SEQ_STATUS_a_2 = 0;
+    int __SEQ_STATUS_a_3 = 0;
     int a = 0;
-    pc_label_sequence(1,863,1,2,"39",0);
-    pc_label_sequence(1,821,1,2,"39",0);
-    pc_label_sequence(1,821,2,2,"39",0);
+    __SEQ_STATUS_a_1 = 1;
+    __SEQ_STATUS_a_2 = 1;
+    pc_label(__SEQ_STATUS_a_1 == 1,1,"DUC");
     if (a) {
-        pc_label_sequence_condition(0,"39");
-        a = 1;
-        pc_label\sequence(1,906,1,2,"39",0);
+       __SEQ_STATUS_a_1 = 0;
+       __SEQ_STATUS_a_2 = 0;
+       a = 1;
+       __SEQ_STATUS_a_3 = 1;
     }
-    pc_label\sequence(1,906,2,2,"39",0);
-    pc_label\sequence(1,863,2,2,"39",0);
+    pc_label(__SEQ_STATUS_a_2 == 1,2,"DUC");
+    pc_label(__SEQ_STATUS_a_3 == 1,3,"DUC");
     return a;
 }
 ```
 and hyperlabels:
 ```
-<s821+s863|; ;>,
-<s906|; ;>,
+<s1+s2|; ;>,
+<s3|; ;>,
 ```
 
 ### AUC (All-uses coverage)
@@ -396,26 +384,29 @@ int main(){
 ```
 becomes:
 ```c
-int main(void){
-    pc_label\sequence\condition(0,"39");
+int main(void) {
+    int __SEQ_STATUS_a_1 = 0;
+    int __SEQ_STATUS_a_2 = 0;
+    int __SEQ_STATUS_a_3 = 0;
     int a = 0;
-    pc_label\sequence(1,863,1,2,"39",0);
-    pc_label\sequence(1,821,1,2,"39",0);
-    pc_label\sequence(1,821,2,2,"39",0);
+    __SEQ_STATUS_a_1 = 1;
+    __SEQ_STATUS_a_2 = 1;
+    pc_label(__SEQ_STATUS_a_1 == 1,1,"DUC");
     if (a) {
-        pc_label\sequence\condition(0,"39");
-        a = 1;
-        pc_label\sequence(1,906,1,2,"39",0);
+       __SEQ_STATUS_a_1 = 0;
+       __SEQ_STATUS_a_2 = 0;
+       a = 1;
+       __SEQ_STATUS_a_3 = 1;
     }
-    pc_label\sequence(1,906,2,2,"39",0);
-    pc_label\sequence(1,863,2,2,"39",0);
+    pc_label(__SEQ_STATUS_a_2 == 1,2,"DUC");
+    pc_label(__SEQ_STATUS_a_3 == 1,3,"DUC");
     return a;
 }
 ```
 and hyperlabels:
 ```
-<s821.s863|; ;>,
-<s906|; ;>,
+<s1.s2|; ;>,
+<s3|; ;>,
 ```
 
 Others
@@ -493,7 +484,7 @@ int main(int a, int b) {
 
 Test boundaries of each function input and output (i.e. formals and returns).
 Boundaries are Min and Max (depending on variable's type). Unsigned's min is zero.
-With Frama-C's normalization, each function will cointain only one return statement.
+With Frama-C's normalization, each function will contain only one return statement.
 
 The following example:
 ```c
