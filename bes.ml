@@ -521,19 +521,19 @@ let split_essential_not_essential implications back_implications =
 (** Calculates the cyclic core of the given implications,
     back_implication pair *)
 let cyclic_core implications back_implications =
-  (** Returns whether imp1 dominates imp2 *)
+  (* Returns whether imp1 dominates imp2 *)
   let is_row_dominance imp1 imp2 =
     match imp1, imp2 with
     | (_, x), (_, y) when x <> y && is_subset y x -> true
     | _ -> false
   in
-  (** Returns whether bimp1 dominates bimp2 *)
+  (* Returns whether bimp1 dominates bimp2 *)
   let is_column_dominance bimp1 bimp2 =
     match bimp1, bimp2 with
     | (_, x), (_, y) when x <> y && is_subset x y -> true
     | _ -> false
   in
-  (** Does the row and column dominance checks *)
+  (* Does the row and column dominance checks *)
   let rec do_dominance implications back_implications =
     debug_print Info "Checking dominance...";
     let implications_new = implications in

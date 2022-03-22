@@ -140,7 +140,7 @@ let rec propagate_nots_aux ~neg (t : formula) : formula2 =
   | `TFalse, true -> `TTrue
 
 let propagate_nots (formula : formula) : formula2 =
-  let res = propagate_nots_aux false formula in
+  let res = propagate_nots_aux ~neg:false formula in
   Options.debug ~level:debug_level "remove negations: @[%a@] -> @[%a@]"
     pp_formula formula pp_formula res;
   res
@@ -215,7 +215,7 @@ module Make (C : BOOLEAN_CONVERTIBLE) = struct
   let simplify e =
     let n, info, t1 = C.convert e in
     let optt1 = simplify n t1 in
-    C.convert_back info optt1
+    C.convert_back ~info optt1
 
 end
 

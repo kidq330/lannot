@@ -53,7 +53,6 @@ end
 module HL = Set.Make(StringString)
 let hyperlabels = ref HL.empty
 
-let label_id = ref 0
 let disjunctions = Hashtbl.create 100
 
 let compute_hl caller_callee =

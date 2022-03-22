@@ -51,7 +51,7 @@ let rec partition_lval ~depth ~width ~(emit: exp -> unit) typ lval =
       partition_lval ~depth ~width ~emit typ.ttype lval
 
     (* Structure or union (does not make much sense on union) *)
-    | TComp (comp, _, _) ->
+    | TComp (comp, _) ->
       let i = ref (-1) in
       let onfield field =
         incr i;
@@ -65,7 +65,7 @@ let rec partition_lval ~depth ~width ~(emit: exp -> unit) typ lval =
       end
 
     (* Array length provided *)
-    | TArray (typ, Some length, _, _) ->
+    | TArray (typ, Some length, _) ->
       begin match Cil.isInteger length with
         | Some l ->
           (* Constant length *)
@@ -87,7 +87,7 @@ let rec partition_lval ~depth ~width ~(emit: exp -> unit) typ lval =
           done
       end
 
-    | TArray (typ, None, _, _) ->
+    | TArray (typ, None, _) ->
       (* unknown size: let's check the first element *)
       let lval' () = Cil.addOffsetLval (Index (Exp_builder.zero (), NoOffset)) (lval ()) in
       partition_lval ~depth:(depth-1) ~width ~emit typ lval'
@@ -125,7 +125,7 @@ and partition_exp ~depth ~width ~(emit : exp -> unit) typ exp =
       emit (Exp_builder.binop Eq (exp ()) (Exp_builder.zero ()));
       emit (Exp_builder.binop Ne (exp ()) (Exp_builder.zero ()));
       let emit' cond = emit (Exp_builder.binop LAnd (Exp_builder.binop Ne (exp ()) (Exp_builder.zero ())) cond) in
-      let lval' () = Cil.mkMem (exp ()) NoOffset in
+      let lval' () = Cil.mkMem ~addr:(exp ()) ~off:NoOffset in
       partition_lval ~depth:(depth-1) ~width ~emit:emit' typ lval'
 
     (* Named type *)
@@ -158,7 +158,8 @@ class inputDomainVisitor max_depth max_width all_funs globals mk_label = object 
         acc := mk_label exp [] loc :: !acc
     in
     let gen_for_var var =
-      partition_lval max_depth max_width emit var.vtype (fun () -> Cil.var var)
+      partition_lval
+        ~depth:max_depth ~width:max_width ~emit var.vtype (fun ()-> Cil.var var)
     in
     List.iter gen_for_var vars;
     List.rev !acc

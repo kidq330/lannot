@@ -81,6 +81,7 @@ end
 module Stmt_builder : sig
   val mk : ?ghost:bool -> ?sattr:attributes  -> stmtkind -> stmt
   val instr : ?ghost:bool -> ?sattr:attributes  -> instr -> stmt
+
   (** Make a block statement from a list of statements. *)
   val block : stmt list -> stmt
 end

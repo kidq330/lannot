@@ -99,7 +99,7 @@ class visitor mk_label = object(self)
     | BinOp (LAnd|LOr as op, exp1, exp2, _) when seen_double ->
       let mutate_call, new_exp1 = self#generate_exp exp1 in
       let mutate_call',new_exp2 = self#generate_exp exp2 in
-      let concat_exp = Cil.mkBinOp exp.eloc op new_exp1 new_exp2 in
+      let concat_exp = Cil.mkBinOp ~loc:exp.eloc op new_exp1 new_exp2 in
       [mutate_call;mutate_call'],concat_exp
     | _ ->
       if seen_double then begin

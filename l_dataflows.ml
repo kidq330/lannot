@@ -102,7 +102,6 @@ module Listtbl (T : Hashtbl.S) = struct
       T.add tbl key elt
 end
 
-module VarOfst_lst = Listtbl(VarOfst.Hashtbl)
 module Stmt_lst = Listtbl(Stmt.Hashtbl)
 module Def_lst = Listtbl(Def.Hashtbl)
 
@@ -408,7 +407,7 @@ module Dataflow (B : sig val bounded : bool end) = struct
     Format.fprintf fmt "  Defs :@.";
     Def.Set.iter (fun elt -> Format.fprintf fmt "    "; pretty_def fmt elt) set
 
-  let pretty fmt = function
+  let _pretty fmt = function
     | Bottom -> Format.fprintf fmt "Bottom@."
     | NonBottom (defs,uses) ->
       Format.fprintf fmt "NonBottom :@.";
@@ -469,7 +468,6 @@ module Dataflow (B : sig val bounded : bool end) = struct
 
   let rec isConstant e =
     match e.enode with
-    | Info _ -> assert false
     | Const _ -> true
     | UnOp (LNot, _, _) -> true
     | UnOp (_, e, _) -> isConstant e

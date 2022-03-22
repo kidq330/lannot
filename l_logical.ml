@@ -53,7 +53,7 @@ let gen_labels_ncc mk_label n (bexpr : exp) : stmt =
   (* For each subset of atoms, *)
   let for_subset (acc : stmt list) (subset : exp list) : stmt list =
     (* Compute signed subsets *)
-    let signed_subsets = sign_combine (fun id -> id) lnot subset in
+    let signed_subsets = sign_combine ~pos:(fun id -> id) ~neg:lnot subset in
     (* Create labels for each signed subset (taken in rev. order)
        and put them in rev. in front of acc (N.B. [rev rev l = l]) *)
     List.fold_left for_signed_subset acc signed_subsets
@@ -71,8 +71,8 @@ let gen_labels_dc mk_label bexpr =
 (** Generate GACC labels for one particular active clause *)
 let gen_labels_gacc_for mk_label whole part =
   let loc = whole.eloc in
-  let w0 = replace whole part (one ()) in
-  let w1 = replace whole part (zero ()) in
+  let w0 = replace ~whole ~part ~repl:(one ()) in
+  let w1 = replace ~whole ~part ~repl:(zero ()) in
 
   (* rather than to test w0 != w1, do (w0 && !w1) || (!w0 && w1) *)
   let indep = niff w0 w1 in
@@ -95,8 +95,8 @@ let gen_labels_gacc mk_label bexpr =
 let gen_labels_cacc_for mk_label whole part =
   Annotators.label_function_vinfo := !Annotators.pc_label_bindings;
   let loc = whole.eloc in
-  let w0 = replace whole part (one ()) in
-  let w1 = replace whole part (zero ()) in
+  let w0 = replace ~whole ~part ~repl:(one ()) in
+  let w1 = replace ~whole ~part ~repl:(zero ()) in
 
   let binding_id = Annotators.next_binding () in
 
@@ -147,8 +147,8 @@ let handle_list_r la a = List.concat [ la ; [  mk (Const (CStr ("cB" ^ (string_o
 let gen_labels_racc_for mk_label whole atoms part =
   Annotators.label_function_vinfo := !Annotators.pc_label_bindings;
   let loc = whole.eloc in
-  let w0 = replace whole part (one ()) in
-  let w1 = replace whole part (zero ()) in
+  let w0 = replace ~whole ~part ~repl:(one ()) in
+  let w1 = replace ~whole ~part ~repl:(zero ()) in
 
   let binding_id = Annotators.next_binding () in
 
@@ -204,8 +204,8 @@ let gen_hyperlabels_racc = ref (fun () ->
 let gen_labels_gicc_for mk_label whole part =
   let loc = whole.eloc in
   (* Compute negative and positive Shannon's factors wrt to part *)
-  let factor0 = replace whole part (one ()) in
-  let factor1 = replace whole part (one ()) in
+  let factor0 = replace ~whole ~part ~repl:(one ()) in
+  let factor1 = replace ~whole ~part ~repl:(one ()) in
   (* Check the inactivity of part *)
   let inactive = iff factor0 factor1 in
 

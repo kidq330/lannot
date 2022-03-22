@@ -23,9 +23,6 @@
 open Cil_types
 open Ast_const
 
-let unk_loc = Cil_datatype.Location.unknown
-
-
 (* For each exp, limits equals [min;max] (signed) or [max] (unsigned)
    We create a label for each bound, plus a label for zero (which is
    min for unsigned types) *)

@@ -65,7 +65,7 @@ module Exp_builder = struct
     let oldt = Cil.typeOf e in
     let newt = Cil.integralPromotion oldt in
     (* make integral promotion explicit *)
-    let e' = Cil.mkCastT oldt newt e in
+    let e' = Cil.mkCastT ~oldt ~newt e in
     Cil.new_exp ~loc (UnOp (Neg, e', newt))
 
   let binop ?(loc=unk_loc) op left right =
@@ -90,11 +90,11 @@ module Exp_builder = struct
     else
       match whole.enode with
       | UnOp (op, e, typ) ->
-        let e' = replace e part repl in
+        let e' = replace ~whole:e ~part ~repl in
         if e == e' then whole else mk ~loc:whole.eloc (UnOp (op, e', typ))
       | BinOp (op, e1, e2, typ) ->
-        let e1' = replace e1 part repl in
-        let e2' = replace e2 part repl in
+        let e1' = replace ~whole:e1 ~part ~repl in
+        let e2' = replace ~whole:e2 ~part ~repl in
         if e1 == e1' && e2 == e2' then whole else mk ~loc:whole.eloc (BinOp (op, e1', e2', typ))
       | _ -> whole
 
@@ -103,7 +103,7 @@ module Exp_builder = struct
     match l with
     | [] -> invalid_arg "join"
     | head :: tail ->
-      List.fold_left (fun acc e -> Cil.mkBinOp loc op e acc) head tail
+      List.fold_left (fun acc e -> Cil.mkBinOp ~loc op e acc) head tail
 
   let join ?(loc=Cil_datatype.Location.unknown) op l =
     rev_join ~loc op (List.rev l)

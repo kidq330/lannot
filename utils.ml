@@ -173,7 +173,7 @@ let rev_sign_combine ~(pos: 'a -> 'b) ~(neg : 'a -> 'b) : 'a list -> 'b list lis
   aux [] []
 
 let sign_combine ~pos ~neg l =
-  List.rev (rev_sign_combine pos neg l)
+  List.rev (rev_sign_combine ~pos ~neg l)
 
 let with_delta op value kind =
   let delta = Options.LimitDelta.get () in

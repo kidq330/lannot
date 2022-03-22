@@ -92,7 +92,7 @@ let annotate_on_project ann_names =
 let annotate ann_names =
   let base_project = Project.current () in
   let prj_name = (Project.get_name base_project) ^ "_labels" in
-  let prj = Project.create_by_copy false prj_name in
+  let prj = Project.create_by_copy ~last:false prj_name in
   Options.debug "start project %s" prj_name;
   Project.on prj annotate_on_project ann_names
 
