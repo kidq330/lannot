@@ -20,6 +20,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
+let () = Plugin.is_share_visible()
 include Plugin.Register (struct
     let name = "LAnnotate"
     let shortname = "lannot"
@@ -82,6 +83,7 @@ let () = Parameter_customize.set_group help
 let () = Parameter_customize.do_not_journalize ()
 let () = Parameter_customize.do_not_projectify ()
 let () = Parameter_customize.do_not_save ()
+let () = Parameter_customize.set_cmdline_stage Cmdline.Extended
 module ListAnnotators = False (struct
     let option_name = "-lannot-list"
     let help = "show list of criteria"

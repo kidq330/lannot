@@ -1,6 +1,6 @@
-[kernel] Parsing tests/labels/test_CB.c (with preprocessing)
+[kernel] Parsing test_CB.c (with preprocessing)
 [lannot] apply annotations for CB
-[lannot] write modified C file (to tests/labels/result/test_CB_labels.c)
-[lannot] write label data (to tests/labels/result/test_CB_labels.labels)
+[lannot] write modified C file (to ./test_CB_labels.c)
+[lannot] write label data (to ./test_CB_labels.labels)
 [lannot] 21 labels created
 [lannot] finished

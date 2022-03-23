@@ -126,8 +126,9 @@ let help () =
   if Options.ListAnnotators.get () then begin
     Annotators.print_help Format.std_formatter;
     raise Cmdline.Exit
-  end
-let () = Cmdline.run_after_configuring_stage help
+  end else Cmdline.nop
+
+let () = Cmdline.run_after_exiting_stage help
 
 let run () =
   if not (Options.Annotators.is_empty ()) then run_once ()
@@ -142,4 +143,4 @@ let setup_once, _ = State_builder.apply_once "LAnnotate.setup_run" [] setup_run
 
 let () = Cmdline.run_after_configuring_stage setup_once
 
-let () = Db.Main.extend run
+let () = Db.Main.extend run_once

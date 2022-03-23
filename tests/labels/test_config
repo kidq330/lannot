@@ -1,4 +1,4 @@
 LOG: @PTEST_NAME@_labels.c
 LOG: @PTEST_NAME@_labels.labels
-OPT: -lannot-o @PTEST_DIR@/result/@PTEST_NAME@_labels.c
+OPT: -lannot-share @PTEST_SHARE_DIR@ -lannot-o @PTEST_RESULT@/@PTEST_NAME@_labels.c
 PLUGIN: lannotate
