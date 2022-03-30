@@ -48,7 +48,9 @@ class io_visitor mk_label = object(self)
       let args = Kernel_function.get_formals kf in
       let exp_args = List.map (fun arg -> Exp_builder.lval (Cil.var arg)) args in
       let loc = Kernel_function.get_location kf in
-      let bounds_labels = List.concat_map (mk_bounds mk_label loc) exp_args in
+      let bounds_labels =
+        Transitioning.List.concat_map (mk_bounds mk_label loc) exp_args
+      in
       Cil.DoChildrenPost( fun fdec ->
           fdec.sbody.bstmts <- bounds_labels @ fdec.sbody.bstmts;
           fdec
