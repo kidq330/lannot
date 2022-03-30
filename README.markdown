@@ -11,7 +11,7 @@ LAnnotate is a Frama-C plugin.
 
 Installation
 ------------
-LAnnotate requires Frama-C 24.0 (Chromium) to be installed and ocaml 4.12.1 .
+LAnnotate requires Frama-C 24.0 (Chromium) to be installed and OCaml >= 4.08.1 .
 Once Frama-C is installed, run autoconf, configure, compile and install
 LAnnotate:
     autoconf
@@ -37,13 +37,13 @@ documentation](doc/criteria.markdown).
 Global options are :
 
   - `-lannot-simplify` enables the simplication of the generated label
-    predicates before annotations. For the moment, it only reduce the Boolean
+    predicates before annotations. For the moment, it only reduces Boolean
     expressions.
 
   - `-lannot-allbool` tells LAnnotate to consider all Boolean expressions,
-    rather that just branching decision. Impacts DC, CC, MCC, n-CC, GACC, GICC.
+    rather that just branching decisions. Impacts DC, CC, MCC, n-CC, GACC, GICC.
 
-  - `-lannot-functions funs` tells LAnnotate what functions to consider
+  - `-lannot-functions funs` tells LAnnotate which functions to consider
     (all by default).
 
   - `-lannot-o outputfile.c` tells LAnnotate how to name the annoted file
@@ -63,23 +63,3 @@ Authors
 Also many thanks to the rest of LTest's team:
 - Nikolai Kosmatov
 - Sébastien Bardin
-
-License
--------
-
-This file is part of Frama-C
-
-Copyright (C) 2013-2018
-  CEA (Commissariat à l'énergie atomique et aux énergies alternatives)
-
-You may redistribute it and/or modify it under the terms of the GNU
-Lesser General Public License as published by the Free Software
-Foundation, version 3.
-
-It is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
-
-See the GNU Lesser General Public License version 3
-for more details (enclosed in the file LICENSE).
