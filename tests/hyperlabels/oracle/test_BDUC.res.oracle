@@ -1,8 +1,8 @@
 [kernel] Parsing test_BDUC.c (with preprocessing)
 [lannot] apply annotations for BDUC
 [lannot] write hyperlabel data (to ./test_BDUC_labels.hyperlabels)
-[lannot] Total number of hyperlabels = 18
+[lannot] Total number of hyperlabels = 14
 [lannot] write modified C file (to ./test_BDUC_labels.c)
 [lannot] write label data (to ./test_BDUC_labels.labels)
-[lannot] 18 labels created
+[lannot] 14 labels created
 [lannot] finished

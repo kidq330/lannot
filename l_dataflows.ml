@@ -285,7 +285,8 @@ class visit_defuse ~annot_bound (defs_set,uses_set) current_stmt kf
           if Def.Hashtbl.mem postpone_def def then
             Def.Hashtbl.find postpone_def def, []
           else begin
-            let tmp_vInfo = self#init_vinfo ~typ:(Cil.typeOfLval (Var vi, offset))
+            let tmp_vInfo = self#init_vinfo
+                ~typ:(Cil.typeRemoveAttributes ["const"] @@ Cil.typeOfLval (Var vi, offset))
                 (mk_name ~pre:seq_tmp_prefix vi.vname id_seq)
             in
             Def.Hashtbl.add postpone_def def tmp_vInfo;
@@ -309,11 +310,10 @@ class visit_defuse ~annot_bound (defs_set,uses_set) current_stmt kf
     let _,(vi,offset),_ = def in
     match Cil.typeOfLval (Var vi, offset) |> Cil.unrollType with
     | TInt (kind, _)
-    | TEnum ({ekind = kind}, _) ->
-      if annot_bound then
+    | TEnum ({ekind = kind}, _) when annot_bound ->
         Utils.get_bounds kind
         |> List.iter (fun b -> self#mkSeq_aux loc def (Some b))
-      else self#mkSeq_aux loc def None
+    | _ when annot_bound -> ()
     | _ -> self#mkSeq_aux loc def None
 
   (** Part 5- b) of the heading comment *)

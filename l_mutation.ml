@@ -68,14 +68,19 @@ class visitor mk_label = object(self)
     | _ -> false
 
 
+  method private add_to_seen vi =
+    (* we add the new variable to all currently opened critical zones *)
+    let l = Stack.fold (fun acc e -> e::acc) [] seen_vinfos in
+    Stack.clear seen_vinfos;
+    List.iter (fun e -> Stack.push (vi::e) seen_vinfos) l
+
   (* Creates a new temporary variable and adds it to seen_vinfos *)
   method private get_new_tmp_var () : varinfo =
     let kf = Option.get self#current_kf in
     let fdec = Kernel_function.get_definition kf in
     let name = "lannot_mut_"^string_of_int (self#next()) in
     let vi = Cil.makeTempVar ~name fdec Cil.intType in
-    let fst = Stack.pop seen_vinfos in
-    Stack.push (vi::fst) seen_vinfos;
+    self#add_to_seen vi;
     to_add <- vi :: to_add;
     vi
 
@@ -188,12 +193,18 @@ class visitor mk_label = object(self)
     | Instr (Call (_, {enode=Lval (Var v, NoOffset)}, [], loc))
       when String.equal v.vname target ->
       if self#in_crit_zone () then begin
-        let top = Stack.pop seen_vinfos in
-        if top <> [] then begin
-          let label = mk_label (self#generate_disj loc top) [] loc in
-          label.labels <- stmt.labels;
-          Stack.push top seen_vinfos;
-          Cil.ChangeTo label
+        let tops = List.rev @@ Stack.fold (fun acc e -> e::acc) [] seen_vinfos in
+        let tops = List.sort_uniq compare tops in
+        let labels =
+          List.filter_map  (fun vis ->
+              if vis = [] then None
+              else Some(mk_label (self#generate_disj loc vis) [] loc)
+            ) tops
+        in
+        if labels <> [] then begin
+          let b = Ast_const.Stmt_builder.block labels in
+          b.labels <- stmt.labels;
+          Cil.ChangeTo b
         end
         else begin
           Options.warning "Success point reached without preceding if at %a, \
