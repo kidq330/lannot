@@ -69,6 +69,7 @@ class visitor mk_label = object(self)
 
 
   method private add_to_seen vi =
+    (* we add the new variable to all currently opened critical zones *)
     let l = Stack.fold (fun acc e -> e::acc) [] seen_vinfos in
     Stack.clear seen_vinfos;
     List.iter (fun e -> Stack.push (vi::e) seen_vinfos) l
@@ -79,9 +80,7 @@ class visitor mk_label = object(self)
     let fdec = Kernel_function.get_definition kf in
     let name = "lannot_mut_"^string_of_int (self#next()) in
     let vi = Cil.makeTempVar ~name fdec Cil.intType in
-    (* let fst = Stack.pop seen_vinfos in *)
     self#add_to_seen vi;
-    (* Stack.push (vi::fst) seen_vinfos; *)
     to_add <- vi :: to_add;
     vi
 
