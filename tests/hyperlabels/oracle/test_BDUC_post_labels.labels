@@ -1,19 +1,15 @@
 # id, status, tag, origin_loc, current_loc, emitter, drivers, exec_time
 1, unknown, BDUC, test_BDUC_post.c:11, , LAnnot, , 0.
 2, unknown, BDUC, test_BDUC_post.c:11, , LAnnot, , 0.
-3, unknown, BDUC, test_BDUC_post.c:11, , LAnnot, , 0.
+3, unknown, BDUC, test_BDUC_post.c:13, , LAnnot, , 0.
 4, unknown, BDUC, test_BDUC_post.c:13, , LAnnot, , 0.
-5, unknown, BDUC, test_BDUC_post.c:13, , LAnnot, , 0.
-6, unknown, BDUC, test_BDUC_post.c:13, , LAnnot, , 0.
+5, unknown, BDUC, test_BDUC_post.c:15, , LAnnot, , 0.
+6, unknown, BDUC, test_BDUC_post.c:15, , LAnnot, , 0.
 7, unknown, BDUC, test_BDUC_post.c:15, , LAnnot, , 0.
 8, unknown, BDUC, test_BDUC_post.c:15, , LAnnot, , 0.
 9, unknown, BDUC, test_BDUC_post.c:15, , LAnnot, , 0.
 10, unknown, BDUC, test_BDUC_post.c:15, , LAnnot, , 0.
-11, unknown, BDUC, test_BDUC_post.c:15, , LAnnot, , 0.
-12, unknown, BDUC, test_BDUC_post.c:15, , LAnnot, , 0.
-13, unknown, BDUC, test_BDUC_post.c:15, , LAnnot, , 0.
+11, unknown, BDUC, test_BDUC_post.c:17, , LAnnot, , 0.
+12, unknown, BDUC, test_BDUC_post.c:17, , LAnnot, , 0.
+13, unknown, BDUC, test_BDUC_post.c:17, , LAnnot, , 0.
 14, unknown, BDUC, test_BDUC_post.c:17, , LAnnot, , 0.
-15, unknown, BDUC, test_BDUC_post.c:17, , LAnnot, , 0.
-16, unknown, BDUC, test_BDUC_post.c:17, , LAnnot, , 0.
-17, unknown, BDUC, test_BDUC_post.c:17, , LAnnot, , 0.
-18, unknown, BDUC, test_BDUC_post.c:17, , LAnnot, , 0.
