@@ -20,8 +20,8 @@ autom4te.cache
 config.log
 config.status
 configure
-Makefile
 .vscode
 testcases*/
 pathcrawler_*
 /_build/
+/frama-c-lannotate.opam

@@ -26,18 +26,3 @@ tags: [
   "Frama-C"
   "LTest"
 ]
-
-build: [
-  ["autoconf"] {dev}
-  ["./configure"]
-  [make "-j%{jobs}%"]
-]
-
-install: [
-  [make "install"]
-]
-
-depends: [
-  "ocaml" { >= "4.08.1" }
-  "frama-c" { >= "25.0" & < "26.0" }
-]
