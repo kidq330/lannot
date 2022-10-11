@@ -1,0 +1,24 @@
+(rule
+  (alias frama-c-configure)
+  (deps (universe))
+  (action
+    (progn
+     (echo "Lannotate:" %{lib-available:frama-c-lannotate.core} "\n")
+     (echo " - Frama-C:" %{lib-available:frama-c.kernel} "\n")
+    )
+  )
+)
+
+(library
+  (optional)
+  (name lannotate)
+  (public_name frama-c-lannotate.core)
+  (flags -open Frama_c_kernel :standard -w -9)
+  (libraries frama-c.kernel)
+)
+
+(plugin
+ (optional)
+ (name lannotate)
+ (libraries frama-c-lannotate.core)
+ (site (frama-c plugins)))

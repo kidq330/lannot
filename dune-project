@@ -1,0 +1,6 @@
+(lang dune 3.2)
+(name frama-c-lannotate)
+(using dune_site 0.1)
+(package (name frama-c-lannotate)
+  (depends (frama-c (and ( > 25.0) ( < 27))))
+)

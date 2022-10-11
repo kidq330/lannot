@@ -80,7 +80,6 @@ module SkipVariableNames = String_set (struct
   end)
 
 let () = Parameter_customize.set_group help
-let () = Parameter_customize.do_not_journalize ()
 let () = Parameter_customize.do_not_projectify ()
 let () = Parameter_customize.do_not_save ()
 let () = Parameter_customize.set_cmdline_stage Cmdline.Extended

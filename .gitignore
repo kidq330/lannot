@@ -24,3 +24,4 @@ Makefile
 .vscode
 testcases*/
 pathcrawler_*
+/_build/
