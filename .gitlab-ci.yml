@@ -1,0 +1,40 @@
+################################################################################
+### STAGES
+
+stages:
+  - tests
+
+################################################################################
+### DEFAULT JOB PARAMETERS
+
+default:
+  tags: [nix-v2]
+
+################################################################################
+### VARIABLES
+
+variables:
+  DEFAULT: "master"
+  OCAML: "4.11"
+
+################################################################################
+### TESTS
+
+build-and-test:
+  stage: tests
+  script:
+    - ./nix/ci.sh
+
+check-headers:
+  stage: tests
+  variables:
+    CI_MODE: "check-headers"
+  script:
+    - ./nix/ci.sh
+
+lint:
+  stage: tests
+  variables:
+    CI_MODE: "lint"
+  script:
+    - ./nix/ci.sh
