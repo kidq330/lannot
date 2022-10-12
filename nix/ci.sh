@@ -3,7 +3,7 @@
 set -euxo pipefail
 
 DEFAULT=${DEFAULT:-master}
-NIX_TARGET="minimal"
+NIX_TARGET="lannotate"
 #           <plugin>   /nix       /ci.sh
 PLUGIN_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
 
