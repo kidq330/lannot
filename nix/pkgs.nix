@@ -1,7 +1,7 @@
-{ frama-c-repo ? builtins.trace "minimal: defaulting frama-c-repo to ${toString ../../frama-c}" ../../frama-c }:
+{ frama-c-repo ? builtins.trace "lannotate: defaulting frama-c-repo to ${toString ../../frama-c}" ../../frama-c }:
 let
   ocamlOverlay = oself: osuper: {
-    minimal = oself.callPackage ./minimal.nix {};
+    minimal = oself.callPackage ./lannotate.nix {};
   };
   overlay = self: super: {
     ocaml-ng = super.lib.mapAttrs (
