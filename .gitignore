@@ -26,3 +26,4 @@ pathcrawler_*
 /frama-c-lannotate.opam
 /tests/hyperlabels/oracle/dune
 /tests/labels/oracle/dune
+/.lint/

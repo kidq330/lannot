@@ -65,3 +65,8 @@ HDRCK_EXTRA:=-headache-config-file $(FRAMAC_SHARE)/headache_config.txt
 include ${FRAMAC_SHARE}/Makefile.headers
 
 ##########################################################################
+# Linting
+
+include ${FRAMAC_SHARE}/Makefile.linting
+
+##########################################################################

@@ -201,8 +201,8 @@ let get_bounds kind : (binop*exp) list =
        with_delta MinusA (Cil.max_unsigned_number size) kind]
 
 let is_bound _kind _i = false
-  (* let size = Cil.bitsSizeOfInt kind in
-  if Cil.isSigned kind then
-    i>= (Cil.max_signed_number size)
-  else
-    i = Integer.of_int 0 || i >= Cil.max_signed_number size *)
+(* let size = Cil.bitsSizeOfInt kind in
+   if Cil.isSigned kind then
+   i>= (Cil.max_signed_number size)
+   else
+   i = Integer.of_int 0 || i >= Cil.max_signed_number size *)

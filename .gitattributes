@@ -15,3 +15,14 @@ README* header_spec=.ignore
 /AUTHORS_bes header_spec=.ignore
 /LICENSE header_spec=.ignore
 *.markdown header_spec=.ignore
+
+
+# linter
+
+* check-eoleof check-utf8
+
+*.jpg binary -check-eoleof -check-utf8
+*.pdf binary -check-eoleof -check-utf8
+
+*.ml  check-syntax check-indent -check-eoleof
+*.mli check-syntax check-indent -check-eoleof
