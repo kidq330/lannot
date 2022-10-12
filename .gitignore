@@ -14,7 +14,6 @@
 /doc/code/*
 /tests/*/result/
 META.frama-c-*
-/tests/ptests_config
 .merlin
 autom4te.cache
 config.log
@@ -25,3 +24,5 @@ testcases*/
 pathcrawler_*
 /_build/
 /frama-c-lannotate.opam
+/tests/hyperlabels/oracle/dune
+/tests/labels/oracle/dune
