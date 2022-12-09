@@ -216,11 +216,11 @@ let gen_labels_gicc_for mk_label whole part =
   let false_inactive_true = binop LAnd false_inactive whole in
   let false_inactive_false = binop LAnd false_inactive (lnot whole) in
   List.map (fun e -> mk_label e [] loc) [
-      true_inactive_true;
-      true_inactive_false;
-      false_inactive_true;
-      false_inactive_false;
-    ]
+    true_inactive_true;
+    true_inactive_false;
+    false_inactive_true;
+    false_inactive_false;
+  ]
 
 (** Generate GICC labels for the given Boolean formula *)
 let gen_labels_gicc mk_label bexpr =

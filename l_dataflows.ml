@@ -311,8 +311,8 @@ class visit_defuse ~annot_bound (defs_set,uses_set) current_stmt kf
     match Cil.typeOfLval (Var vi, offset) |> Cil.unrollType with
     | TInt (kind, _)
     | TEnum ({ekind = kind}, _) when annot_bound ->
-        Utils.get_bounds kind
-        |> List.iter (fun b -> self#mkSeq_aux loc def (Some b))
+      Utils.get_bounds kind
+      |> List.iter (fun b -> self#mkSeq_aux loc def (Some b))
     | _ when annot_bound -> ()
     | _ -> self#mkSeq_aux loc def None
 
