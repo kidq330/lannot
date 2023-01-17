@@ -542,7 +542,7 @@ let do_function ~annot_bound kf mk_label to_add_fun =
         | _ -> ()
       end
   in
-  DataflowAnalysis.Result.iter_stmt visit_stmt result
+  DataflowAnalysis.Result.iter_stmt_asc visit_stmt result
 
 (** Part 1- and 2- of the heading comment *)
 class addSequences ~annot_bound mk_label = object(self)

@@ -126,10 +126,10 @@ int checkPrimeNumber(int n)
   int __SEQ_STATUS_n_21 = 1;
   int __SEQ_TMP_n_21 = n;
   int __SEQ_STATUS_n_22 = 1;
-  int __SEQ_STATUS_j_23 = 0;
-  int __SEQ_STATUS_j_24 = 0;
-  int __SEQ_STATUS_n_25 = 1;
-  int __SEQ_STATUS_n_26 = 1;
+  int __SEQ_STATUS_n_23 = 1;
+  int __SEQ_STATUS_n_24 = 1;
+  int __SEQ_STATUS_j_25 = 0;
+  int __SEQ_STATUS_j_26 = 0;
   int __SEQ_STATUS_j_27 = 0;
   int __SEQ_STATUS_j_28 = 0;
   int flag = 1;
@@ -144,34 +144,34 @@ int checkPrimeNumber(int n)
     pc_label(__SEQ_STATUS_n_22 == 1 && __SEQ_TMP_n_21 == 2147483647,22,
              "BAUC");
     if (! (j <= n / 2)) break;
-    pc_label(__SEQ_STATUS_n_25 == 1 && __SEQ_TMP_n_21 == (-2147483647-1),25,
+    pc_label(__SEQ_STATUS_n_23 == 1 && __SEQ_TMP_n_21 == (-2147483647-1),23,
              "BAUC");
-    pc_label(__SEQ_STATUS_n_26 == 1 && __SEQ_TMP_n_21 == 2147483647,26,
+    pc_label(__SEQ_STATUS_n_24 == 1 && __SEQ_TMP_n_21 == 2147483647,24,
              "BAUC");
-    pc_label(__SEQ_STATUS_j_27 == 1 && __SEQ_TMP_j_19 == (-2147483647-1),27,
+    pc_label(__SEQ_STATUS_j_25 == 1 && __SEQ_TMP_j_19 == (-2147483647-1),25,
              "BAUC");
-    pc_label(__SEQ_STATUS_j_28 == 1 && __SEQ_TMP_j_19 == 2147483647,28,
+    pc_label(__SEQ_STATUS_j_26 == 1 && __SEQ_TMP_j_19 == 2147483647,26,
              "BAUC");
     if (n % j == 0) {
       flag = 0;
       break;
     }
-    pc_label(__SEQ_STATUS_j_23 == 1 && __SEQ_TMP_j_19 == (-2147483647-1),23,
+    pc_label(__SEQ_STATUS_j_27 == 1 && __SEQ_TMP_j_19 == (-2147483647-1),27,
              "BAUC");
-    pc_label(__SEQ_STATUS_j_24 == 1 && __SEQ_TMP_j_19 == 2147483647,24,
+    pc_label(__SEQ_STATUS_j_28 == 1 && __SEQ_TMP_j_19 == 2147483647,28,
              "BAUC");
     __SEQ_STATUS_j_19 = 0;
     __SEQ_STATUS_j_20 = 0;
-    __SEQ_STATUS_j_23 = 0;
-    __SEQ_STATUS_j_24 = 0;
+    __SEQ_STATUS_j_25 = 0;
+    __SEQ_STATUS_j_26 = 0;
     __SEQ_STATUS_j_27 = 0;
     __SEQ_STATUS_j_28 = 0;
     j ++;
     __SEQ_STATUS_j_19 = 1;
     __SEQ_TMP_j_19 = j;
     __SEQ_STATUS_j_20 = 1;
-    __SEQ_STATUS_j_23 = 1;
-    __SEQ_STATUS_j_24 = 1;
+    __SEQ_STATUS_j_25 = 1;
+    __SEQ_STATUS_j_26 = 1;
     __SEQ_STATUS_j_27 = 1;
     __SEQ_STATUS_j_28 = 1;
   }

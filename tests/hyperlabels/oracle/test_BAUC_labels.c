@@ -104,10 +104,10 @@ int checkPrimeNumber(int n)
   int __SEQ_STATUS_j_20 = 0;
   int __SEQ_STATUS_n_21 = n == (-2147483647-1);
   int __SEQ_STATUS_n_22 = n == 2147483647;
-  int __SEQ_STATUS_j_23 = 0;
-  int __SEQ_STATUS_j_24 = 0;
-  int __SEQ_STATUS_n_25 = n == (-2147483647-1);
-  int __SEQ_STATUS_n_26 = n == 2147483647;
+  int __SEQ_STATUS_n_23 = n == (-2147483647-1);
+  int __SEQ_STATUS_n_24 = n == 2147483647;
+  int __SEQ_STATUS_j_25 = 0;
+  int __SEQ_STATUS_j_26 = 0;
   int __SEQ_STATUS_j_27 = 0;
   int __SEQ_STATUS_j_28 = 0;
   int flag = 1;
@@ -118,27 +118,27 @@ int checkPrimeNumber(int n)
     pc_label(__SEQ_STATUS_n_21 == 1,21,"BAUC");
     pc_label(__SEQ_STATUS_n_22 == 1,22,"BAUC");
     if (! (j <= n / 2)) break;
-    pc_label(__SEQ_STATUS_n_25 == 1,25,"BAUC");
-    pc_label(__SEQ_STATUS_n_26 == 1,26,"BAUC");
-    pc_label(__SEQ_STATUS_j_27 == 1,27,"BAUC");
-    pc_label(__SEQ_STATUS_j_28 == 1,28,"BAUC");
+    pc_label(__SEQ_STATUS_n_23 == 1,23,"BAUC");
+    pc_label(__SEQ_STATUS_n_24 == 1,24,"BAUC");
+    pc_label(__SEQ_STATUS_j_25 == 1,25,"BAUC");
+    pc_label(__SEQ_STATUS_j_26 == 1,26,"BAUC");
     if (n % j == 0) {
       flag = 0;
       break;
     }
-    pc_label(__SEQ_STATUS_j_23 == 1,23,"BAUC");
-    pc_label(__SEQ_STATUS_j_24 == 1,24,"BAUC");
+    pc_label(__SEQ_STATUS_j_27 == 1,27,"BAUC");
+    pc_label(__SEQ_STATUS_j_28 == 1,28,"BAUC");
     __SEQ_STATUS_j_19 = 0;
     __SEQ_STATUS_j_20 = 0;
-    __SEQ_STATUS_j_23 = 0;
-    __SEQ_STATUS_j_24 = 0;
+    __SEQ_STATUS_j_25 = 0;
+    __SEQ_STATUS_j_26 = 0;
     __SEQ_STATUS_j_27 = 0;
     __SEQ_STATUS_j_28 = 0;
     j ++;
     __SEQ_STATUS_j_19 = j == (-2147483647-1);
     __SEQ_STATUS_j_20 = j == 2147483647;
-    __SEQ_STATUS_j_23 = j == (-2147483647-1);
-    __SEQ_STATUS_j_24 = j == 2147483647;
+    __SEQ_STATUS_j_25 = j == (-2147483647-1);
+    __SEQ_STATUS_j_26 = j == 2147483647;
     __SEQ_STATUS_j_27 = j == (-2147483647-1);
     __SEQ_STATUS_j_28 = j == 2147483647;
   }

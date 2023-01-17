@@ -49,24 +49,24 @@ int armstrong(int low, int high)
    int __SEQ_STATUS_n_21 = 0;
    int __SEQ_TMP_n_21 = 0;
    int __SEQ_STATUS_n_22 = 0;
-   int __SEQ_STATUS_result_23 = 0;
-   int __SEQ_TMP_result_23 = 0;
-   int __SEQ_STATUS_result_24 = 0;
+   int __SEQ_STATUS_temp2_23 = 0;
+   int __SEQ_TMP_temp2_23 = 0;
+   int __SEQ_STATUS_temp2_24 = 0;
    int __SEQ_STATUS_temp2_25 = 0;
    int __SEQ_TMP_temp2_25 = 0;
    int __SEQ_STATUS_temp2_26 = 0;
    int __SEQ_STATUS_temp2_27 = 0;
-   int __SEQ_TMP_temp2_27 = 0;
    int __SEQ_STATUS_temp2_28 = 0;
    int __SEQ_STATUS_temp2_29 = 0;
    int __SEQ_STATUS_temp2_30 = 0;
-   int __SEQ_STATUS_temp2_31 = 0;
-   int __SEQ_STATUS_temp2_32 = 0;
-   int __SEQ_STATUS_remainder_0_33 = 0;
-   int __SEQ_TMP_remainder_0_33 = 0;
-   int __SEQ_STATUS_remainder_0_34 = 0;
-   int __SEQ_STATUS_n_35 = 0;
-   int __SEQ_STATUS_n_36 = 0;
+   int __SEQ_STATUS_remainder_0_31 = 0;
+   int __SEQ_TMP_remainder_0_31 = 0;
+   int __SEQ_STATUS_remainder_0_32 = 0;
+   int __SEQ_STATUS_n_33 = 0;
+   int __SEQ_STATUS_n_34 = 0;
+   int __SEQ_STATUS_result_35 = 0;
+   int __SEQ_TMP_result_35 = 0;
+   int __SEQ_STATUS_result_36 = 0;
    int __SEQ_STATUS_result_37 = 0;
    int __SEQ_STATUS_result_38 = 0;
    int __SEQ_STATUS_i_39 = 0;
@@ -108,20 +108,20 @@ int armstrong(int low, int high)
               "BADC");
      pc_label(__SEQ_STATUS_i_12 == 1 && __SEQ_TMP_i_7 == 2147483647,12,
               "BADC");
+     __SEQ_STATUS_temp2_23 = 0;
+     __SEQ_STATUS_temp2_24 = 0;
      __SEQ_STATUS_temp2_25 = 0;
      __SEQ_STATUS_temp2_26 = 0;
      __SEQ_STATUS_temp2_27 = 0;
      __SEQ_STATUS_temp2_28 = 0;
      __SEQ_STATUS_temp2_29 = 0;
      __SEQ_STATUS_temp2_30 = 0;
-     __SEQ_STATUS_temp2_31 = 0;
-     __SEQ_STATUS_temp2_32 = 0;
      temp2 = i;
-     __SEQ_STATUS_temp2_25 = 1;
-     __SEQ_TMP_temp2_25 = temp2;
-     __SEQ_STATUS_temp2_26 = 1;
-     __SEQ_STATUS_temp2_29 = 1;
-     __SEQ_STATUS_temp2_30 = 1;
+     __SEQ_STATUS_temp2_23 = 1;
+     __SEQ_TMP_temp2_23 = temp2;
+     __SEQ_STATUS_temp2_24 = 1;
+     __SEQ_STATUS_temp2_27 = 1;
+     __SEQ_STATUS_temp2_28 = 1;
      __SEQ_STATUS_temp1_13 = 0;
      __SEQ_STATUS_temp1_14 = 0;
      __SEQ_STATUS_temp1_15 = 0;
@@ -174,85 +174,85 @@ int armstrong(int low, int high)
               "BADC");
      __SEQ_STATUS_n_21 = 0;
      __SEQ_STATUS_n_22 = 0;
-     __SEQ_STATUS_n_35 = 0;
-     __SEQ_STATUS_n_36 = 0;
+     __SEQ_STATUS_n_33 = 0;
+     __SEQ_STATUS_n_34 = 0;
      n ++;
      __SEQ_STATUS_n_21 = 1;
      __SEQ_TMP_n_21 = n;
      __SEQ_STATUS_n_22 = 1;
-     __SEQ_STATUS_n_35 = 1;
-     __SEQ_STATUS_n_36 = 1;
+     __SEQ_STATUS_n_33 = 1;
+     __SEQ_STATUS_n_34 = 1;
      goto loop;
      skip:
      while (1) {
+       pc_label(__SEQ_STATUS_temp2_23 == 1 && __SEQ_TMP_temp2_23 == (-2147483647-1),
+                23,"BADC");
+       pc_label(__SEQ_STATUS_temp2_24 == 1 && __SEQ_TMP_temp2_23 == 2147483647,
+                24,"BADC");
        pc_label(__SEQ_STATUS_temp2_25 == 1 && __SEQ_TMP_temp2_25 == (-2147483647-1),
                 25,"BADC");
        pc_label(__SEQ_STATUS_temp2_26 == 1 && __SEQ_TMP_temp2_25 == 2147483647,
                 26,"BADC");
-       pc_label(__SEQ_STATUS_temp2_27 == 1 && __SEQ_TMP_temp2_27 == (-2147483647-1),
-                27,"BADC");
-       pc_label(__SEQ_STATUS_temp2_28 == 1 && __SEQ_TMP_temp2_27 == 2147483647,
-                28,"BADC");
        if (! (temp2 != 0)) break;
        {
          double tmp;
+         pc_label(__SEQ_STATUS_temp2_27 == 1 && __SEQ_TMP_temp2_23 == (-2147483647-1),
+                  27,"BADC");
+         pc_label(__SEQ_STATUS_temp2_28 == 1 && __SEQ_TMP_temp2_23 == 2147483647,
+                  28,"BADC");
          pc_label(__SEQ_STATUS_temp2_29 == 1 && __SEQ_TMP_temp2_25 == (-2147483647-1),
                   29,"BADC");
          pc_label(__SEQ_STATUS_temp2_30 == 1 && __SEQ_TMP_temp2_25 == 2147483647,
                   30,"BADC");
-         pc_label(__SEQ_STATUS_temp2_31 == 1 && __SEQ_TMP_temp2_27 == (-2147483647-1),
-                  31,"BADC");
-         pc_label(__SEQ_STATUS_temp2_32 == 1 && __SEQ_TMP_temp2_27 == 2147483647,
-                  32,"BADC");
-         __SEQ_STATUS_remainder_0_33 = 0;
-         __SEQ_STATUS_remainder_0_34 = 0;
+         __SEQ_STATUS_remainder_0_31 = 0;
+         __SEQ_STATUS_remainder_0_32 = 0;
          remainder_0 = temp2 % 10;
-         __SEQ_STATUS_remainder_0_33 = 1;
-         __SEQ_TMP_remainder_0_33 = remainder_0;
-         __SEQ_STATUS_remainder_0_34 = 1;
-         pc_label(__SEQ_STATUS_remainder_0_33 == 1 && __SEQ_TMP_remainder_0_33 == (-2147483647-1),
+         __SEQ_STATUS_remainder_0_31 = 1;
+         __SEQ_TMP_remainder_0_31 = remainder_0;
+         __SEQ_STATUS_remainder_0_32 = 1;
+         pc_label(__SEQ_STATUS_remainder_0_31 == 1 && __SEQ_TMP_remainder_0_31 == (-2147483647-1),
+                  31,"BADC");
+         pc_label(__SEQ_STATUS_remainder_0_32 == 1 && __SEQ_TMP_remainder_0_31 == 2147483647,
+                  32,"BADC");
+         pc_label(__SEQ_STATUS_n_33 == 1 && __SEQ_TMP_n_21 == (-2147483647-1),
                   33,"BADC");
-         pc_label(__SEQ_STATUS_remainder_0_34 == 1 && __SEQ_TMP_remainder_0_33 == 2147483647,
-                  34,"BADC");
-         pc_label(__SEQ_STATUS_n_35 == 1 && __SEQ_TMP_n_21 == (-2147483647-1),
-                  35,"BADC");
-         pc_label(__SEQ_STATUS_n_36 == 1 && __SEQ_TMP_n_21 == 2147483647,36,
+         pc_label(__SEQ_STATUS_n_34 == 1 && __SEQ_TMP_n_21 == 2147483647,34,
                   "BADC");
          tmp = pow((double)remainder_0,(double)n);
-         pc_label(__SEQ_STATUS_result_37 == 1 && __SEQ_TMP_result_23 == (-2147483647-1),
-                  37,"BADC");
-         pc_label(__SEQ_STATUS_result_38 == 1 && __SEQ_TMP_result_23 == 2147483647,
-                  38,"BADC");
-         __SEQ_STATUS_result_23 = 0;
-         __SEQ_STATUS_result_24 = 0;
+         pc_label(__SEQ_STATUS_result_35 == 1 && __SEQ_TMP_result_35 == (-2147483647-1),
+                  35,"BADC");
+         pc_label(__SEQ_STATUS_result_36 == 1 && __SEQ_TMP_result_35 == 2147483647,
+                  36,"BADC");
+         __SEQ_STATUS_result_35 = 0;
+         __SEQ_STATUS_result_36 = 0;
          __SEQ_STATUS_result_37 = 0;
          __SEQ_STATUS_result_38 = 0;
          result = (int)((double)result + tmp);
-         __SEQ_STATUS_result_23 = 1;
-         __SEQ_TMP_result_23 = result;
-         __SEQ_STATUS_result_24 = 1;
+         __SEQ_STATUS_result_35 = 1;
+         __SEQ_TMP_result_35 = result;
+         __SEQ_STATUS_result_36 = 1;
          __SEQ_STATUS_result_37 = 1;
          __SEQ_STATUS_result_38 = 1;
+         __SEQ_STATUS_temp2_23 = 0;
+         __SEQ_STATUS_temp2_24 = 0;
          __SEQ_STATUS_temp2_25 = 0;
          __SEQ_STATUS_temp2_26 = 0;
          __SEQ_STATUS_temp2_27 = 0;
          __SEQ_STATUS_temp2_28 = 0;
          __SEQ_STATUS_temp2_29 = 0;
          __SEQ_STATUS_temp2_30 = 0;
-         __SEQ_STATUS_temp2_31 = 0;
-         __SEQ_STATUS_temp2_32 = 0;
          temp2 /= 10;
-         __SEQ_STATUS_temp2_27 = 1;
-         __SEQ_TMP_temp2_27 = temp2;
-         __SEQ_STATUS_temp2_28 = 1;
-         __SEQ_STATUS_temp2_31 = 1;
-         __SEQ_STATUS_temp2_32 = 1;
+         __SEQ_STATUS_temp2_25 = 1;
+         __SEQ_TMP_temp2_25 = temp2;
+         __SEQ_STATUS_temp2_26 = 1;
+         __SEQ_STATUS_temp2_29 = 1;
+         __SEQ_STATUS_temp2_30 = 1;
        }
      }
-     pc_label(__SEQ_STATUS_result_23 == 1 && __SEQ_TMP_result_23 == (-2147483647-1),
-              23,"BADC");
-     pc_label(__SEQ_STATUS_result_24 == 1 && __SEQ_TMP_result_23 == 2147483647,
-              24,"BADC");
+     pc_label(__SEQ_STATUS_result_37 == 1 && __SEQ_TMP_result_35 == (-2147483647-1),
+              37,"BADC");
+     pc_label(__SEQ_STATUS_result_38 == 1 && __SEQ_TMP_result_35 == 2147483647,
+              38,"BADC");
      if (result == i) {
        pc_label(__SEQ_STATUS_i_39 == 1 && __SEQ_TMP_i_5 == (-2147483647-1),
                 39,"BADC");
@@ -266,11 +266,11 @@ int armstrong(int low, int high)
      }
      __SEQ_STATUS_n_21 = 0;
      __SEQ_STATUS_n_22 = 0;
-     __SEQ_STATUS_n_35 = 0;
-     __SEQ_STATUS_n_36 = 0;
+     __SEQ_STATUS_n_33 = 0;
+     __SEQ_STATUS_n_34 = 0;
      n = 0;
-     __SEQ_STATUS_result_23 = 0;
-     __SEQ_STATUS_result_24 = 0;
+     __SEQ_STATUS_result_35 = 0;
+     __SEQ_STATUS_result_36 = 0;
      __SEQ_STATUS_result_37 = 0;
      __SEQ_STATUS_result_38 = 0;
      result = 0;

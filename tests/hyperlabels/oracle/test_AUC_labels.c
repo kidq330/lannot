@@ -68,51 +68,51 @@ int main(int n1, int n2)
 int checkPrimeNumber(int n)
 {
   int j;
-  int __SEQ_STATUS_flag_10 = 0;
-  int __SEQ_STATUS_flag_11 = 0;
-  int __SEQ_STATUS_j_12 = 0;
-  int __SEQ_STATUS_j_13 = 0;
-  int __SEQ_STATUS_n_14 = 1;
+  int __SEQ_STATUS_j_10 = 0;
+  int __SEQ_STATUS_j_11 = 0;
+  int __SEQ_STATUS_n_12 = 1;
+  int __SEQ_STATUS_n_13 = 1;
+  int __SEQ_STATUS_j_14 = 0;
   int __SEQ_STATUS_j_15 = 0;
   int __SEQ_STATUS_j_16 = 0;
-  int __SEQ_STATUS_n_17 = 1;
-  int __SEQ_STATUS_j_18 = 0;
-  int __SEQ_STATUS_j_19 = 0;
+  int __SEQ_STATUS_j_17 = 0;
+  int __SEQ_STATUS_flag_18 = 0;
+  int __SEQ_STATUS_flag_19 = 0;
   int flag = 1;
-  __SEQ_STATUS_flag_10 = 1;
+  __SEQ_STATUS_flag_18 = 1;
   j = 2;
-  __SEQ_STATUS_j_12 = 1;
-  __SEQ_STATUS_j_15 = 1;
-  __SEQ_STATUS_j_18 = 1;
+  __SEQ_STATUS_j_10 = 1;
+  __SEQ_STATUS_j_14 = 1;
+  __SEQ_STATUS_j_16 = 1;
   while (1) {
-    pc_label(__SEQ_STATUS_j_12 == 1,12,"AUC");
-    pc_label(__SEQ_STATUS_j_13 == 1,13,"AUC");
-    pc_label(__SEQ_STATUS_n_14 == 1,14,"AUC");
+    pc_label(__SEQ_STATUS_j_10 == 1,10,"AUC");
+    pc_label(__SEQ_STATUS_j_11 == 1,11,"AUC");
+    pc_label(__SEQ_STATUS_n_12 == 1,12,"AUC");
     if (! (j <= n / 2)) break;
-    pc_label(__SEQ_STATUS_n_17 == 1,17,"AUC");
-    pc_label(__SEQ_STATUS_j_18 == 1,18,"AUC");
-    pc_label(__SEQ_STATUS_j_19 == 1,19,"AUC");
+    pc_label(__SEQ_STATUS_n_13 == 1,13,"AUC");
+    pc_label(__SEQ_STATUS_j_14 == 1,14,"AUC");
+    pc_label(__SEQ_STATUS_j_15 == 1,15,"AUC");
     if (n % j == 0) {
-      __SEQ_STATUS_flag_10 = 0;
+      __SEQ_STATUS_flag_18 = 0;
       flag = 0;
-      __SEQ_STATUS_flag_11 = 1;
+      __SEQ_STATUS_flag_19 = 1;
       break;
     }
-    pc_label(__SEQ_STATUS_j_15 == 1,15,"AUC");
     pc_label(__SEQ_STATUS_j_16 == 1,16,"AUC");
-    __SEQ_STATUS_j_12 = 0;
-    __SEQ_STATUS_j_13 = 0;
+    pc_label(__SEQ_STATUS_j_17 == 1,17,"AUC");
+    __SEQ_STATUS_j_10 = 0;
+    __SEQ_STATUS_j_11 = 0;
+    __SEQ_STATUS_j_14 = 0;
     __SEQ_STATUS_j_15 = 0;
     __SEQ_STATUS_j_16 = 0;
-    __SEQ_STATUS_j_18 = 0;
-    __SEQ_STATUS_j_19 = 0;
+    __SEQ_STATUS_j_17 = 0;
     j ++;
-    __SEQ_STATUS_j_13 = 1;
-    __SEQ_STATUS_j_16 = 1;
-    __SEQ_STATUS_j_19 = 1;
+    __SEQ_STATUS_j_11 = 1;
+    __SEQ_STATUS_j_15 = 1;
+    __SEQ_STATUS_j_17 = 1;
   }
-  pc_label(__SEQ_STATUS_flag_10 == 1,10,"AUC");
-  pc_label(__SEQ_STATUS_flag_11 == 1,11,"AUC");
+  pc_label(__SEQ_STATUS_flag_18 == 1,18,"AUC");
+  pc_label(__SEQ_STATUS_flag_19 == 1,19,"AUC");
   return flag;
 }
 
