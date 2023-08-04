@@ -210,7 +210,7 @@ let mk_name ?(pre=seq_status_prefix) s id = pre ^ "_" ^ s ^ "_" ^ string_of_int 
 let should_instrument ?visited (v,offset) =
   not v.vglob && not v.vtemp
   && not (Datatype.String.equal v.vname "__retres")
-  && not @@ Extlib.string_prefix seq_status_prefix v.vname
+  && not @@ String.starts_with ~prefix:seq_status_prefix v.vname
   && Annotators.shouldInstrumentVar v
   && match visited with
   | None -> true
