@@ -41,5 +41,4 @@ lint:
   script:
     - ./nix/ci.sh
   rules:
-    - if: $FC_COMPAT != null
-      when: never
+    - if: $FC_COMPAT == null
