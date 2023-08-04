@@ -33,7 +33,7 @@ check-headers:
     - ./nix/ci.sh
   rules:
     - if: $FC_COMPAT
-    - when: never
+      when: never
 
 lint:
   stage: tests
@@ -43,4 +43,4 @@ lint:
     - ./nix/ci.sh
   rules:
     - if: $FC_COMPAT
-    - when: never
+      when: never
