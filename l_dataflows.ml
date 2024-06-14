@@ -189,7 +189,7 @@ let is_equivalent varofst stmt kf uses =
       if eq && not (Dominators.dominates stmtUse stmt) then
         Options.fatal "Discrepancy: This should not happen";
       eq &&
-      !Db.Postdominators.is_postdominator kf ~opening:stmtUse ~closing:stmt
+      Postdominators.is_postdominator kf ~opening:stmtUse ~closing:stmt
     ) uses
 
 (** Consider uses of V in an expression only once.

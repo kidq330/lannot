@@ -27,6 +27,7 @@
     (progn
      (echo "Lannotate:" %{lib-available:frama-c-lannotate.core} "\n")
      (echo " - Frama-C:" %{lib-available:frama-c.kernel} "\n")
+     (echo " - Postdominators:" %{lib-available:frama-c-postdominators.core} "\n")
     )
   )
 )
@@ -36,7 +37,7 @@
   (name lannotate)
   (public_name frama-c-lannotate.core)
   (flags -open Frama_c_kernel :standard -w -9)
-  (libraries frama-c.kernel)
+  (libraries frama-c.kernel frama-c-postdominators.core)
 )
 
 (plugin
