@@ -1,4 +1,4 @@
-(lang dune 3.2)
+(lang dune 3.7)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                                                                        ;;
 ;;  This file is part of the Frama-C's Lannotate plug-in.                 ;;
@@ -21,9 +21,14 @@
 ;;                                                                        ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(name frama-c-lannotate)
 (using dune_site 0.1)
 (generate_opam_files true)
+
+(name frama-c-lannotate)
 (package (name frama-c-lannotate)
-  (depends (frama-c (and ( > 25.0) ( < 29))))
+  (depends
+    (ocaml (>= 4.13.1))
+    (dune (<> 3.13.0)) ; performance problem
+    (frama-c (and (>= 29.0~) (< 30.0~)))
+  )
 )

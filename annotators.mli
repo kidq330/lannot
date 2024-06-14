@@ -54,13 +54,13 @@ end
 (**
    Register an annotator
 *)
-module Register (A : ANNOTATOR) : S
+module Register (_ : ANNOTATOR) : S
 
 (**
    Register an annotator that provides extra tags (for instance, mutator tags)
    in addition of the annotator name
 *)
-module RegisterWithExtraTags (A : ANNOTATOR_WITH_EXTRA_TAGS) : S
+module RegisterWithExtraTags (_ : ANNOTATOR_WITH_EXTRA_TAGS) : S
 
 val get_file_name : unit -> string
 
