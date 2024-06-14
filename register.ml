@@ -108,7 +108,7 @@ let setupMutatorOptions () =
   Options.Mutators.iter f
 
 (* ENTRY POINT *)
-let run () =
+let main () =
   try
     Annotators.init_builtins ();
     setupMutatorOptions ();
@@ -120,7 +120,7 @@ let run () =
   | Dynamic.Incompatible_type(s) -> Options.fatal "%s incompatible" s
   | Failure s -> Options.fatal "unexpected failure: %s" s
 
-let run_once, _ = State_builder.apply_once "LAnnotate.run" [] run
+let main_once, _ = State_builder.apply_once "LAnnotate.run" [] main
 
 let help () =
   if Options.ListAnnotators.get () then begin
@@ -131,7 +131,7 @@ let help () =
 let () = Cmdline.run_after_exiting_stage help
 
 let run () =
-  if not (Options.Annotators.is_empty ()) then run_once ()
+  if not (Options.Annotators.is_empty ()) then main_once ()
 
 let setup_run () =
   if not (Options.Annotators.is_empty ()) then begin
@@ -143,4 +143,4 @@ let setup_once, _ = State_builder.apply_once "LAnnotate.setup_run" [] setup_run
 
 let () = Cmdline.run_after_configuring_stage setup_once
 
-let () = Db.Main.extend run_once
+let () = Boot.Main.extend run
