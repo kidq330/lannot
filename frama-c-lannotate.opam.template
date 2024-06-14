@@ -1,7 +1,7 @@
 opam-version: "2.0"
 name: "frama-c-lannotate"
 synopsis: "Lannotate plugin of Frama-C, part of the LTest suite "
-version: "0.2.2"
+version: "0.2.3"
 description:"""
 Lannotate is a plugin that introduces labels and hyperlabels formalizing
 test objectives corresponding to the coverage criteria selected by the user.
