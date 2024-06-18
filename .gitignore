@@ -23,7 +23,6 @@ configure
 testcases*/
 pathcrawler_*
 /_build/
-/frama-c-lannotate.opam
 /tests/hyperlabels/oracle/dune
 /tests/labels/oracle/dune
 /.lint/
