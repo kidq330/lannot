@@ -23,5 +23,5 @@
 (install
  (package frama-c-lannotate)
  (section (site (frama-c share)))
- (files (labels.h as frama-c-lannotate/labels.h))
+ (files (labels.h as lannot/labels.h))
 )
