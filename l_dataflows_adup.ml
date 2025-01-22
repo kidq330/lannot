@@ -644,8 +644,38 @@ let mk_bundle (mk_label : exp -> 'a list -> location -> stmt) (varname : string)
   in
   { path; status_var; decl_stmt; incr_stmt; label_stmt }
 
+module PathReducer = struct
+  type path = string * int array
+  type t = path Seq.t
+
+  let reduce (paths : t) : t =
+    paths
+    |> Seq.fold_left
+         (fun acc named_path ->
+           let _, path = named_path in
+           let open BatArray in
+           match length path with
+           | 0 -> assert false
+           | k -> (
+               let hd = path.(0) in
+               acc
+               |> List.filter (fun (_, path2) ->
+                      let n = length path2 in
+                      bsearch BatOrd.poly path2 hd |> function
+                      | `At i ->
+                          if n - i >= k then equal ( == ) path (sub path2 i k)
+                          else false
+                      | _ -> false)
+               |> List.is_empty
+               |> function
+               | true -> named_path :: acc
+               | false -> acc))
+         []
+    |> List.rev |> List.to_seq
+end
+
 (** Part 1- and 2- of the heading comment *)
-class addSequences mk_label =
+class addSequences mk_label (attempt_reduce : bool) =
   object (self)
     inherit Visitor.frama_c_inplace
     val to_add_deactivators = Stmt.Hashtbl.create 17
@@ -707,6 +737,7 @@ class addSequences mk_label =
                    find_paths d u
                    |> List.map (fun path -> (vname, Array.of_list path)))
             |> Seq.map List.to_seq |> Seq.concat
+            |> if attempt_reduce then PathReducer.reduce else Fun.id
           in
           path_bundles <-
             paths
@@ -758,9 +789,15 @@ class addSequences mk_label =
                      |> Seq.map (fun pb -> pb.incr_stmt)
                      |> List.of_seq
                    in
-                   path_increment_stmts @ [ stmt ]
-                   (* for some reason the script doesn't work without this transformation *)
-                   |> List.map (fun s -> Stmt_builder.mk s.skind))
+                   (* has to be written in such a weird way bc otherwise the return_label disappears, and without Stmt_builder.mk the script crashes with a CFG related error *)
+                   let () =
+                     stmt.skind <-
+                       Block
+                         (path_increment_stmts @ [ stmt ]
+                         |> List.map (fun stmt -> Stmt_builder.mk stmt.skind)
+                         |> Cil.mkBlock)
+                   in
+                   [ stmt ])
             |> List.flatten;
           block)
     (** Part 2- a) of the heading comment *)
@@ -804,29 +841,37 @@ class addSequences mk_label =
     (** Part 2- b) of the heading comment *)
   end
 
-type criterion = ADUPC
+type criterion = ADUP | SDUP
 
-let operator_of_criterion crit = match crit with ADUPC -> assert false
 let visited = ref (false, false)
 let is_visited _crit = false
 let set_visited _crit = ()
 
 (** Visit the file with our main visitor addSequences, and mark the new AST as
     changed *)
-let visite file mk_label : unit =
+let visite file mk_label criterion : unit =
   if false then
     Options.feedback
       "Annotating with 2 dataflow criteria at the same time is not supported"
   else
     Visitor.visitFramacFileSameGlobals
-      (new addSequences mk_label :> Visitor.frama_c_visitor)
+      (new addSequences
+         mk_label
+         (match criterion with ADUP -> false | SDUP -> true)
+        :> Visitor.frama_c_visitor)
       file
 
 let is_bounded = function _ -> false
-let apply_factory mk_label file = visite file mk_label
+let apply_factory criterion mk_label file = visite file mk_label criterion
 
 module ADUP = Annotators.Register (struct
   let name = "ADUP"
   let help = "All-DU-Paths Coverage"
-  let apply = apply_factory
+  let apply = apply_factory ADUP
+end)
+
+module SDUP = Annotators.Register (struct
+  let name = "SDUP"
+  let help = "Some-DU-Paths Coverage"
+  let apply = apply_factory SDUP
 end)
