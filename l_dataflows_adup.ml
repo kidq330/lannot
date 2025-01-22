@@ -63,6 +63,19 @@ open Ast_const
     addSequences to create condition statements, i.e. reset of status variables
 *)
 
+module Graph = struct
+  let rec detect_cycle ?(visited : Stmt.Set.t = Stmt.Set.empty) (v : Stmt.t) =
+    if Stmt.Set.mem v visited then true
+    else
+      let vis_with_v = Stmt.Set.add v visited in
+      let rec aux = function
+        | [] -> false
+        | stmt :: tl ->
+            if detect_cycle ~visited:vis_with_v stmt then true else aux tl
+      in
+      aux v.succs
+end
+
 (** Used to represent a Lval with a truncated offset (trunc at first Index) *)
 module VarOfst =
   Datatype.Pair_with_collections (Varinfo) (Offset)
@@ -143,6 +156,7 @@ module Data = struct
     to_add_comps : (int * stmt) list Stmt.Hashtbl.t;
     def_to_predecessing_defs : Def.Set.t Stmt.Hashtbl.t;
     def_to_deactivators : (int * stmt) list Def.Hashtbl.t;
+    du_pairs : (Def.t * stmt) Seq.t ref;
   }
 
   let create () =
@@ -153,6 +167,7 @@ module Data = struct
       to_add_comps = Stmt.Hashtbl.create 32;
       def_to_predecessing_defs = Stmt.Hashtbl.create 32;
       def_to_deactivators = Def.Hashtbl.create 32;
+      du_pairs = ref Seq.empty;
     }
 
   (** Clear all hashtbls after each function in addSequences *)
@@ -162,7 +177,8 @@ module Data = struct
     Stmt.Hashtbl.reset t.to_add_activators;
     Stmt.Hashtbl.reset t.to_add_comps;
     Stmt.Hashtbl.reset t.def_to_predecessing_defs;
-    Def.Hashtbl.reset t.def_to_deactivators
+    Def.Hashtbl.reset t.def_to_deactivators;
+    t.du_pairs := Seq.empty
 
   (** Given a VarOfst, increment the number of defs seen and returns it. If it
       is the first return 1. *)
@@ -264,11 +280,9 @@ class visit_defuse
     current_stmt
   (* the overarching kernel function, for which a dataflow analysis was performed *)
     kf
-  (* a function specifying how to create instrumenting lines, should be a dependency injection coming from outside this module *)
-    (mk_label : exp -> 'a list -> location -> stmt)
-  (* indexed instrumented lines to be added at the beginning of the function body *)
-    to_add_fun =
-  object (self)
+    (* a function specifying how to create instrumenting lines, should be a dependency injection coming from outside this module *)
+  =
+  object (_)
     inherit Visitor.frama_c_inplace
 
     (* invariant: no duplicate entries *)
@@ -296,62 +310,6 @@ class visit_defuse
     method private mk_init ?(loc = unk_loc) vi value =
       Local_init (vi, AssignInit (SingleInit value), loc) |> Stmt_builder.instr
     (** Create a statement : typ vi = value; where typ is the type of vi *)
-
-    method private cons_fun_to_add sequence_id init =
-      to_add_fun := (sequence_id, init) :: !to_add_fun
-
-    method private register_seq (def : Def.t) (sequence_id : int)
-        (varinfo : varinfo) (deactivator : stmt) (pc_label_comparison : stmt) =
-      let _, _, (stmtDef : kinstr) = def in
-      let indexed_deactivator = (sequence_id, deactivator) in
-      let indexed_comparison = (sequence_id, pc_label_comparison) in
-      (* for the given sequence_id (identifying a single DU pair), we register 
-      *)
-      Data.add_def_deactivator data def indexed_deactivator;
-      Data.add_comparison data current_stmt indexed_comparison;
-      (* branch on the kind of variable:
-         - for both cases, add the instrumenting label at the beginning of the function body.
-           the initial value of the label depends on the kind of variable, and the passed def_expr (how?).
-         - for globals (Kglobal), the current approach is to not treat the function entrypoint as a def,
-           but an instrumenting label should still be declared. cons_fun_to_add deals with this.
-         - for all other cases (Kstmt), in addition to declaring the instrumenting label tracking this DU pair,
-           we note in the Data module that it binds to sequence_id
-      *)
-      match stmtDef with
-      | Kglobal ->
-          (* Instrumenting labels for global arguments being set to one indicates that we assume they were previously defined. 
-             Feel like this is important to note. *)
-          let seq_label_decl = self#mk_init varinfo (Exp_builder.one ()) in
-          self#cons_fun_to_add sequence_id seq_label_decl
-      | Kstmt stmt ->
-          (* Analogous to the previous branch - a label with an initial value of zero means we assume the variable not to be defined yet. 
-             If you're wondering how formal arguments tie into this, they don't. 
-             Their instrumentation declarations are made outside of this visitor. *)
-          let seq_label_decl = self#mk_init varinfo (Exp_builder.zero ()) in
-          self#cons_fun_to_add sequence_id seq_label_decl;
-          let indexed_activator =
-            (sequence_id, self#mk_set varinfo (Exp_builder.one ()))
-          in
-          Data.add_activator data stmt indexed_activator
-    (** Register in Hashtbls the different parts of our sequences (Def / Use /
-        Cond) Plus the initialization (depending on the type of stmtDef, cf. Def
-        type) and add this sequence id to its hyperlabel *)
-
-    (* called when a use of the same variable that def corresponds to is found. 
-       This means a new, unique def-use pair was just found, so we pick a unique id for it,
-       and create the required instrumentation lines that are added to `data` on the side *)
-    method private mkSeq use_loc def =
-      let _, (vi, _offset), _ = def in
-      (* sequence id *)
-      let id_seq = Annotators.getCurrentLabelId () + 1 in
-      let vInfo = self#init_vinfo (mk_name vi.vname id_seq) in
-      let comparison = self#mk_comp vInfo (Exp_builder.one ()) in
-      (* this is a Set statement that sets the tracking label to zero, prepended before other defs to signify this DU pair is deactivated *)
-      let deactivator = self#mk_set vInfo (Exp_builder.zero ()) in
-      let instrument_pc_label = mk_label comparison [] use_loc in
-      self#register_seq def id_seq vInfo deactivator instrument_pc_label
-    (** Create a def-use sequence for the given def/bounds and register it in
-        Hashtbls *)
 
     (* __jm__ IMPORTANT: a single instance of visit_defuse is meant to visit a single statement - this is enforced with the assert at the beginning *)
     (* to oversimplify - this overload is meant to find `defs` *)
@@ -394,6 +352,21 @@ class visit_defuse
        first appearance of an lval, it scans defs_set and visited, as opposed to first building up `visited` as
        a unique set of lvals in the expression, and then performing the bookkeeping. *)
     method! vexpr expr =
+      let pretty_def fmt (defId, (vi, ofst), stmt) =
+        let stmt =
+          match stmt with
+          | Kglobal -> "Function parameter"
+          | Kstmt stmt -> Format.asprintf "Stmt %a" Printer.pp_stmt stmt
+        in
+        Format.fprintf fmt "defId: %d / var : %a / %s@." defId
+          Cil_printer.pp_lval (Var vi, ofst) stmt
+      in
+
+      let pretty_use fmt (((vi, ofst), stmt) : Use.t) =
+        Format.fprintf fmt "var: %a / Stmt: %a@." Printer.pp_lval (Var vi, ofst)
+          Printer.pp_stmt stmt
+      in
+
       match expr.enode with
       (* entering this branch basically means we found a use(v) *)
       | Lval (Var v, offset) ->
@@ -413,7 +386,17 @@ class visit_defuse
                   (not (Options.CleanEquiv.get ()))
                   || not (is_equivalent varofst current_stmt kf uses_set)
                 (* we're holding some valid defs that we now need to bind the use to via mkSeq *)
-                then Def.Set.iter (self#mkSeq expr.eloc) v_defs)
+                then
+                  Def.Set.iter
+                    (fun (v_def : Def.t) ->
+                      data.du_pairs :=
+                        Seq.cons (v_def, current_stmt) !(data.du_pairs);
+                      match v_def with
+                      | _, _, Kstmt stmt when stmt.sid > current_stmt.sid ->
+                          pretty_def Format.err_formatter v_def;
+                          pretty_use Format.err_formatter (varofst, current_stmt)
+                      | _ -> ())
+                    v_defs)
               else
                 Format.eprintf
                   "No def found for %a@. This might indicate usage of an \
@@ -465,7 +448,7 @@ module Dataflow = struct
     Format.fprintf fmt "defId: %d / var : %a / %s@." defId Cil_printer.pp_lval
       (Var vi, ofst) stmt
 
-  let pretty_use fmt ((vi, ofst), stmt) =
+  let pretty_use fmt (((vi, ofst), stmt) : Use.t) =
     Format.fprintf fmt "var: %a / Stmt: %a@." Printer.pp_lval (Var vi, ofst)
       Printer.pp_stmt stmt
 
@@ -584,7 +567,7 @@ end
 (* Dataflow analysis, Part 3-,4-,5- of the heading comment.
  * Performs dataflow analysis on kf and computes the instrumentation that lands in the database.
  * Returns the list of instrumenting statements that should be prepended at the beginning of the function body. *)
-let do_function (kf : kernel_function) mk_label : (int * stmt) list =
+let do_function (kf : kernel_function) =
   let module DataflowAnalysis = Interpreted_automata.ForwardAnalysis (Dataflow) in
   (* an obvious part of the named variable set will be the set of formal inputs, which we compute here.
    the rest will be gathered along by the dataflow analysis automaton *)
@@ -601,7 +584,6 @@ let do_function (kf : kernel_function) mk_label : (int * stmt) list =
   let init_state = NonBottom (init_def_set, init_use_set) in
   (* visits stmt with a visit_defuse visitor - because this is passed to the dataflow analysis result,
    it should only visit a useful subset of statements in deterministic order *)
-  let to_add_fun = ref [] in
   let visit_stmt (stmt : stmt) (state : t) =
     match state with
     | Bottom -> ()
@@ -609,51 +591,65 @@ let do_function (kf : kernel_function) mk_label : (int * stmt) list =
         match stmt.skind with
         | Instr i when not (Utils.is_label i) ->
             Cil.visitCilStmt
-              (new visit_defuse defs_and_uses stmt kf mk_label to_add_fun
-                :> Cil.cilVisitor)
+              (new visit_defuse defs_and_uses stmt kf :> Cil.cilVisitor)
               stmt
             |> ignore
         | Return (Some e, _) | If (e, _, _, _) | Switch (e, _, _, _) ->
             Cil.visitCilExpr
-              (new visit_defuse defs_and_uses stmt kf mk_label to_add_fun
-                :> Cil.cilVisitor)
+              (new visit_defuse defs_and_uses stmt kf :> Cil.cilVisitor)
               e
             |> ignore
         | _ -> ())
   in
   let result = DataflowAnalysis.fixpoint kf init_state in
   (* __jm__ why is the order important? *)
-  let () = DataflowAnalysis.Result.iter_stmt_asc visit_stmt result in
-  !to_add_fun
+  DataflowAnalysis.Result.iter_stmt_asc visit_stmt result
+
+type path_bundle = {
+  path : int array;
+  status_var : varinfo;
+  decl_stmt : stmt;
+  incr_stmt : stmt;
+  label_stmt : stmt;
+}
+
+let mk_bundle (mk_label : exp -> 'a list -> location -> stmt) (varname : string)
+    (path : int array) : path_bundle =
+  let status_varname =
+    mk_name ~pre:"__ADUP" varname (Annotators.getCurrentLabelId () + 1)
+  in
+  let status_var = Cil.makeVarinfo false false status_varname Cil.intType in
+  let decl_stmt =
+    Local_init
+      (status_var, AssignInit (SingleInit (Exp_builder.zero ())), unk_loc)
+    |> Stmt_builder.instr
+  in
+
+  let lval : lval = (Var status_var, NoOffset) in
+  let lval_exp : exp = Exp_builder.lval lval in
+  let incr_stmt =
+    Ast_info.mkassign lval
+      (Exp_builder.binop Cil_types.PlusA lval_exp (Exp_builder.one ()))
+      unk_loc
+    |> Stmt_builder.instr
+  in
+
+  (* __jm__ for developer comfort, the path lengths could be declared 
+     in a static const array at the beginning of the function, instead of being magic numbers *)
+  let label_stmt =
+    mk_label
+      (Exp_builder.binop Cil_types.Eq lval_exp
+         (Exp_builder.integer (Array.length path)))
+      [] unk_loc
+  in
+  { path; status_var; decl_stmt; incr_stmt; label_stmt }
 
 (** Part 1- and 2- of the heading comment *)
 class addSequences mk_label =
   object (self)
     inherit Visitor.frama_c_inplace
     val to_add_deactivators = Stmt.Hashtbl.create 17
-
-    (* once the analysis is done, fetch all instrumentation lines for the stmt argument
-       that should be prepended and appended to it.
-       Fetches all three types of instrumentation statements: 
-       activators, deactivators, and comparisons (pc_label* statements) *)
-    method private get_seqs_sorted stmt =
-      let sort = List.sort compare in
-      let seq_activators =
-        stmt |> Data.gather_activators data |> sort |> List.map snd
-      in
-      let pc_labels =
-        stmt |> Data.gather_comp_labels data |> sort |> List.map snd
-      in
-      let seq_deactivators =
-        Stmt.Hashtbl.find_def to_add_deactivators stmt []
-        |> sort
-        |> List.map (fun (_, s) -> Stmt_builder.mk s.skind)
-      in
-      (* a seq_deactivator is a <__SEQ_STATUS_* = 0;> statement. It signifies that the DU pair tracked by the variable
-         can no longer be satisified by the currently executed path, as we have come upon an unrelated def of the same variable. *)
-      (* a seq_activator is a <__SEQ_STATUS_* = 1;> statement. It signifies we just happened upon a new def of the variable,
-         and can thus begin tracking it's journey into, potentially, the corresponding def. *)
-      (pc_labels @ seq_deactivators, seq_activators)
+    val mutable path_bundles : path_bundle list option = None
 
     (* this method adds the declarations for variables that will be used for instrumentation.
      Perhaps more importantly, it calls do_function to perform dataflow analysis *)
@@ -663,54 +659,108 @@ class addSequences mk_label =
       if
         Kernel_function.is_definition kf
         && Annotators.shouldInstrumentFun dec.svar
-      then
-        (* __jm__ this variable probably holds all declarations of the instrumenting variables,
+      then (
+        (* __jm__ don't know whether this is already computed or not *)
+        let first_stmt = Kernel_function.find_first_stmt kf in
+        if Graph.detect_cycle first_stmt then (
+          Format.printf
+            "[lannot] Cycle detected in CFG of %a - this function will not be \
+             instrumented.@"
+            Printer.pp_fundec dec;
+          Cil.SkipChildren)
+        else
+          (* __jm__ this variable probably holds all declarations of the instrumenting variables,
            I've tested that even variables not scoped to the entire functions land their corresponding instrumenting variables'
            declarations at the beginning of the fn. bodies. This is kind of a flaw in the algorithm, because we could limit the
            amount of instrumentation overhead for unrelated paths if we can avoid this...  
            One solution would be to unify the concept of a block with that of a function, treating a block like an inline closure, 
            kinda, or something like IILE from C++ *)
-        let instrumented_vars_declarations = do_function kf mk_label in
+          let () = do_function kf in
+          let rec find_paths (def : stmt) (use : stmt) : int list list =
+            (* Format.printf "def: %d, use: %d, comp: %d@." def.sid use.sid
+            @@ Int.compare def.sid use.sid; *)
+            let open BatOrd in
+            match poly def.sid use.sid with
+            | Eq -> [ [ def.sid ] ]
+            | Lt ->
+                def.succs |> List.to_seq
+                |> Seq.map (fun s -> find_paths s use)
+                |> Seq.map List.to_seq |> Seq.concat
+                |> Seq.map (List.cons def.sid)
+                |> List.of_seq
+            | Gt ->
+                Format.printf "Invalid pairs %d %d@." def.sid use.sid;
+                []
+          in
+          let def_to_stmt ((_, _, kinstr) : Def.t) =
+            match kinstr with
+            | Kglobal -> first_stmt
+            | Kstmt def_stmt -> def_stmt
+          in
+          (* cfg and du_pairs are computed, let's gather the du paths *)
+          let paths =
+            !(data.du_pairs)
+            |> Seq.map (fun (d, u) ->
+                   let _, (var, _), _ = d in
+                   (var.vname, def_to_stmt d, u))
+            |> Seq.map (fun (vname, d, u) ->
+                   find_paths d u
+                   |> List.map (fun path -> (vname, Array.of_list path)))
+            |> Seq.map List.to_seq |> Seq.concat
+          in
+          path_bundles <-
+            paths
+            |> Seq.map (fun (vname, path) -> mk_bundle mk_label vname path)
+            |> List.of_seq |> Option.some;
 
-        let cleanup fd =
-          Stmt.Hashtbl.reset to_add_deactivators;
-          Data.reset_all data;
-          Cfg.clearCFGinfo ~clear_id:false fd;
-          (* __jm__ why are we computing the CFG again? it's not like we'll be visiting it again *)
-          Cfg.cfgFun fd
-        in
-
-        Cil.DoChildrenPost
-          (fun new_dec ->
-            let ivd_stmts =
-              instrumented_vars_declarations |> List.sort compare
-              |> List.map snd
-            in
-            new_dec.sbody.bstmts <- ivd_stmts @ new_dec.sbody.bstmts;
-            cleanup new_dec;
-            new_dec)
+          let cleanup fd =
+            Stmt.Hashtbl.reset to_add_deactivators;
+            Data.reset_all data;
+            Cfg.clearCFGinfo ~clear_id:false fd;
+            (* __jm__ why are we computing the CFG again? it's not like we'll be visiting it again *)
+            Cfg.cfgFun fd
+          in
+          Cil.DoChildrenPost
+            (fun new_dec ->
+              let path_tracking_labels_declarations =
+                List.map (fun pb -> pb.decl_stmt) (Option.get path_bundles)
+              in
+              let pc_labels =
+                List.map (fun pb -> pb.label_stmt) (Option.get path_bundles)
+              in
+              let bstmts_len = List.length new_dec.sbody.bstmts in
+              let init, last =
+                BatList.split_at (bstmts_len - 1) new_dec.sbody.bstmts
+              in
+              new_dec.sbody.bstmts <-
+                [ path_tracking_labels_declarations; init; pc_labels; last ]
+                |> List.flatten;
+              cleanup new_dec;
+              new_dec))
       else Cil.SkipChildren
     (** Part 1- and 2- of the heading comment *)
 
-    (* this method simply fetches statements to be added using get_seqs_sorted 
-     and then tries adding them to the source *)
-    (* no idea why this isn't just before @ [s] @ after *)
-    (* __jm__ question: is this only free-standing blocks? or ones after if/for constructs as well? *)
-    (* __jm__ so this method basically fetches ALL instrumentation lines from the database once its all computed,
-       to then bind it with the statement they concern. conditions (pc_label* statements) and uses are added before the statement*)
     method! vblock _ =
       Cil.DoChildrenPost
         (fun block ->
           block.bstmts <-
             block.bstmts
             |> List.map (fun (stmt : stmt) ->
-                   let before, after = self#get_seqs_sorted stmt in
-                   let () =
-                     stmt.skind <-
-                       Block
-                         (Cil.mkBlock @@ before @ [ Stmt_builder.mk stmt.skind ])
+                   let check_stmt_in_path pb =
+                     stmt.sid |> BatArray.bsearch BatOrd.poly pb.path
+                     |> function
+                     | `At _ -> true
+                     | _ -> false
                    in
-                   stmt :: after)
+                   let path_increment_stmts =
+                     path_bundles |> Option.get |> List.to_seq
+                     |> Seq.filter check_stmt_in_path
+                     |> Seq.map (fun pb -> pb.incr_stmt)
+                     |> List.of_seq
+                   in
+                   path_increment_stmts @ [ stmt ]
+                   (* for some reason the script doesn't work without this transformation *)
+                   |> List.map (fun s -> Stmt_builder.mk s.skind))
             |> List.flatten;
           block)
     (** Part 2- a) of the heading comment *)
