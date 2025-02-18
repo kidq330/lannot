@@ -609,6 +609,12 @@ class addSequences ~annot_bound mk_label =
         Kernel_function.is_definition kf
         && Annotators.shouldInstrumentFun dec.svar
       then (
+        (* __jm__ this variable probably holds all declarations of the instrumenting variables,
+           I've tested that even variables not scoped to the entire functions land their corresponding instrumenting variables'
+           declarations at the beginning of the fn. bodies. This is kind of a flaw in the algorithm, because we could limit the
+           amount of instrumentation overhead for unrelated paths if we can avoid this...  
+           One solution would be to unify the concept of a block with that of a function, treating a block like an inline closure, 
+           kinda, or something like IILE from C++ *)
         let instrumented_vars_declarations = ref [] in
         do_function ~annot_bound kf mk_label instrumented_vars_declarations;
 

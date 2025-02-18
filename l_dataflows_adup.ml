@@ -221,18 +221,38 @@ let rec trunc_fields offset =
       Field (f_info, offset')
   | Index _ | NoOffset -> NoOffset
 
-(** For a given VarOfst V, statement S1 and set of Uses (from dataflow analysis
-    state) Try to find a match (V', S2) in Uses such that V equals V' and S1
-    post-dominate S2 *)
+let pretty_def fmt (defId, (vi, ofst), stmt) =
+  let stmt, sid =
+    match stmt with
+    | Kglobal -> ("Function parameter", -1)
+    | Kstmt stmt -> (Format.asprintf "Stmt %a" Printer.pp_stmt stmt, stmt.sid)
+  in
+  Format.fprintf fmt "defId: %d / var : %a / %s@." defId Cil_printer.pp_lval
+    (Var vi, ofst) stmt;
+  Format.fprintf fmt "sid is: %d@." sid
+
+let pretty_use fmt (((vi, ofst), stmt) : Use.t) =
+  Format.fprintf fmt "var: %a / Stmt: %a@." Printer.pp_lval (Var vi, ofst)
+    Printer.pp_stmt stmt;
+  Format.fprintf fmt "sid is: %d@." stmt.sid
+
+(** For a given VarOfst `varofst`, statement `stmt` and set of Uses (from
+    dataflow analysis state) Try to find a match (`varofst'`, `stmtUse`) in Uses
+    such that `varofst` equals `varofst'` and `stmt` post-dominates `stmtUse` *)
 let is_equivalent varofst stmt kf uses =
   Use.Set.exists
-    (fun (varofst', stmtUse) ->
-      let eq = VarOfst.equal varofst' varofst in
-      (* Our dataflow analysis garanty that uses in state always dominate the
+    (fun (use : Use.t) ->
+      let varofst', stmtUse = use in
+      let varofst_eq = VarOfst.equal varofst' varofst in
+      (* Our dataflow analysis guarantees that uses in state always dominate the
          current statement S1 *)
-      if eq && not (Dominators.dominates stmtUse stmt) then
+      if varofst_eq && not (Dominators.dominates stmtUse stmt) then
         Options.fatal "Discrepancy: This should not happen";
-      eq && Postdominators.is_postdominator kf ~opening:stmtUse ~closing:stmt)
+      let cond =
+        varofst_eq
+        && Postdominators.is_postdominator kf ~opening:stmtUse ~closing:stmt
+      in
+      cond)
     uses
 
 (** Consider uses of V in an expression only once. In v2 = v1 + v1, we will
@@ -274,12 +294,12 @@ let unk_loc = Location.unknown
 (** Perform the part 5- of the heading comment *)
 class visit_defuse
   (* the dataflow analysis state for the current statement, consisting of definitions and uses found _up to this point_ *)
-    (defs_set, uses_set)
+    (defs_set, _uses_set)
   (* the statement for this visitor, it is important to note that all instances of this visitors have a single corresponding statement *)
   (* __jm__ use of this variable also suggests that the visited statement will necessarily be a use *)
     current_stmt
   (* the overarching kernel function, for which a dataflow analysis was performed *)
-    kf
+    _kf
     (* a function specifying how to create instrumenting lines, should be a dependency injection coming from outside this module *)
   =
   object (_)
@@ -352,21 +372,6 @@ class visit_defuse
        first appearance of an lval, it scans defs_set and visited, as opposed to first building up `visited` as
        a unique set of lvals in the expression, and then performing the bookkeeping. *)
     method! vexpr expr =
-      let pretty_def fmt (defId, (vi, ofst), stmt) =
-        let stmt =
-          match stmt with
-          | Kglobal -> "Function parameter"
-          | Kstmt stmt -> Format.asprintf "Stmt %a" Printer.pp_stmt stmt
-        in
-        Format.fprintf fmt "defId: %d / var : %a / %s@." defId
-          Cil_printer.pp_lval (Var vi, ofst) stmt
-      in
-
-      let pretty_use fmt (((vi, ofst), stmt) : Use.t) =
-        Format.fprintf fmt "var: %a / Stmt: %a@." Printer.pp_lval (Var vi, ofst)
-          Printer.pp_stmt stmt
-      in
-
       match expr.enode with
       (* entering this branch basically means we found a use(v) *)
       | Lval (Var v, offset) ->
@@ -381,22 +386,20 @@ class visit_defuse
                 defs_set
             in
             let () =
-              if not (Def.Set.is_empty v_defs) then (
-                if
+              if not (Def.Set.is_empty v_defs) then
+                (* doesn't work as well for *DUP as it might've for DUC metrics *)
+                (* if
                   (not (Options.CleanEquiv.get ()))
                   || not (is_equivalent varofst current_stmt kf uses_set)
-                (* we're holding some valid defs that we now need to bind the use to via mkSeq *)
-                then
-                  Def.Set.iter
-                    (fun (v_def : Def.t) ->
-                      data.du_pairs :=
-                        Seq.cons (v_def, current_stmt) !(data.du_pairs);
-                      match v_def with
-                      | _, _, Kstmt stmt when stmt.sid > current_stmt.sid ->
-                          pretty_def Format.err_formatter v_def;
-                          pretty_use Format.err_formatter (varofst, current_stmt)
-                      | _ -> ())
-                    v_defs)
+                (* we're holding some valid defs that we now need to bind the use to *)
+                then *)
+                Def.Set.iter
+                  (fun (v_def : Def.t) ->
+                    (* pretty_use Format.err_formatter (varofst, current_stmt);
+                      pretty_def Format.err_formatter v_def; *)
+                    data.du_pairs :=
+                      Seq.cons (v_def, current_stmt) !(data.du_pairs))
+                  v_defs
               else
                 Format.eprintf
                   "No def found for %a@. This might indicate usage of an \
@@ -438,19 +441,6 @@ class visit_use (state : t ref) stmt =
 (** Part 4- of the heading comment *)
 module Dataflow = struct
   type nonrec t = t
-
-  let pretty_def fmt (defId, (vi, ofst), stmt) =
-    let stmt =
-      match stmt with
-      | Kglobal -> "Function parameter"
-      | Kstmt stmt -> Format.asprintf "Stmt %a" Printer.pp_stmt stmt
-    in
-    Format.fprintf fmt "defId: %d / var : %a / %s@." defId Cil_printer.pp_lval
-      (Var vi, ofst) stmt
-
-  let pretty_use fmt (((vi, ofst), stmt) : Use.t) =
-    Format.fprintf fmt "var: %a / Stmt: %a@." Printer.pp_lval (Var vi, ofst)
-      Printer.pp_stmt stmt
 
   let pretty_uses fmt set =
     Format.fprintf fmt "  Uses :@.";
@@ -699,28 +689,43 @@ class addSequences mk_label (attempt_reduce : bool) =
             Printer.pp_fundec dec;
           Cil.SkipChildren)
         else
-          (* __jm__ this variable probably holds all declarations of the instrumenting variables,
-           I've tested that even variables not scoped to the entire functions land their corresponding instrumenting variables'
-           declarations at the beginning of the fn. bodies. This is kind of a flaw in the algorithm, because we could limit the
-           amount of instrumentation overhead for unrelated paths if we can avoid this...  
-           One solution would be to unify the concept of a block with that of a function, treating a block like an inline closure, 
-           kinda, or something like IILE from C++ *)
+          (* performs dataflow analysis, gathering valid DU pairs *)
           let () = do_function kf in
-          let rec find_paths (def : stmt) (use : stmt) : int list list =
-            (* Format.printf "def: %d, use: %d, comp: %d@." def.sid use.sid
-            @@ Int.compare def.sid use.sid; *)
-            let open BatOrd in
-            match poly def.sid use.sid with
-            | Eq -> [ [ def.sid ] ]
-            | Lt ->
-                def.succs |> List.to_seq
-                |> Seq.map (fun s -> find_paths s use)
-                |> Seq.map List.to_seq |> Seq.concat
-                |> Seq.map (List.cons def.sid)
-                |> List.of_seq
-            | Gt ->
-                Format.printf "Invalid pairs %d %d@." def.sid use.sid;
-                []
+          let find_paths (varinfo : varinfo) =
+            let is_known_def (stmt : stmt) : bool =
+              stmt |> Data.lookup_seen_defs data
+              |> BatOption.filter (fun (_, (known_varinfo, _), _) ->
+                     Varinfo.equal varinfo known_varinfo)
+              |> BatOption.is_some
+            in
+            let rec find_paths_aux (def : stmt) (use : stmt) : int list list =
+              let () =
+                Format.fprintf Format.err_formatter
+                  "def: %d, use: %d, comp: %d@." def.sid use.sid
+                @@ Int.compare def.sid use.sid
+              in
+              let open BatOrd in
+              match poly def.sid use.sid with
+              | Eq -> [ [ def.sid ] ]
+              | Lt ->
+                  def.succs |> List.to_seq
+                  (* ensure du-paths are def-clear *)
+                  |> Seq.filter (fun succ ->
+                         Stmt.equal use succ || not (is_known_def succ))
+                  (* recursive call to find DAG paths *)
+                  |> Seq.map (fun succ -> find_paths_aux succ use)
+                  (* conversions and flattening *)
+                  |> Seq.map List.to_seq
+                  |> Seq.concat
+                  |> Seq.map (List.cons def.sid)
+                  |> List.of_seq
+              | Gt ->
+                  (* let () =
+                    Format.printf "Invalid pairs %d %d@." def.sid use.sid
+                  in *)
+                  []
+            in
+            find_paths_aux
           in
           let def_to_stmt ((_, _, kinstr) : Def.t) =
             match kinstr with
@@ -731,11 +736,11 @@ class addSequences mk_label (attempt_reduce : bool) =
           let paths =
             !(data.du_pairs)
             |> Seq.map (fun (d, u) ->
-                   let _, (var, _), _ = d in
-                   (var.vname, def_to_stmt d, u))
-            |> Seq.map (fun (vname, d, u) ->
-                   find_paths d u
-                   |> List.map (fun path -> (vname, Array.of_list path)))
+                   let _, (varinfo, _), _ = d in
+                   (varinfo, def_to_stmt d, u))
+            |> Seq.map (fun (varinfo, d, u) ->
+                   find_paths varinfo d u
+                   |> List.map (fun path -> (varinfo.vname, Array.of_list path)))
             |> Seq.map List.to_seq |> Seq.concat
             |> if attempt_reduce then PathReducer.reduce else Fun.id
           in
